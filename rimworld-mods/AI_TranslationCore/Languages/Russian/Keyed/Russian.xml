@@ -129,7 +129,7 @@
   <ATC_DeleteModTrans_Title>Утилизатор переводов (выберите моды для очистки файлов перевода)</ATC_DeleteModTrans_Title>
   <ATC_ConfirmDelete_Btn>Подтвердить удаление перевода для {0} модов (безвозвратно!)</ATC_ConfirmDelete_Btn>
   <ATC_Log_DeleteTransSuccess>🗑️ [ATC System] Успешно удалены файлы перевода для {0} модов (очищено {1} файлов)!</ATC_Log_DeleteTransSuccess>
-  <ATC_Message_DeleteTransSuccess>Успешно удалено {0} файлов перевода! Рекомендуется перезапустить игру для применения изменений.</ATC_Message_DeleteTransSuccess>
+  <ATC_Message_DeleteTransSuccess>Удалено файлов перевода: {0}. В игре восстановлен исходный или встроенный перевод.</ATC_Message_DeleteTransSuccess>
   <ATC_Message_DeleteTransError>⚠️ Ошибка при удалении файлов перевода: {0}</ATC_Message_DeleteTransError>
   <ATC_InputOrSelectModel>Введите или выберите модель...</ATC_InputOrSelectModel>
   <ATC_Msg_NoModelListManualInput>Список моделей пуст, введите название модели вручную!</ATC_Msg_NoModelListManualInput>
@@ -247,7 +247,8 @@
   <ATC_Export_Success_CloseBtn>Закрыть</ATC_Export_Success_CloseBtn>
   <ATC_Log_CooldownTriggered>⏱️ [Cooldown] Экспорт №{0}. Установлена защитная пауза на {1} сек.</ATC_Log_CooldownTriggered>
   <ATC_Log_DailyLimitReached>🛑 [Limit] Достигнут суточный лимит в 100 выгрузок файлов.</ATC_Log_DailyLimitReached>
-  <ATC_AutoClearOldOnUpdate>Максимальная точность: полностью стирать старые файлы перевода перед обновлением модов (рекомендуется во избежание багов)</ATC_AutoClearOldOnUpdate>
+  <ATC_ShowWorldMainButton>Показывать кнопку «ИИ-перевод» на нижней панели игры</ATC_ShowWorldMainButton>
+  <ATC_AutoClearOldOnUpdate>Удалять старые файлы перед повторным переводом обновлённых модов (может потребоваться полный перевод; по умолчанию выключено)</ATC_AutoClearOldOnUpdate>
   <ATC_AutoTranslateOnUpdate>Умный фоновый запуск: автоматически запускать перевод в фоновом режиме при обнаружении апдейтов при запуске игры (по умолчанию выкл.)</ATC_AutoTranslateOnUpdate>
   <ATC_SmartUpdateBtn>Доперевести моды (найдено {0} обновлений)</ATC_SmartUpdateBtn>
   <ATC_ModUpdateStatusBtn>Доперевести моды (найдено {0} устаревших или непереведенных)</ATC_ModUpdateStatusBtn>
@@ -370,6 +371,24 @@
   <ATC_Log_BatchUploadItemFailed>Batch upload skipped "{0}": {1}</ATC_Log_BatchUploadItemFailed>
   <ATC_Log_BatchUploadWorkerFailed>Batch upload worker failed: {0}</ATC_Log_BatchUploadWorkerFailed>
   <ATC_Log_BatchUploadFailedList>Batch upload failed or skipped {0} mod(s): {1}</ATC_Log_BatchUploadFailedList>
+  <ATC_Log_BatchAiRebuildCandidates>Пакетная загрузка ИИ нашла модов для создания чистой ИИ-версии перед загрузкой: {0}.</ATC_Log_BatchAiRebuildCandidates>
+  <ATC_Title_BatchAiRebuildCandidates>Нужна чистая ИИ-версия ({0})</ATC_Title_BatchAiRebuildCandidates>
+  <ATC_Msg_BatchAiRebuildCandidates>У следующих модов нет чистых ИИ-записей для публикации. Выберите один мод для повторного перевода из исходного текста. ATC пересоздаст только выбранный мод в рабочей папке загрузки и не перезапишет локальный перевод.</ATC_Msg_BatchAiRebuildCandidates>
+  <ATC_Log_AiUploadFiltered>Загрузка ИИ для "{0}" отфильтрована: оставлено чистых ИИ-записей {1}, пропущено {2} (внешний перевод-патч {3}, ручная правка {4}, старые без метки {5}, прочее {6}).</ATC_Log_AiUploadFiltered>
+  <ATC_Log_AiUploadNoCleanEntries>Загрузка ИИ для "{0}" пропущена: нет чистых ИИ-записей для публикации; пропущено {1} (внешний перевод-патч {2}, ручная правка {3}, старые без метки {4}, прочее {5}).</ATC_Log_AiUploadNoCleanEntries>
+  <ATC_Msg_AiUploadNoCleanEntries>Загрузка ИИ для "{0}" пропущена: нет чистых ИИ-переводов для публикации. Если это вычитка игрока или перевод-патч, загрузите как Manual или Pro Translation Team.</ATC_Msg_AiUploadNoCleanEntries>
+  <ATC_Msg_AiUploadNoCleanEntriesWithRebuild>Загрузка ИИ для "{0}" пропущена: нет чистых ИИ-переводов для публикации.\n\nЕсли это вычитка игрока или перевод-патч, загрузите как Manual или Pro Translation Team.\n\nATC также может заново создать чистый ИИ-перевод из исходного текста мода. Результат будет помещен в рабочую папку загрузки и не перезапишет текущий локальный перевод.</ATC_Msg_AiUploadNoCleanEntriesWithRebuild>
+  <ATC_Title_PureAiRebuildForUpload>Создать чистую ИИ-версию</ATC_Title_PureAiRebuildForUpload>
+  <ATC_Btn_PureAiRebuildForUpload>Перевести заново из оригинала</ATC_Btn_PureAiRebuildForUpload>
+  <ATC_Msg_PureAiRebuildBusy>Уже выполняется задача. Дождитесь завершения перед созданием чистой ИИ-версии.</ATC_Msg_PureAiRebuildBusy>
+  <ATC_Task_PureAiRebuildForUpload>Создание чистой ИИ-версии: {0}</ATC_Task_PureAiRebuildForUpload>
+  <ATC_Log_PureAiRebuildStart>Создание чистой ИИ-версии из исходного текста мода: {0}</ATC_Log_PureAiRebuildStart>
+  <ATC_Log_PureAiWorkspaceBackedUp>Рабочая папка загрузки для "{0}" сохранена и очищена, чтобы не смешивать старые ручные правки.</ATC_Log_PureAiWorkspaceBackedUp>
+  <ATC_Log_PureAiRebuildDone>Чистая ИИ-версия готова: {0}, добавлено ИИ-записей {1}. Вернитесь во вкладку облака и загрузите снова.</ATC_Log_PureAiRebuildDone>
+  <ATC_Log_PureAiRebuildNoEntries>Чистая ИИ-версия не создала записей для загрузки: {0}.</ATC_Log_PureAiRebuildNoEntries>
+  <ATC_Log_PureAiRebuildBlockedPatchMod>Пропущено "{0}": похоже на мод-патч перевода, его не следует пересоздавать как ИИ-загрузку.</ATC_Log_PureAiRebuildBlockedPatchMod>
+  <ATC_Msg_PureAiRebuildDone>Чистая ИИ-версия для "{0}" готова. Вернитесь во вкладку облака и загрузите снова.</ATC_Msg_PureAiRebuildDone>
+  <ATC_Msg_PureAiRebuildNoEntries>"{0}" не создал чистых ИИ-записей для загрузки.</ATC_Msg_PureAiRebuildNoEntries>
   <ATC_Cloud_ShowMineOnly>Show My Uploads Only</ATC_Cloud_ShowMineOnly>
   <ATC_Cloud_MyUploadsCount>My uploads: {0}</ATC_Cloud_MyUploadsCount>
   <ATC_Cloud_NoMyUploads>No cloud translations uploaded from this device were found.</ATC_Cloud_NoMyUploads>
@@ -378,6 +397,7 @@
   <ATC_Cloud_Type_AI>🤖 Машинный (ИИ) перевод</ATC_Cloud_Type_AI>
   <ATC_Cloud_Type_Manual>✍️ Ручная доработка человеком</ATC_Cloud_Type_Manual>
   <ATC_Cloud_Status_Manual>🟢 Пользовательская доработка</ATC_Cloud_Status_Manual>
+  <ATC_Cloud_Status_LegacyAI>🟤 Старая загрузка, источник не записан</ATC_Cloud_Status_LegacyAI>
   <ATC_EmergencyResetTitle>Аварийная аптечка (Опасная зона системы)</ATC_EmergencyResetTitle>
   <ATC_Btn_FactoryReset>Сбросить все настройки и стереть оффлайн-кэш</ATC_Btn_FactoryReset>
   <ATC_Msg_ConfirmFactoryReset>Внимание: Очистит весь кэш локализаций и обнулит UI-память. Действительно сбросить? (Отменить это действие невозможно)</ATC_Msg_ConfirmFactoryReset>
@@ -438,6 +458,8 @@
   <ATC_Type_Official>Профессиональный русификатор</ATC_Type_Official>
   <ATC_Type_Manual>Ручной перевод пользователя</ATC_Type_Manual>
   <ATC_Type_AI>ИИ-Машинный перевод</ATC_Type_AI>
+  <ATC_Type_LegacyAI>Старый ИИ-перевод</ATC_Type_LegacyAI>
+  <ATC_Cloud_LegacyAiTooltip>Этот перевод был загружен старой версией, поэтому источник не записан. Он может содержать ИИ-перевод, правки игроков или внешние источники перевода.</ATC_Cloud_LegacyAiTooltip>
   <ATC_UploadPreview_NoTranslation>Пригодные для загрузки файлы перевода не обнаружены!\n(Сначала запустите автоперевод ИИ или поместите ручные файлы в папку Upload_Workspace)</ATC_UploadPreview_NoTranslation>
   <ATC_Msg_UploadFailedNoFiles>Не удалось завершить отправку: файлы перевода не найдены!</ATC_Msg_UploadFailedNoFiles>
   <ATC_Log_CleanedGhostTwins>[System] Чтобы избежать конфликтов перевода, {0} старых остаточных фантомных файлов успешно отправлены в небытие!</ATC_Log_CleanedGhostTwins>
@@ -462,6 +484,7 @@
   <ATC_Tab_Editor>Глобальный редактор</ATC_Tab_Editor>
   <ATC_Workbench_SearchMod>Название мода или его уникальный ID...</ATC_Workbench_SearchMod>
   <ATC_Workbench_ShowTranslatedOnly>Показывать только моды с готовым переводом</ATC_Workbench_ShowTranslatedOnly>
+  <ATC_Workbench_ShowUntranslatedOnly>Показывать только непереведенные моды</ATC_Workbench_ShowUntranslatedOnly>
   <ATC_Workbench_SelectModHint>Пожалуйста, выберите целевой мод для редактирования в списке слева</ATC_Workbench_SelectModHint>
   <ATC_Workbench_BackToList>Вернуться к списку модов</ATC_Workbench_BackToList>
   <ATC_Cloud_SearchHint>Поиск по названию или ID мода...</ATC_Cloud_SearchHint>
@@ -480,6 +503,31 @@
   <ATC_Workbench_NoLongerMatchesSearch>Изменено, больше не соответствует исходному поиску</ATC_Workbench_NoLongerMatchesSearch>
   <ATC_Workbench_RevertItem>Откатить</ATC_Workbench_RevertItem>
   <ATC_Workbench_ItemReverted>Элемент восстановлен.</ATC_Workbench_ItemReverted>
+  <ATC_Workbench_CopyOriginal>Копия</ATC_Workbench_CopyOriginal>
+  <ATC_Workbench_CopyOriginalTip>Скопировать исходный текст этой строки в буфер обмена.</ATC_Workbench_CopyOriginalTip>
+  <ATC_Workbench_OriginalCopied>Исходный текст скопирован.</ATC_Workbench_OriginalCopied>
+  <ATC_Workbench_TranslateOriginal>Перевести</ATC_Workbench_TranslateOriginal>
+  <ATC_Workbench_TranslateOriginalBusy>Перевод</ATC_Workbench_TranslateOriginalBusy>
+  <ATC_Workbench_TranslateOriginalTip>Перевести только исходный текст этой строки в правое поле. Нажмите сохранить, чтобы применить.</ATC_Workbench_TranslateOriginalTip>
+  <ATC_Workbench_TranslateOriginalStarted>Перевод этой строки...</ATC_Workbench_TranslateOriginalStarted>
+  <ATC_Workbench_TranslateOriginalDone>AI-перевод одной строки вставлен. Еще не сохранено.</ATC_Workbench_TranslateOriginalDone>
+  <ATC_Workbench_TranslateOriginalFailed>Не удалось перевести эту строку. Проверьте API или попробуйте позже.</ATC_Workbench_TranslateOriginalFailed>
+  <ATC_Workbench_TranslateOriginalBusyGlobal>Уже выполняется задача перевода. Повторите после завершения.</ATC_Workbench_TranslateOriginalBusyGlobal>
+  <ATC_Workbench_AllCategories>Все категории ({0})</ATC_Workbench_AllCategories>
+  <ATC_Workbench_BatchReplaceBtn>Замена</ATC_Workbench_BatchReplaceBtn>
+  <ATC_Workbench_BatchReplaceTip>Найти и заменить текст в нескольких переводах.</ATC_Workbench_BatchReplaceTip>
+  <ATC_Workbench_BatchReplaceTitle>Пакетный поиск и замена</ATC_Workbench_BatchReplaceTitle>
+  <ATC_Workbench_BatchFindLabel>Найти</ATC_Workbench_BatchFindLabel>
+  <ATC_Workbench_BatchReplaceLabel>Заменить на</ATC_Workbench_BatchReplaceLabel>
+  <ATC_Workbench_BatchScopeLabel>Область</ATC_Workbench_BatchScopeLabel>
+  <ATC_Workbench_BatchCaseSensitive>Учитывать регистр</ATC_Workbench_BatchCaseSensitive>
+  <ATC_Workbench_BatchMatchCount>Будет изменено записей: {0}</ATC_Workbench_BatchMatchCount>
+  <ATC_Workbench_BatchApplyBtn>Применить</ATC_Workbench_BatchApplyBtn>
+  <ATC_Workbench_BatchScopeVisible>Видимые результаты</ATC_Workbench_BatchScopeVisible>
+  <ATC_Workbench_BatchScopeCategory>Текущая категория</ATC_Workbench_BatchScopeCategory>
+  <ATC_Workbench_BatchScopeAll>Все категории</ATC_Workbench_BatchScopeAll>
+  <ATC_Workbench_BatchConfirm>Заменить текст в {0} записях? Изменения не сохранены, их еще можно отменить.</ATC_Workbench_BatchConfirm>
+  <ATC_Workbench_BatchReplaceSuccess>Изменено записей: {0}. Еще не сохранено.</ATC_Workbench_BatchReplaceSuccess>
   <ATC_Workbench_SaveSynced>Синхронизировано</ATC_Workbench_SaveSynced>
   <ATC_Workbench_UnsavedChanges>Есть несохраненные изменения.</ATC_Workbench_UnsavedChanges>
   <ATC_Workbench_Saving>Сохранение...</ATC_Workbench_Saving>
@@ -496,4 +544,47 @@
   <ATC_ModStatus_Filtered>Отфильтровано</ATC_ModStatus_Filtered>
   <ATC_Msg_CloudUploadPatchModBlocked>&#x0417;&#x0430;&#x0433;&#x0440;&#x0443;&#x0437;&#x043A;&#x0430; &#x0437;&#x0430;&#x0431;&#x043B;&#x043E;&#x043A;&#x0438;&#x0440;&#x043E;&#x0432;&#x0430;&#x043D;&#x0430;: {0} &#x043F;&#x043E;&#x0445;&#x043E;&#x0436; &#x043D;&#x0430; &#x043C;&#x043E;&#x0434; &#x043B;&#x043E;&#x043A;&#x0430;&#x043B;&#x0438;&#x0437;&#x0430;&#x0446;&#x0438;&#x0438; &#x0438;&#x043B;&#x0438; &#x043F;&#x0430;&#x0442;&#x0447; &#x043F;&#x0435;&#x0440;&#x0435;&#x0432;&#x043E;&#x0434;&#x0430;. &#x041E;&#x0431;&#x043B;&#x0430;&#x0447;&#x043D;&#x044B;&#x0439; &#x043E;&#x0431;&#x043C;&#x0435;&#x043D; &#x043F;&#x0440;&#x0438;&#x043D;&#x0438;&#x043C;&#x0430;&#x0435;&#x0442; &#x0442;&#x043E;&#x043B;&#x044C;&#x043A;&#x043E; &#x0432;&#x043D;&#x0435;&#x0434;&#x0440;&#x044F;&#x0435;&#x043C;&#x044B;&#x0435; &#x043F;&#x0435;&#x0440;&#x0435;&#x0432;&#x043E;&#x0434;&#x044B; &#x0434;&#x043B;&#x044F; &#x0438;&#x0441;&#x0445;&#x043E;&#x0434;&#x043D;&#x044B;&#x0445; &#x043C;&#x043E;&#x0434;&#x043E;&#x0432;.</ATC_Msg_CloudUploadPatchModBlocked>
   <ATC_Msg_CloudBatchPatchModsSkipped>&#x041F;&#x0440;&#x043E;&#x043F;&#x0443;&#x0449;&#x0435;&#x043D;&#x043E; {0} &#x043C;&#x043E;&#x0434;&#x043E;&#x0432; &#x043B;&#x043E;&#x043A;&#x0430;&#x043B;&#x0438;&#x0437;&#x0430;&#x0446;&#x0438;&#x0438; &#x0438;&#x043B;&#x0438; &#x043F;&#x0430;&#x0442;&#x0447;&#x0435;&#x0439; &#x043F;&#x0435;&#x0440;&#x0435;&#x0432;&#x043E;&#x0434;&#x0430;. &#x041E;&#x043D;&#x0438; &#x043D;&#x0435; &#x0431;&#x0443;&#x0434;&#x0443;&#x0442; &#x0437;&#x0430;&#x0433;&#x0440;&#x0443;&#x0436;&#x0435;&#x043D;&#x044B; &#x0432; &#x043E;&#x0431;&#x043B;&#x0430;&#x0447;&#x043D;&#x044B;&#x0439; &#x043E;&#x0431;&#x043C;&#x0435;&#x043D;.</ATC_Msg_CloudBatchPatchModsSkipped>
+  <ATC_Corrections_Button>Entries</ATC_Corrections_Button>
+  <ATC_Corrections_ButtonTip>View approved single-entry translation corrections. Apply or remove them one by one.</ATC_Corrections_ButtonTip>
+  <ATC_Corrections_StatusCount>Single-entry fixes: {0}</ATC_Corrections_StatusCount>
+  <ATC_Corrections_StatusOfficial>Official text: single-entry fixes available</ATC_Corrections_StatusOfficial>
+  <ATC_Corrections_StatusChecking>Checking single-entry fixes...</ATC_Corrections_StatusChecking>
+  <ATC_Corrections_Title>Single-Entry Corrections - {0}</ATC_Corrections_Title>
+  <ATC_Corrections_Loading>Loading approved corrections...</ATC_Corrections_Loading>
+  <ATC_Corrections_LoadFailed>Failed to load corrections: {0}</ATC_Corrections_LoadFailed>
+  <ATC_Corrections_Empty>No approved single-entry corrections for this package and language yet.</ATC_Corrections_Empty>
+  <ATC_Corrections_UnknownContributor>Unknown contributor</ATC_Corrections_UnknownContributor>
+  <ATC_Corrections_Byline>By {0} / {1}</ATC_Corrections_Byline>
+  <ATC_Corrections_ApplyBtn>Apply This Entry</ATC_Corrections_ApplyBtn>
+  <ATC_Corrections_RemoveBtn>Remove This Entry</ATC_Corrections_RemoveBtn>
+  <ATC_Corrections_SourceBtn>View Original</ATC_Corrections_SourceBtn>
+  <ATC_Corrections_Applied>Applied locally</ATC_Corrections_Applied>
+  <ATC_Corrections_NotApplied>Not applied</ATC_Corrections_NotApplied>
+  <ATC_Corrections_ApplySuccess>Single-entry correction applied locally.</ATC_Corrections_ApplySuccess>
+  <ATC_Corrections_ApplyFailed>Could not apply this correction.</ATC_Corrections_ApplyFailed>
+  <ATC_Corrections_RemoveSuccess>Single-entry correction removed locally.</ATC_Corrections_RemoveSuccess>
+  <ATC_Corrections_RemoveFailed>This correction was not applied locally.</ATC_Corrections_RemoveFailed>
+  <ATC_Corrections_RefreshBtn>Refresh</ATC_Corrections_RefreshBtn>
+  <ATC_Workbench_ExportOriginalXml>Экспорт исходного XML</ATC_Workbench_ExportOriginalXml>
+  <ATC_Workbench_ExportOriginalXmlTip>Экспортировать все исходные тексты выбранной категории в редактируемый XML.</ATC_Workbench_ExportOriginalXmlTip>
+  <ATC_Workbench_ImportEditedXml>Импорт изменённого XML</ATC_Workbench_ImportEditedXml>
+  <ATC_Workbench_ImportEditedXmlTip>Импортировать XML как несохранённые изменения. Проверьте их, затем сохраните и примените.</ATC_Workbench_ImportEditedXmlTip>
+  <ATC_Workbench_OpenWorkspace>Открыть рабочую папку</ATC_Workbench_OpenWorkspace>
+  <ATC_Workbench_OpenWorkspaceTip>Открыть корневую папку этого мода в Upload_Workspace.</ATC_Workbench_OpenWorkspaceTip>
+  <ATC_Workbench_ManualXmlWorking>Обработка XML ручного перевода...</ATC_Workbench_ManualXmlWorking>
+  <ATC_Workbench_ManualXmlExported>Экспортировано исходных записей: {0}.</ATC_Workbench_ManualXmlExported>
+  <ATC_Workbench_ManualXmlImported>Импортировано изменений: {0}. Они ещё не сохранены.</ATC_Workbench_ManualXmlImported>
+  <ATC_Workbench_ManualXmlNoEntries>В выбранной категории нет исходных записей для экспорта.</ATC_Workbench_ManualXmlNoEntries>
+  <ATC_Workbench_ManualXmlNoChanges>В изменённом XML не найдено подходящих изменений.</ATC_Workbench_ManualXmlNoChanges>
+  <ATC_Workbench_ManualXmlImportFailed>Не удалось импортировать изменённый XML.</ATC_Workbench_ManualXmlImportFailed>
+  <ATC_Blacklist_Open>Чёрные списки (перевод {0} / загрузка {1})</ATC_Blacklist_Open>
+  <ATC_Blacklist_OpenTip>Выберите моды, которые нужно пропускать при ИИ-переводе или пакетной загрузке.</ATC_Blacklist_OpenTip>
+  <ATC_Blacklist_Title>Чёрные списки перевода и облачной загрузки</ATC_Blacklist_Title>
+  <ATC_Blacklist_TranslationColumn>Не переводить</ATC_Blacklist_TranslationColumn>
+  <ATC_Blacklist_DownloadColumn>Не загружать</ATC_Blacklist_DownloadColumn>
+  <ATC_Blacklist_ClearAll>Очистить все списки</ATC_Blacklist_ClearAll>
+  <ATC_Blacklist_TranslationSkipped>{0} находится в чёрном списке перевода и был пропущен.</ATC_Blacklist_TranslationSkipped>
+  <ATC_Blacklist_DownloadSkipped>Облачная загрузка пропущена для заблокированного мода: {0}</ATC_Blacklist_DownloadSkipped>
+  <ATC_Blacklist_DownloadBlockedStatus>Облачная загрузка заблокирована</ATC_Blacklist_DownloadBlockedStatus>
+  <ATC_Cloud_Btn_BatchBestTip>Загружает только активные установленные моды, для которых уже есть подходящий перевод в облаке.</ATC_Cloud_Btn_BatchBestTip>
 </LanguageData>

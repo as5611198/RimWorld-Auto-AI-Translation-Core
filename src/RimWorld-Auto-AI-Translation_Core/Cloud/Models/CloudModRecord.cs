@@ -45,6 +45,15 @@ namespace AutoTranslator_Core
         // 這個屬性提供 翻譯Type 的讀寫或計算結果。
         // EN: This property exposes translation type.
         public string TranslationType { get; set; }
+        // 這個屬性提供 翻譯SourceKind 的讀寫或計算結果。
+        // EN: This property exposes translation source kind.
+        public string TranslationSourceKind { get; set; }
+        // 這個屬性提供 SourceKind 的讀寫或計算結果，用於相容雲端欄位別名。
+        // EN: This property exposes source kind alias for cloud compatibility.
+        public string SourceKind { get; set; }
+        // 這個屬性提供 翻譯SourceSchemaVersion 的讀寫或計算結果。
+        // EN: This property exposes translation source schema version.
+        public int TranslationSourceSchemaVersion { get; set; }
         // 這個屬性提供 IsVerified 的讀寫或計算結果。
         // EN: This property exposes is verified.
         public bool IsVerified { get; set; }

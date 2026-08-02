@@ -37,6 +37,14 @@ namespace AutoTranslator_Core
             public string ModName;
             public string TaskName;
             public bool CopyBackToLivePack;
+            public ModMetaData Mod;
+        }
+
+        private sealed class BatchAiRebuildCandidate
+        {
+            public string PackageId;
+            public string DisplayName;
+            public ModMetaData Mod;
         }
 
         private sealed class CloudLocalModSnapshot
@@ -44,6 +52,7 @@ namespace AutoTranslator_Core
             public string PackageId;
             public string DisplayName;
             public bool ShouldSkipCloudSharing;
+            public ModMetaData Mod;
         }
 
         private sealed class BatchDownloadItem
@@ -132,7 +141,10 @@ namespace AutoTranslator_Core
             CloudBatchDownloadMode mode = ParseBatchDownloadMode(targetType);
             string targetLangStr = AutoTranslatorScanner.GetFolderNameByLanguage(AutoTranslatorMod.Settings.CloudTargetLang);
             List<CloudLocalModSnapshot> localMods = Verse.ModLister.AllInstalledMods
-                .Where(m => m.Active && !ShouldSkipCloudSharingMod(m))
+                .Where(m => m.Active &&
+                            !ShouldSkipCloudSharingMod(m) &&
+                            !AutoTranslatorMod.Settings.IsCloudDownloadBlacklisted(m.PackageId) &&
+                            !AutoTranslatorScanner.IsOfficialBaseGameOrDlcPackage(m.PackageId))
                 .Select(m => new CloudLocalModSnapshot
                 {
                     PackageId = m.PackageId,
@@ -217,6 +229,8 @@ namespace AutoTranslator_Core
                 foreach (CloudModRecord record in recordsByPackage.Values)
                 {
                     if (record == null || string.IsNullOrWhiteSpace(record.PackageId)) continue;
+                    if (AutoTranslatorScanner.IsOfficialBaseGameOrDlcPackage(record.PackageId)) continue;
+                    if (AutoTranslatorMod.Settings != null && AutoTranslatorMod.Settings.IsCloudDownloadBlacklisted(record.PackageId)) continue;
                     if (!localModsByPackage.TryGetValue(record.PackageId, out CloudLocalModSnapshot mod)) continue;
                     result.Items.Add(new BatchDownloadItem
                     {
@@ -314,13 +328,40 @@ namespace AutoTranslator_Core
                 List<string> failedMods = new List<string>();
                 List<string> repairedPackages = new List<string>();
                 int totalCount = modsToDownload != null ? modsToDownload.Count : 0;
+                HashSet<string> pendingPreclearedPackages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                HashSet<string> packagesWithPreviousTranslations = ModUpdateDetector.GetPackageIdsWithLocalTranslationFilesForKnownPackages(
+                    (modsToDownload ?? new List<BatchDownloadItem>()).Select(item => item.PackageId),
+                    AutoTranslatorMod.Settings.CloudTargetLang);
 
                 AutoTranslatorSettings.IsRunning = true;
 
                 try
                 {
+                    const int clearChunkSize = 32;
                     for (int i = 0; i < totalCount; i++)
                     {
+                        if (i % clearChunkSize == 0)
+                        {
+                            List<AutoTranslatorScanner.LocalTranslationDeleteTarget> clearTargets = modsToDownload
+                                .Skip(i)
+                                .Take(clearChunkSize)
+                                .Select(item => new AutoTranslatorScanner.LocalTranslationDeleteTarget
+                                {
+                                    PackageId = item.PackageId,
+                                    ModName = item.DisplayName
+                                })
+                                .ToList();
+                            AutoTranslatorScanner.DeleteLocalTranslationFiles(
+                                clearTargets,
+                                createBackup: true,
+                                requestRuntimeRefresh: false,
+                                logResult: false);
+                            foreach (AutoTranslatorScanner.LocalTranslationDeleteTarget target in clearTargets)
+                            {
+                                pendingPreclearedPackages.Add(target.PackageId);
+                            }
+                        }
+
                         BatchDownloadItem mod = modsToDownload[i];
                         UpdateBatchTaskProgress("ATC_Cloud_Downloading", mod.DisplayName, totalCount > 0 ? (float)i / totalCount : 0f);
 
@@ -329,14 +370,25 @@ namespace AutoTranslator_Core
                             PackageId = mod.PackageId,
                             ModName = mod.DisplayName
                         };
-                        bool success = await AutoTranslatorCloudClient.DownloadAndInjectAsync(mod.PackageId, targetLangStr, mod.Record, requestMemoryDrop: false, requestRuntimeRefreshAfterClear: false, clearTarget: clearTarget);
+                        bool success = await AutoTranslatorCloudClient.DownloadAndInjectAsync(
+                            mod.PackageId,
+                            targetLangStr,
+                            mod.Record,
+                            requestMemoryDrop: false,
+                            requestRuntimeRefreshAfterClear: false,
+                            clearTarget: clearTarget,
+                            clearExistingTranslations: false,
+                            restoreBackupOnFailure: false);
                         if (success)
                         {
+                            pendingPreclearedPackages.Remove(mod.PackageId);
                             successCount++;
                             repairedPackages.Add(mod.PackageId);
                         }
                         else
                         {
+                            RestorePreclearedBatchPackage(mod.PackageId, packagesWithPreviousTranslations);
+                            pendingPreclearedPackages.Remove(mod.PackageId);
                             failCount++;
                             failedMods.Add(mod.DisplayName);
                         }
@@ -368,6 +420,10 @@ namespace AutoTranslator_Core
                 }
                 catch (Exception ex)
                 {
+                    foreach (string packageId in pendingPreclearedPackages)
+                    {
+                        RestorePreclearedBatchPackage(packageId, packagesWithPreviousTranslations);
+                    }
                     ATC_Dispatcher.RunOnMainThread(() =>
                     {
                         AutoTranslatorSettings.IsRunning = false;
@@ -378,6 +434,22 @@ namespace AutoTranslator_Core
                     });
                 }
             });
+        }
+
+        private static void RestorePreclearedBatchPackage(string packageId, HashSet<string> packagesWithPreviousTranslations)
+        {
+            if (string.IsNullOrWhiteSpace(packageId) ||
+                packagesWithPreviousTranslations == null ||
+                !packagesWithPreviousTranslations.Contains(packageId))
+            {
+                return;
+            }
+
+            AutoTranslatorScanner.RestoreLatestBackups(
+                new List<AutoTranslatorScanner.LocalTranslationRestoreTarget>
+                {
+                    new AutoTranslatorScanner.LocalTranslationRestoreTarget { PackageId = packageId }
+                });
         }
 
         private static void UpdateBatchTaskProgress(string translationKey, string argument, float progress)
@@ -412,7 +484,8 @@ namespace AutoTranslator_Core
                 {
                     PackageId = m.PackageId,
                     DisplayName = m.Name,
-                    ShouldSkipCloudSharing = ShouldSkipCloudSharingMod(m)
+                    ShouldSkipCloudSharing = ShouldSkipCloudSharingMod(m),
+                    Mod = m
                 })
                 .ToList();
             if (QueueBatchUploadPreparation(
@@ -513,6 +586,7 @@ namespace AutoTranslator_Core
                 int successCount = 0;
                 int failCount = 0;
                 List<string> failedMods = new List<string>();
+                List<BatchAiRebuildCandidate> aiRebuildCandidates = new List<BatchAiRebuildCandidate>();
 
                 AutoTranslatorSettings.IsRunning = true;
 
@@ -539,7 +613,8 @@ namespace AutoTranslator_Core
                                 continue;
                             }
 
-                            if (AutoTranslatorScanner.GetXmlFilesForTranslationCache(langDir, System.IO.SearchOption.AllDirectories).Count == 0)
+                            if (!AutoTranslatorScanner.GetXmlFilesForTranslationCache(langDir, System.IO.SearchOption.AllDirectories)
+                                    .Any(file => !AutoTranslatorScanner.IsWorkbenchManualExportPath(file)))
                             {
                                 failCount++;
                                 failedMods.Add(displayName);
@@ -549,7 +624,9 @@ namespace AutoTranslator_Core
 
                             string modName = !string.IsNullOrEmpty(item.ModName) ? item.ModName : displayName;
 
-                            bool success = await AutoTranslatorCloudClient.UploadTranslationAsync(packageId, targetLangFolder, modName, uNickname, uploadType, langDir, uToken, updateLog);
+                            AutoTranslatorCloudClient.UploadTranslationResult uploadResult =
+                                await AutoTranslatorCloudClient.UploadTranslationWithDetailsAsync(packageId, targetLangFolder, modName, uNickname, uploadType, langDir, uToken, updateLog);
+                            bool success = uploadResult != null && uploadResult.Success;
 
                             if (success)
                             {
@@ -558,6 +635,7 @@ namespace AutoTranslator_Core
 
                                 foreach (string file in AutoTranslatorScanner.GetXmlFilesForTranslationCache(langDir, System.IO.SearchOption.AllDirectories))
                                 {
+                                    if (AutoTranslatorScanner.IsWorkbenchManualExportPath(file)) continue;
                                     string relPath = file.Substring(langDir.Length).TrimStart('\\', '/');
 
                                     string justFileName = System.IO.Path.GetFileName(file);
@@ -582,6 +660,21 @@ namespace AutoTranslator_Core
                             {
                                 failCount++;
                                 failedMods.Add(displayName);
+                                AutoTranslatorScanner.TranslationUploadProvenanceSummary provenanceSummary =
+                                    uploadResult != null ? uploadResult.ProvenanceSummary : null;
+                                if (AutoTranslatorScanner.IsAiUploadBlockedByProvenance(provenanceSummary))
+                                {
+                                    AutoTranslatorSettings.AddLog("⚠️ " + AutoTranslatorScanner.FormatAiUploadNoCleanLog(displayName, provenanceSummary));
+                                    if (item.Mod != null && !aiRebuildCandidates.Any(c => string.Equals(c.PackageId, packageId, StringComparison.OrdinalIgnoreCase)))
+                                    {
+                                        aiRebuildCandidates.Add(new BatchAiRebuildCandidate
+                                        {
+                                            PackageId = packageId,
+                                            DisplayName = displayName,
+                                            Mod = item.Mod
+                                        });
+                                    }
+                                }
                             }
                         }
                         catch (Exception itemEx)
@@ -611,6 +704,12 @@ namespace AutoTranslator_Core
                         if (failCount > 0)
                         {
                             AutoTranslatorSettings.AddLog("⚠️ " + "ATC_Log_BatchUploadFailedList".Translate(failCount, string.Join(", ", failedMods.Take(8).ToArray())));
+                        }
+
+                        if (aiRebuildCandidates.Count > 0)
+                        {
+                            AutoTranslatorSettings.AddLog("⚠️ " + "ATC_Log_BatchAiRebuildCandidates".Translate(aiRebuildCandidates.Count));
+                            Find.WindowStack.Add(new Window_BatchAiRebuildPicker(aiRebuildCandidates));
                         }
 
                         AutoTranslatorSettings.HasFetchedCloudThisSession = false;
@@ -726,7 +825,8 @@ namespace AutoTranslator_Core
                             SourceDir = langDir,
                             DisplayName = displayName,
                             ModName = displayName,
-                            CopyBackToLivePack = true
+                            CopyBackToLivePack = true,
+                            Mod = installed != null ? installed.Mod : null
                         });
                     }
                 }
@@ -749,7 +849,8 @@ namespace AutoTranslator_Core
                             SourceDir = liveLangDir,
                             DisplayName = mod.DisplayName,
                             ModName = mod.DisplayName,
-                            CopyBackToLivePack = false
+                            CopyBackToLivePack = false,
+                            Mod = mod.Mod
                         });
                     }
                 }
@@ -778,6 +879,7 @@ namespace AutoTranslator_Core
                 int successCount = 0;
                 int failCount = 0;
                 List<string> failedMods = new List<string>();
+                List<BatchAiRebuildCandidate> aiRebuildCandidates = new List<BatchAiRebuildCandidate>();
 
                 AutoTranslatorSettings.IsRunning = true;
 
@@ -804,7 +906,8 @@ namespace AutoTranslator_Core
                                 continue;
                             }
 
-                            if (AutoTranslatorScanner.GetXmlFilesForTranslationCache(langDir, SearchOption.AllDirectories).Count == 0)
+                            if (!AutoTranslatorScanner.GetXmlFilesForTranslationCache(langDir, SearchOption.AllDirectories)
+                                    .Any(file => !AutoTranslatorScanner.IsWorkbenchManualExportPath(file)))
                             {
                                 failCount++;
                                 failedMods.Add(displayName);
@@ -814,7 +917,9 @@ namespace AutoTranslator_Core
 
                             string modName = !string.IsNullOrEmpty(item.ModName) ? item.ModName : displayName;
 
-                            bool success = await AutoTranslatorCloudClient.UploadTranslationAsync(packageId, targetLangFolder, modName, uNickname, uploadType, langDir, uToken, updateLog);
+                            AutoTranslatorCloudClient.UploadTranslationResult uploadResult =
+                                await AutoTranslatorCloudClient.UploadTranslationWithDetailsAsync(packageId, targetLangFolder, modName, uNickname, uploadType, langDir, uToken, updateLog);
+                            bool success = uploadResult != null && uploadResult.Success;
 
                             if (success)
                             {
@@ -823,6 +928,7 @@ namespace AutoTranslator_Core
 
                                 foreach (string file in AutoTranslatorScanner.GetXmlFilesForTranslationCache(langDir, SearchOption.AllDirectories))
                                 {
+                                    if (AutoTranslatorScanner.IsWorkbenchManualExportPath(file)) continue;
                                     string relPath = file.Substring(langDir.Length).TrimStart('\\', '/');
 
                                     string justFileName = Path.GetFileName(file);
@@ -847,6 +953,21 @@ namespace AutoTranslator_Core
                             {
                                 failCount++;
                                 failedMods.Add(displayName);
+                                AutoTranslatorScanner.TranslationUploadProvenanceSummary provenanceSummary =
+                                    uploadResult != null ? uploadResult.ProvenanceSummary : null;
+                                if (AutoTranslatorScanner.IsAiUploadBlockedByProvenance(provenanceSummary))
+                                {
+                                    AutoTranslatorSettings.AddLog("⚠️ " + AutoTranslatorScanner.FormatAiUploadNoCleanLog(displayName, provenanceSummary));
+                                    if (item.Mod != null && !aiRebuildCandidates.Any(c => string.Equals(c.PackageId, packageId, StringComparison.OrdinalIgnoreCase)))
+                                    {
+                                        aiRebuildCandidates.Add(new BatchAiRebuildCandidate
+                                        {
+                                            PackageId = packageId,
+                                            DisplayName = displayName,
+                                            Mod = item.Mod
+                                        });
+                                    }
+                                }
                             }
                         }
                         catch (Exception itemEx)
@@ -877,6 +998,12 @@ namespace AutoTranslator_Core
                             AutoTranslatorSettings.AddLog("? " + "ATC_Log_BatchUploadFailedList".Translate(failCount, string.Join(", ", failedMods.Take(8).ToArray())));
                         }
 
+                        if (aiRebuildCandidates.Count > 0)
+                        {
+                            AutoTranslatorSettings.AddLog("⚠️ " + "ATC_Log_BatchAiRebuildCandidates".Translate(aiRebuildCandidates.Count));
+                            Find.WindowStack.Add(new Window_BatchAiRebuildPicker(aiRebuildCandidates));
+                        }
+
                         AutoTranslatorSettings.HasFetchedCloudThisSession = false;
                         ModUpdateDetector.ClearStatusCache();
                         TranslationWorkbenchTab.RequestRefresh();
@@ -893,6 +1020,7 @@ namespace AutoTranslator_Core
 
             foreach (string file in AutoTranslatorScanner.GetXmlFilesForTranslationCache(sourceDir, System.IO.SearchOption.AllDirectories))
             {
+                if (AutoTranslatorScanner.IsWorkbenchManualExportPath(file)) continue;
                 if (isWorkspace) return true;
 
                 string fileName = System.IO.Path.GetFileName(file).ToLower();
@@ -1021,6 +1149,91 @@ namespace AutoTranslator_Core
                 case "Official_Group": return "ATC_Type_Official".Translate().ToString();
                 case "Manual": return "ATC_Type_Manual".Translate().ToString();
                 default: return "ATC_Type_AI".Translate().ToString();
+            }
+        }
+
+        private sealed class Window_BatchAiRebuildPicker : Window
+        {
+            private readonly List<BatchAiRebuildCandidate> candidates;
+            private Vector2 scrollPos = Vector2.zero;
+
+            public override Vector2 InitialSize => new Vector2(640f, 560f);
+
+            public Window_BatchAiRebuildPicker(IEnumerable<BatchAiRebuildCandidate> candidates)
+            {
+                this.candidates = (candidates ?? Enumerable.Empty<BatchAiRebuildCandidate>())
+                    .Where(c => c != null && c.Mod != null)
+                    .GroupBy(c => c.PackageId ?? "", StringComparer.OrdinalIgnoreCase)
+                    .Select(g => g.First())
+                    .OrderBy(c => c.DisplayName ?? c.PackageId, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                doCloseButton = false;
+                doCloseX = true;
+                forcePause = true;
+                absorbInputAroundWindow = true;
+            }
+
+            public override void DoWindowContents(Rect inRect)
+            {
+                bool previousBypass = Patch_GUI_Label_GUIContent.BypassInterceptor;
+                Patch_GUI_Label_GUIContent.BypassInterceptor = true;
+                try
+                {
+                    Text.Font = GameFont.Medium;
+                    Widgets.Label(new Rect(0f, 0f, inRect.width, 32f), "ATC_Title_BatchAiRebuildCandidates".Translate(candidates.Count));
+                    Text.Font = GameFont.Small;
+
+                    Rect descRect = new Rect(0f, 38f, inRect.width, 58f);
+                    Widgets.Label(descRect, "ATC_Msg_BatchAiRebuildCandidates".Translate(candidates.Count));
+
+                    Rect listOutRect = new Rect(0f, 104f, inRect.width, inRect.height - 154f);
+                    float rowHeight = 46f;
+                    Rect listViewRect = new Rect(0f, 0f, listOutRect.width - 20f, Math.Max(listOutRect.height, candidates.Count * rowHeight));
+                    Widgets.BeginScrollView(listOutRect, ref scrollPos, listViewRect);
+                    float y = 0f;
+                    foreach (BatchAiRebuildCandidate candidate in candidates)
+                    {
+                        Rect rowRect = new Rect(0f, y, listViewRect.width, rowHeight - 4f);
+                        Widgets.DrawHighlightIfMouseover(rowRect);
+
+                        string displayName = !string.IsNullOrWhiteSpace(candidate.DisplayName) ? candidate.DisplayName : candidate.PackageId;
+                        Widgets.Label(new Rect(rowRect.x + 6f, rowRect.y + 3f, rowRect.width - 176f, 20f), displayName);
+                        GUI.color = Color.gray;
+                        Widgets.Label(new Rect(rowRect.x + 6f, rowRect.y + 22f, rowRect.width - 176f, 18f), candidate.PackageId ?? "");
+                        GUI.color = Color.white;
+
+                        Rect rebuildRect = new Rect(rowRect.xMax - 160f, rowRect.y + 6f, 150f, 30f);
+                        if (Widgets.ButtonText(rebuildRect, "ATC_Btn_PureAiRebuildForUpload".Translate()))
+                        {
+                            if (AutoTranslatorSettings.IsRunning)
+                            {
+                                Messages.Message("ATC_Msg_PureAiRebuildBusy".Translate(), MessageTypeDefOf.RejectInput, false);
+                            }
+                            else
+                            {
+                                Close();
+                                AutoTranslatorSettings.ActiveTab = 0;
+                                AutoTranslatorSettings.mainScrollPos = Vector2.zero;
+                                AutoTranslatorScanner.StartPureAiRebuildForUpload(candidate.Mod);
+                            }
+                        }
+
+                        y += rowHeight;
+                    }
+                    Widgets.EndScrollView();
+
+                    if (Widgets.ButtonText(new Rect(inRect.width - 130f, inRect.height - 38f, 130f, 34f), "ATC_Btn_Cancel".Translate()))
+                    {
+                        Close();
+                    }
+                }
+                finally
+                {
+                    GUI.color = Color.white;
+                    Text.Font = GameFont.Small;
+                    Text.Anchor = TextAnchor.UpperLeft;
+                    Patch_GUI_Label_GUIContent.BypassInterceptor = previousBypass;
+                }
             }
         }
 

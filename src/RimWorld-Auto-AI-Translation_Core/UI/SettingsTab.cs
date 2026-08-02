@@ -25,6 +25,22 @@ namespace AutoTranslator_Core
         private void DrawConfigTab(Listing_Standard l, Rect viewRect)
         {
 
+            Widgets.CheckboxLabeled(l.GetRect(30f), "ATC_ShowWorldMainButton".Translate(), ref Settings.ShowWorldMainButton);
+            l.Gap(5f);
+
+            Rect blacklistButtonRect = l.GetRect(35f);
+            if (Widgets.ButtonText(blacklistButtonRect, "ATC_Blacklist_Open".Translate(
+                    Settings.TranslationBlacklist.Count,
+                    Settings.CloudDownloadBlacklist.Count)))
+            {
+                Find.WindowStack.Add(new Window_ModBlacklists());
+            }
+            if (Mouse.IsOver(blacklistButtonRect))
+            {
+                TooltipHandler.TipRegion(blacklistButtonRect, "ATC_Blacklist_OpenTip".Translate());
+            }
+            l.Gap(10f);
+
             if (AutoTranslatorSettings.IsRunning) GUI.color = Color.grey;
             Widgets.CheckboxLabeled(l.GetRect(30f), "ATC_AutoClearOldOnUpdate".Translate(), ref Settings.AutoClearOldOnUpdate);
             Widgets.CheckboxLabeled(l.GetRect(30f), "ATC_AutoTranslateOnUpdate".Translate(), ref Settings.AutoTranslateOnUpdate);
@@ -510,10 +526,11 @@ private void DrawRuntimeProfilePanel(Listing_Standard l, Rect viewRect)
 
                         AutoTranslatorMod.Settings.ModLastVerifiedTimes.Clear();
                         AutoTranslatorMod.Settings.ModLastVerifiedFingerprints.Clear();
+                        AutoTranslatorMod.Settings.ClearPackageBlacklists();
                         LoadedModManager.GetMod<AutoTranslatorMod>().WriteSettings();
 
 
-                        AutoTranslatorScanner.RequestMemoryDrop();
+                        AutoTranslatorScanner.RestoreRuntimeTranslationsAfterPackReset();
                         AutoTranslatorSettings.ClearLog();
                         AutoTranslatorSettings.AddLog("🚑 " + "ATC_Log_FactoryResetSuccess".Translate());
 

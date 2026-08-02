@@ -130,7 +130,7 @@
   <ATC_DeleteModTrans_Title>翻译档案焚化炉 (勾选要删除翻译的模组)</ATC_DeleteModTrans_Title>
   <ATC_ConfirmDelete_Btn>确认删除 {0} 个模组的翻译档 (无法復原！)</ATC_ConfirmDelete_Btn>
   <ATC_Log_DeleteTransSuccess>🗑️ [ATC System] 成功删除 {0} 个模组的翻译档 (共清理 {1} 个档案)！</ATC_Log_DeleteTransSuccess>
-  <ATC_Message_DeleteTransSuccess>成功删除 {0} 个翻译档案！建议重启游戏以套用变更。</ATC_Message_DeleteTransSuccess>
+  <ATC_Message_DeleteTransSuccess>成功删除 {0} 个翻译文件，并已恢复当前游戏内的原文或内置翻译。</ATC_Message_DeleteTransSuccess>
   <ATC_Message_DeleteTransError>⚠️ 删除翻译档时发生错误: {0}</ATC_Message_DeleteTransError>
   <ATC_InputOrSelectModel>输入或选取模型...</ATC_InputOrSelectModel>
   <ATC_Msg_NoModelListManualInput>目前没有抓取到模型清单，请直接手动输入模型名称！</ATC_Msg_NoModelListManualInput>
@@ -251,7 +251,8 @@
   <!-- ========================================== -->
   <!-- 🔄 模组更新检测与自动清理 -->
   <!-- ========================================== -->
-  <ATC_AutoClearOldOnUpdate>确保准确性：翻译已更新的模组前，强制删除旧有翻译 (推荐开启以避免残留错误)</ATC_AutoClearOldOnUpdate>
+  <ATC_ShowWorldMainButton>在游戏底部主按钮栏显示 AI 翻译快捷按钮</ATC_ShowWorldMainButton>
+  <ATC_AutoClearOldOnUpdate>更新模组时先删除旧翻译文件（可能需要完整重新翻译；默认关闭）</ATC_AutoClearOldOnUpdate>
   <ATC_AutoTranslateOnUpdate>全自动排程：游戏启动时若发现模组更新，自动在背景启动翻译产线 (预设关闭)</ATC_AutoTranslateOnUpdate>
   <ATC_SmartUpdateBtn>智能补译 (发现 {0} 个待更新)</ATC_SmartUpdateBtn>
   <ATC_ModUpdateStatusBtn>智能补译 (发现 {0} 个模组更新或未翻译)</ATC_ModUpdateStatusBtn>
@@ -392,6 +393,24 @@
   <ATC_Log_BatchUploadItemFailed>批量上传跳过“{0}”：{1}</ATC_Log_BatchUploadItemFailed>
   <ATC_Log_BatchUploadWorkerFailed>批量上传后台任务失败：{0}</ATC_Log_BatchUploadWorkerFailed>
   <ATC_Log_BatchUploadFailedList>批量上传失败或跳过 {0} 个模组：{1}</ATC_Log_BatchUploadFailedList>
+  <ATC_Log_BatchAiRebuildCandidates>批量 AI 上传有 {0} 个模组需要纯 AI 重建后才能上传。</ATC_Log_BatchAiRebuildCandidates>
+  <ATC_Title_BatchAiRebuildCandidates>需要重建纯 AI 上传版 ({0})</ATC_Title_BatchAiRebuildCandidates>
+  <ATC_Msg_BatchAiRebuildCandidates>以下模组没有可直接分享的纯 AI 条目。请选择要用原始文本重新 AI 翻译的模组；ATC 只会重建你点击的模组，并输出到上传工作区，不会覆盖本地翻译包。</ATC_Msg_BatchAiRebuildCandidates>
+  <ATC_Log_AiUploadFiltered>AI 上传已过滤“{0}”：保留 {1} 条纯 AI，跳过 {2} 条（汉化补丁 {3}、手动修改 {4}、旧版未标记 {5}、其他 {6}）。</ATC_Log_AiUploadFiltered>
+  <ATC_Log_AiUploadNoCleanEntries>AI 上传跳过“{0}”：没有可分享的纯 AI 条目；跳过 {1} 条（汉化补丁 {2}、手动修改 {3}、旧版未标记 {4}、其他 {5}）。</ATC_Log_AiUploadNoCleanEntries>
+  <ATC_Msg_AiUploadNoCleanEntries>AI 上传已跳过“{0}”：目前没有可分享的纯 AI 翻译。如果这是玩家精修或汉化补丁内容，请改用玩家精翻/汉化组类型上传。</ATC_Msg_AiUploadNoCleanEntries>
+  <ATC_Msg_AiUploadNoCleanEntriesWithRebuild>AI 上传已跳过“{0}”：目前没有可分享的纯 AI 翻译。\n\n如果这份内容来自玩家精修或汉化补丁，请改用玩家精翻/汉化组类型上传。\n\n也可以让 ATC 从原始模组文本重新生成一份纯 AI 翻译，结果会放进上传工作区，不会覆盖你现有的本地翻译包。</ATC_Msg_AiUploadNoCleanEntriesWithRebuild>
+  <ATC_Title_PureAiRebuildForUpload>重新生成纯 AI 上传版</ATC_Title_PureAiRebuildForUpload>
+  <ATC_Btn_PureAiRebuildForUpload>用原文重新 AI 翻译</ATC_Btn_PureAiRebuildForUpload>
+  <ATC_Msg_PureAiRebuildBusy>目前已有任务执行中，请等完成后再重建纯 AI 上传版。</ATC_Msg_PureAiRebuildBusy>
+  <ATC_Task_PureAiRebuildForUpload>正在重建纯 AI 上传版：{0}</ATC_Task_PureAiRebuildForUpload>
+  <ATC_Log_PureAiRebuildStart>开始从原始模组文本重新生成纯 AI 上传版：{0}</ATC_Log_PureAiRebuildStart>
+  <ATC_Log_PureAiWorkspaceBackedUp>已备份并清空“{0}”的上传工作区，避免混入旧的手改内容。</ATC_Log_PureAiWorkspaceBackedUp>
+  <ATC_Log_PureAiRebuildDone>纯 AI 上传版已完成：{0}，新增 {1} 条 AI 翻译。请回到云端页再次上传。</ATC_Log_PureAiRebuildDone>
+  <ATC_Log_PureAiRebuildNoEntries>纯 AI 上传版没有生成可上传条目：{0}。</ATC_Log_PureAiRebuildNoEntries>
+  <ATC_Log_PureAiRebuildBlockedPatchMod>跳过“{0}”：这看起来是翻译补丁模组，不适合重建 AI 上传版。</ATC_Log_PureAiRebuildBlockedPatchMod>
+  <ATC_Msg_PureAiRebuildDone>已完成“{0}”的纯 AI 上传版，请回到云端页再次上传。</ATC_Msg_PureAiRebuildDone>
+  <ATC_Msg_PureAiRebuildNoEntries>“{0}”没有生成可上传的纯 AI 条目。</ATC_Msg_PureAiRebuildNoEntries>
   <ATC_Cloud_ShowMineOnly>只显示我的上传</ATC_Cloud_ShowMineOnly>
   <ATC_Cloud_MyUploadsCount>我的上传：{0}</ATC_Cloud_MyUploadsCount>
   <ATC_Cloud_NoMyUploads>目前没有找到你上传过的云端翻译。</ATC_Cloud_NoMyUploads>
@@ -401,6 +420,7 @@
   <ATC_Cloud_Type_AI>🤖 AI 机翻</ATC_Cloud_Type_AI>
   <ATC_Cloud_Type_Manual>✍️ 手工精翻</ATC_Cloud_Type_Manual>
   <ATC_Cloud_Status_Manual>🟢 玩家精翻</ATC_Cloud_Status_Manual>
+  <ATC_Cloud_Status_LegacyAI>🟤 旧版上传，未记录来源</ATC_Cloud_Status_LegacyAI>
   <ATC_EmergencyResetTitle>终极急救箱 (危险区域)</ATC_EmergencyResetTitle>
   <ATC_Btn_FactoryReset>一键清除所有翻译快取 (恢復原厂设定)</ATC_Btn_FactoryReset>
   <ATC_Msg_ConfirmFactoryReset>警告：这将会删除所有本地的 AI翻译快取档案，并清空 UI 记忆体。确定要执行吗？（此操作不可逆）</ATC_Msg_ConfirmFactoryReset>
@@ -463,6 +483,8 @@
   <ATC_Type_Official>汉化组精翻</ATC_Type_Official>
   <ATC_Type_Manual>玩家精翻</ATC_Type_Manual>
   <ATC_Type_AI>AI 机翻</ATC_Type_AI>
+  <ATC_Type_LegacyAI>旧版AI机翻</ATC_Type_LegacyAI>
+  <ATC_Cloud_LegacyAiTooltip>此翻译为旧版上传，未记录来源，可能包含 AI、玩家编辑或外部翻译来源。</ATC_Cloud_LegacyAiTooltip>
   <ATC_UploadPreview_NoTranslation>暂无翻译档可以上传！\n(请先使用 AI 扫描翻译，或将自製翻译放入 Upload_Workspace)</ATC_UploadPreview_NoTranslation>
   <ATC_Msg_UploadFailedNoFiles>上传失败：找不到对应的翻译档案！</ATC_Msg_UploadFailedNoFiles>
   <!-- 系统自动清理与更新防护 -->
@@ -491,6 +513,7 @@
   <ATC_Tab_Editor>全域编辑</ATC_Tab_Editor>
   <ATC_Workbench_SearchMod>搜寻模组名称或 ID...</ATC_Workbench_SearchMod>
   <ATC_Workbench_ShowTranslatedOnly>只显示已翻译的模组</ATC_Workbench_ShowTranslatedOnly>
+  <ATC_Workbench_ShowUntranslatedOnly>只显示未翻译的模组</ATC_Workbench_ShowUntranslatedOnly>
   <ATC_Workbench_SelectModHint>请在左侧选择要编辑的模组</ATC_Workbench_SelectModHint>
   <ATC_Workbench_BackToList>返回模组列表</ATC_Workbench_BackToList>
   <!-- V3.0 云端搜寻与快取清理 -->
@@ -510,6 +533,31 @@
   <ATC_Workbench_NoLongerMatchesSearch>已编辑，现在不符合原搜寻</ATC_Workbench_NoLongerMatchesSearch>
   <ATC_Workbench_RevertItem>复原</ATC_Workbench_RevertItem>
   <ATC_Workbench_ItemReverted>已复原此项目。</ATC_Workbench_ItemReverted>
+  <ATC_Workbench_CopyOriginal>复制原文</ATC_Workbench_CopyOriginal>
+  <ATC_Workbench_CopyOriginalTip>将此列原文复制到剪贴板。</ATC_Workbench_CopyOriginalTip>
+  <ATC_Workbench_OriginalCopied>已复制原文。</ATC_Workbench_OriginalCopied>
+  <ATC_Workbench_TranslateOriginal>翻译原文</ATC_Workbench_TranslateOriginal>
+  <ATC_Workbench_TranslateOriginalBusy>翻译中</ATC_Workbench_TranslateOriginalBusy>
+  <ATC_Workbench_TranslateOriginalTip>只翻译此列原文并填入右侧栏位；需要按储存才会套用。</ATC_Workbench_TranslateOriginalTip>
+  <ATC_Workbench_TranslateOriginalStarted>正在翻译此列原文...</ATC_Workbench_TranslateOriginalStarted>
+  <ATC_Workbench_TranslateOriginalDone>已填入单条 AI 翻译，尚未储存。</ATC_Workbench_TranslateOriginalDone>
+  <ATC_Workbench_TranslateOriginalFailed>单条翻译失败，请检查 API 或稍后再试。</ATC_Workbench_TranslateOriginalFailed>
+  <ATC_Workbench_TranslateOriginalBusyGlobal>目前已有翻译任务执行中，请完成后再翻译单条。</ATC_Workbench_TranslateOriginalBusyGlobal>
+  <ATC_Workbench_AllCategories>全部分类 ({0})</ATC_Workbench_AllCategories>
+  <ATC_Workbench_BatchReplaceBtn>批量替换</ATC_Workbench_BatchReplaceBtn>
+  <ATC_Workbench_BatchReplaceTip>批量查找并替换翻译文字。</ATC_Workbench_BatchReplaceTip>
+  <ATC_Workbench_BatchReplaceTitle>批量查找与替换</ATC_Workbench_BatchReplaceTitle>
+  <ATC_Workbench_BatchFindLabel>查找文字</ATC_Workbench_BatchFindLabel>
+  <ATC_Workbench_BatchReplaceLabel>替换为</ATC_Workbench_BatchReplaceLabel>
+  <ATC_Workbench_BatchScopeLabel>作用范围</ATC_Workbench_BatchScopeLabel>
+  <ATC_Workbench_BatchCaseSensitive>区分大小写</ATC_Workbench_BatchCaseSensitive>
+  <ATC_Workbench_BatchMatchCount>将修改 {0} 条词条</ATC_Workbench_BatchMatchCount>
+  <ATC_Workbench_BatchApplyBtn>应用替换</ATC_Workbench_BatchApplyBtn>
+  <ATC_Workbench_BatchScopeVisible>当前搜索结果</ATC_Workbench_BatchScopeVisible>
+  <ATC_Workbench_BatchScopeCategory>当前分类</ATC_Workbench_BatchScopeCategory>
+  <ATC_Workbench_BatchScopeAll>全部分类</ATC_Workbench_BatchScopeAll>
+  <ATC_Workbench_BatchConfirm>确定要批量修改 {0} 条词条吗？这些更改在保存前仍可撤销。</ATC_Workbench_BatchConfirm>
+  <ATC_Workbench_BatchReplaceSuccess>已批量修改 {0} 条词条，尚未保存。</ATC_Workbench_BatchReplaceSuccess>
   <ATC_Workbench_SaveSynced>已同步</ATC_Workbench_SaveSynced>
   <ATC_Workbench_UnsavedChanges>有未储存变更。</ATC_Workbench_UnsavedChanges>
   <ATC_Workbench_Saving>储存中...</ATC_Workbench_Saving>
@@ -548,4 +596,47 @@
   <ATC_Correction_Msg_SubmitFailedOutbox>当前无法提交修正，已保存本地待发送副本。</ATC_Correction_Msg_SubmitFailedOutbox>
   <ATC_Cloud_CorrectionSubmitFallback>云端暂时无法连接，正在保存待发送副本...</ATC_Cloud_CorrectionSubmitFallback>
   <ATC_Cloud_CorrectionSubmitSavedOutbox>修正已保存到本地待发送副本：{0}</ATC_Cloud_CorrectionSubmitSavedOutbox>
+  <ATC_Corrections_Button>单条</ATC_Corrections_Button>
+  <ATC_Corrections_ButtonTip>查看已通过审核的单条翻译修正，可逐条套用或移除。</ATC_Corrections_ButtonTip>
+  <ATC_Corrections_StatusCount>单条修正：{0}</ATC_Corrections_StatusCount>
+  <ATC_Corrections_StatusOfficial>官方文本：可查看单条修正</ATC_Corrections_StatusOfficial>
+  <ATC_Corrections_StatusChecking>单条修正检查中...</ATC_Corrections_StatusChecking>
+  <ATC_Corrections_Title>单条翻译修正 - {0}</ATC_Corrections_Title>
+  <ATC_Corrections_Loading>正在载入已通过的修正...</ATC_Corrections_Loading>
+  <ATC_Corrections_LoadFailed>修正载入失败：{0}</ATC_Corrections_LoadFailed>
+  <ATC_Corrections_Empty>这个包与语言目前没有已通过的单条修正。</ATC_Corrections_Empty>
+  <ATC_Corrections_UnknownContributor>未知贡献者</ATC_Corrections_UnknownContributor>
+  <ATC_Corrections_Byline>由 {0} 翻译 / {1}</ATC_Corrections_Byline>
+  <ATC_Corrections_ApplyBtn>套用这一条</ATC_Corrections_ApplyBtn>
+  <ATC_Corrections_RemoveBtn>移除这一条</ATC_Corrections_RemoveBtn>
+  <ATC_Corrections_SourceBtn>查看原文</ATC_Corrections_SourceBtn>
+  <ATC_Corrections_Applied>已套用到本地</ATC_Corrections_Applied>
+  <ATC_Corrections_NotApplied>未套用</ATC_Corrections_NotApplied>
+  <ATC_Corrections_ApplySuccess>已套用这条单条修正。</ATC_Corrections_ApplySuccess>
+  <ATC_Corrections_ApplyFailed>无法套用这条修正。</ATC_Corrections_ApplyFailed>
+  <ATC_Corrections_RemoveSuccess>已移除这条本地修正。</ATC_Corrections_RemoveSuccess>
+  <ATC_Corrections_RemoveFailed>这条修正目前没有套用到本地。</ATC_Corrections_RemoveFailed>
+  <ATC_Corrections_RefreshBtn>刷新</ATC_Corrections_RefreshBtn>
+  <ATC_Workbench_ExportOriginalXml>导出原文 XML</ATC_Workbench_ExportOriginalXml>
+  <ATC_Workbench_ExportOriginalXmlTip>将当前分类的全部原文导出为可编辑的 XML。</ATC_Workbench_ExportOriginalXmlTip>
+  <ATC_Workbench_ImportEditedXml>导入已编辑 XML</ATC_Workbench_ImportEditedXml>
+  <ATC_Workbench_ImportEditedXmlTip>将编辑后的 XML 导入为尚未保存的更改；确认后再点保存并应用。</ATC_Workbench_ImportEditedXmlTip>
+  <ATC_Workbench_OpenWorkspace>打开工作区</ATC_Workbench_OpenWorkspace>
+  <ATC_Workbench_OpenWorkspaceTip>打开这个模组在 Upload_Workspace 下的根目录。</ATC_Workbench_OpenWorkspaceTip>
+  <ATC_Workbench_ManualXmlWorking>正在处理手动翻译 XML...</ATC_Workbench_ManualXmlWorking>
+  <ATC_Workbench_ManualXmlExported>已导出 {0} 条原文。</ATC_Workbench_ManualXmlExported>
+  <ATC_Workbench_ManualXmlImported>已导入 {0} 条更改，尚未保存。</ATC_Workbench_ManualXmlImported>
+  <ATC_Workbench_ManualXmlNoEntries>当前分类没有可导出的原文词条。</ATC_Workbench_ManualXmlNoEntries>
+  <ATC_Workbench_ManualXmlNoChanges>编辑后的 XML 中没有找到可应用的更改。</ATC_Workbench_ManualXmlNoChanges>
+  <ATC_Workbench_ManualXmlImportFailed>无法导入编辑后的 XML。</ATC_Workbench_ManualXmlImportFailed>
+  <ATC_Blacklist_Open>管理黑名单（翻译 {0} / 下载 {1}）</ATC_Blacklist_Open>
+  <ATC_Blacklist_OpenTip>选择要在 AI 翻译或云端批量下载时跳过的模组。</ATC_Blacklist_OpenTip>
+  <ATC_Blacklist_Title>翻译与云端下载黑名单</ATC_Blacklist_Title>
+  <ATC_Blacklist_TranslationColumn>跳过翻译</ATC_Blacklist_TranslationColumn>
+  <ATC_Blacklist_DownloadColumn>跳过下载</ATC_Blacklist_DownloadColumn>
+  <ATC_Blacklist_ClearAll>清除全部黑名单</ATC_Blacklist_ClearAll>
+  <ATC_Blacklist_TranslationSkipped>{0} 位于翻译黑名单，已跳过。</ATC_Blacklist_TranslationSkipped>
+  <ATC_Blacklist_DownloadSkipped>已跳过黑名单模组的云端下载：{0}</ATC_Blacklist_DownloadSkipped>
+  <ATC_Blacklist_DownloadBlockedStatus>已禁止云端下载</ATC_Blacklist_DownloadBlockedStatus>
+  <ATC_Cloud_Btn_BatchBestTip>只下载已启用且云端确实有对应翻译的模组；云端没有的模组会自动跳过。</ATC_Cloud_Btn_BatchBestTip>
 </LanguageData>

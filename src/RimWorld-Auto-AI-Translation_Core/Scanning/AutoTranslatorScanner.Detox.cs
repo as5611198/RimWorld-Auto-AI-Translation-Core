@@ -260,11 +260,14 @@ namespace AutoTranslator_Core
                     }
 
 
+                    string defInjectedMarker = Path.DirectorySeparatorChar + "DefInjected" + Path.DirectorySeparatorChar;
+                    bool isDefInjectedFile = file.IndexOf(defInjectedMarker, StringComparison.OrdinalIgnoreCase) >= 0;
                     string dirName = new System.IO.DirectoryInfo(System.IO.Path.GetDirectoryName(file)).Name.ToLower();
-                    if (dirName.Contains("facedef") || dirName.Contains("eyedef") || dirName.Contains("browdef") ||
+                    if (isDefInjectedFile &&
+                        (dirName.Contains("facedef") || dirName.Contains("eyedef") || dirName.Contains("browdef") ||
                         dirName.Contains("liddef") || dirName.Contains("lashdef") || dirName.Contains("mouthdef") ||
                         dirName.Contains("nosedef") || dirName.Contains("eardef") || dirName.Contains("skindef") ||
-                        dirName.Contains("facialanimation"))
+                        dirName.Contains("facialanimation")))
                     {
 
                         System.IO.File.SetAttributes(file, System.IO.FileAttributes.Normal);
@@ -289,7 +292,7 @@ namespace AutoTranslator_Core
                         string tagName = node.Name;
                         bool shouldKill = false;
 
-                        if (IsProtectedDefPath(tagName))
+                        if (isDefInjectedFile && IsUnsafeRuntimeDefInjectionPath(tagName))
                         {
                             shouldKill = true;
                         }
@@ -322,7 +325,7 @@ namespace AutoTranslator_Core
                             doc.DocumentElement.RemoveChild(node);
                             removedTags++;
                         }
-                        doc.Save(file);
+                        SaveLanguageXmlDocumentAtomic(file, doc);
                         NotifyTranslationFileChanged(file);
                         fixedFiles++;
                     }

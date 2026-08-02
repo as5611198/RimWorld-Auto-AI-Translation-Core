@@ -129,7 +129,7 @@
   <ATC_DeleteModTrans_Title>Translation Incinerator (select mods to clear their translations)</ATC_DeleteModTrans_Title>
   <ATC_ConfirmDelete_Btn>Confirm deletion of translation files for {0} mods (irreversible!)</ATC_ConfirmDelete_Btn>
   <ATC_Log_DeleteTransSuccess>🗑️ [ATC System] Successfully deleted translation files for {0} mods (cleaned {1} files)!</ATC_Log_DeleteTransSuccess>
-  <ATC_Message_DeleteTransSuccess>Successfully deleted {0} translation files! Restarting the game is recommended to apply changes.</ATC_Message_DeleteTransSuccess>
+  <ATC_Message_DeleteTransSuccess>Deleted {0} translation files and restored the current in-game original or built-in translations.</ATC_Message_DeleteTransSuccess>
   <ATC_Message_DeleteTransError>⚠️ Error deleting translation files: {0}</ATC_Message_DeleteTransError>
   <ATC_InputOrSelectModel>Enter or select a model...</ATC_InputOrSelectModel>
   <ATC_Msg_NoModelListManualInput>No model list retrieved, please manually enter the model name!</ATC_Msg_NoModelListManualInput>
@@ -247,7 +247,8 @@
   <ATC_Export_Success_CloseBtn>Close</ATC_Export_Success_CloseBtn>
   <ATC_Log_CooldownTriggered>⏱️ [Cooldown] Export n°{0}. Cooldown of {1} seconds applied.</ATC_Log_CooldownTriggered>
   <ATC_Log_DailyLimitReached>🛑 [Limit] Reached daily limit of 100 exports.</ATC_Log_DailyLimitReached>
-  <ATC_AutoClearOldOnUpdate>Ensure Accuracy: Force-delete old translations before translating updated mods (Recommended to avoid residual bugs)</ATC_AutoClearOldOnUpdate>
+  <ATC_ShowWorldMainButton>Show the AI Translation shortcut on the in-game main button bar</ATC_ShowWorldMainButton>
+  <ATC_AutoClearOldOnUpdate>Delete old translation files before retranslating updated mods (may require a full retranslation; off by default)</ATC_AutoClearOldOnUpdate>
   <ATC_AutoTranslateOnUpdate>Automatic Scheduling: Automatically start translation production line in the background when mod updates are detected at game startup (Default off)</ATC_AutoTranslateOnUpdate>
   <ATC_SmartUpdateBtn>Smart Update ({0} pending updates detected)</ATC_SmartUpdateBtn>
   <ATC_ModUpdateStatusBtn>Smart Update ({0} outdated or untranslated mods found)</ATC_ModUpdateStatusBtn>
@@ -370,6 +371,24 @@
   <ATC_Log_BatchUploadItemFailed>Batch upload skipped "{0}": {1}</ATC_Log_BatchUploadItemFailed>
   <ATC_Log_BatchUploadWorkerFailed>Batch upload worker failed: {0}</ATC_Log_BatchUploadWorkerFailed>
   <ATC_Log_BatchUploadFailedList>Batch upload failed or skipped {0} mod(s): {1}</ATC_Log_BatchUploadFailedList>
+  <ATC_Log_BatchAiRebuildCandidates>Batch AI upload found {0} mod(s) that need a clean AI rebuild before upload.</ATC_Log_BatchAiRebuildCandidates>
+  <ATC_Title_BatchAiRebuildCandidates>Clean AI Rebuild Needed ({0})</ATC_Title_BatchAiRebuildCandidates>
+  <ATC_Msg_BatchAiRebuildCandidates>The following mods have no directly shareable clean AI entries. Select one mod to re-translate from original text. ATC will rebuild only the selected mod into the upload workspace and will not overwrite your local translation pack.</ATC_Msg_BatchAiRebuildCandidates>
+  <ATC_Log_AiUploadFiltered>AI upload filtered "{0}": kept {1} clean AI entries, skipped {2} entries (external patch {3}, manual edit {4}, legacy untagged {5}, other {6}).</ATC_Log_AiUploadFiltered>
+  <ATC_Log_AiUploadNoCleanEntries>AI upload skipped "{0}": no clean AI entries are shareable; skipped {1} entries (external patch {2}, manual edit {3}, legacy untagged {4}, other {5}).</ATC_Log_AiUploadNoCleanEntries>
+  <ATC_Msg_AiUploadNoCleanEntries>AI upload skipped for "{0}": no clean AI translation entries are available. If this is a player proofread or translation patch, upload it as Manual or Pro Translation Team instead.</ATC_Msg_AiUploadNoCleanEntries>
+  <ATC_Msg_AiUploadNoCleanEntriesWithRebuild>AI upload skipped for "{0}": no clean AI translation entries are available.\n\nIf this content is a player proofread or translation patch, upload it as Manual or Pro Translation Team instead.\n\nATC can also rebuild a clean AI translation from the original mod text. The result will be placed in the upload workspace and will not overwrite your current local translation pack.</ATC_Msg_AiUploadNoCleanEntriesWithRebuild>
+  <ATC_Title_PureAiRebuildForUpload>Rebuild Clean AI Upload</ATC_Title_PureAiRebuildForUpload>
+  <ATC_Btn_PureAiRebuildForUpload>Re-translate from original</ATC_Btn_PureAiRebuildForUpload>
+  <ATC_Msg_PureAiRebuildBusy>A task is already running. Please wait before rebuilding a clean AI upload.</ATC_Msg_PureAiRebuildBusy>
+  <ATC_Task_PureAiRebuildForUpload>Rebuilding clean AI upload: {0}</ATC_Task_PureAiRebuildForUpload>
+  <ATC_Log_PureAiRebuildStart>Rebuilding a clean AI upload from original mod text: {0}</ATC_Log_PureAiRebuildStart>
+  <ATC_Log_PureAiWorkspaceBackedUp>Backed up and cleared the upload workspace for "{0}" to avoid mixing old manual edits.</ATC_Log_PureAiWorkspaceBackedUp>
+  <ATC_Log_PureAiRebuildDone>Clean AI upload rebuild complete: {0}, added {1} AI entries. Return to the cloud tab and upload again.</ATC_Log_PureAiRebuildDone>
+  <ATC_Log_PureAiRebuildNoEntries>Clean AI upload rebuild produced no uploadable entries: {0}.</ATC_Log_PureAiRebuildNoEntries>
+  <ATC_Log_PureAiRebuildBlockedPatchMod>Skipped "{0}": this looks like a translation patch mod and should not be rebuilt as AI upload.</ATC_Log_PureAiRebuildBlockedPatchMod>
+  <ATC_Msg_PureAiRebuildDone>Clean AI upload for "{0}" is ready. Return to the cloud tab and upload again.</ATC_Msg_PureAiRebuildDone>
+  <ATC_Msg_PureAiRebuildNoEntries>"{0}" produced no clean AI entries to upload.</ATC_Msg_PureAiRebuildNoEntries>
   <ATC_Cloud_ShowMineOnly>Show My Uploads Only</ATC_Cloud_ShowMineOnly>
   <ATC_Cloud_MyUploadsCount>My uploads: {0}</ATC_Cloud_MyUploadsCount>
   <ATC_Cloud_NoMyUploads>No cloud translations uploaded from this device were found.</ATC_Cloud_NoMyUploads>
@@ -378,6 +397,7 @@
   <ATC_Cloud_Type_AI>🤖 AI Machine Translation</ATC_Cloud_Type_AI>
   <ATC_Cloud_Type_Manual>✍️ Manual Translation Proofing</ATC_Cloud_Type_Manual>
   <ATC_Cloud_Status_Manual>🟢 User Proofed Translation</ATC_Cloud_Status_Manual>
+  <ATC_Cloud_Status_LegacyAI>🟤 Legacy upload, source not recorded</ATC_Cloud_Status_LegacyAI>
   <ATC_EmergencyResetTitle>Ultimate First Aid Kit (Dangerous Zone)</ATC_EmergencyResetTitle>
   <ATC_Btn_FactoryReset>Reset All Settings and Delete Local Cache</ATC_Btn_FactoryReset>
   <ATC_Msg_ConfirmFactoryReset>Warning: This will delete all local AI translation cache files and clear UI memory. Are you sure you want to proceed? (This action is irreversible)</ATC_Msg_ConfirmFactoryReset>
@@ -438,6 +458,8 @@
   <ATC_Type_Official>Pro Translation Team</ATC_Type_Official>
   <ATC_Type_Manual>Manual User Proof</ATC_Type_Manual>
   <ATC_Type_AI>AI Translation</ATC_Type_AI>
+  <ATC_Type_LegacyAI>Legacy AI Upload</ATC_Type_LegacyAI>
+  <ATC_Cloud_LegacyAiTooltip>This translation was uploaded by an older version and has no recorded source. It may include AI output, player edits, or external translation sources.</ATC_Cloud_LegacyAiTooltip>
   <ATC_UploadPreview_NoTranslation>No translation files found for upload!\n(Run AI translation first, or place manual files in Upload_Workspace)</ATC_UploadPreview_NoTranslation>
   <ATC_Msg_UploadFailedNoFiles>Upload failed: Translation files not found!</ATC_Msg_UploadFailedNoFiles>
   <ATC_Log_CleanedGhostTwins>[System] Exorcised {0} ghost patch twin residual files to prevent conflicts!</ATC_Log_CleanedGhostTwins>
@@ -462,6 +484,7 @@
   <ATC_Tab_Editor>Global Editor</ATC_Tab_Editor>
   <ATC_Workbench_SearchMod>Search mod name or ID...</ATC_Workbench_SearchMod>
   <ATC_Workbench_ShowTranslatedOnly>Show fully translated mods only</ATC_Workbench_ShowTranslatedOnly>
+  <ATC_Workbench_ShowUntranslatedOnly>Show untranslated mods only</ATC_Workbench_ShowUntranslatedOnly>
   <ATC_Workbench_SelectModHint>Please select a target mod to edit on the left</ATC_Workbench_SelectModHint>
   <ATC_Workbench_BackToList>Return to Mod List</ATC_Workbench_BackToList>
   <ATC_Cloud_SearchHint>Search mod name or ID...</ATC_Cloud_SearchHint>
@@ -480,6 +503,31 @@
   <ATC_Workbench_NoLongerMatchesSearch>Edited, no longer matches the original search</ATC_Workbench_NoLongerMatchesSearch>
   <ATC_Workbench_RevertItem>Revert</ATC_Workbench_RevertItem>
   <ATC_Workbench_ItemReverted>Item reverted.</ATC_Workbench_ItemReverted>
+  <ATC_Workbench_CopyOriginal>Copy Src</ATC_Workbench_CopyOriginal>
+  <ATC_Workbench_CopyOriginalTip>Copy this row's original text to the clipboard.</ATC_Workbench_CopyOriginalTip>
+  <ATC_Workbench_OriginalCopied>Original text copied.</ATC_Workbench_OriginalCopied>
+  <ATC_Workbench_TranslateOriginal>AI Src</ATC_Workbench_TranslateOriginal>
+  <ATC_Workbench_TranslateOriginalBusy>Working</ATC_Workbench_TranslateOriginalBusy>
+  <ATC_Workbench_TranslateOriginalTip>Translate only this row's original text into the right field. Press Save to apply it.</ATC_Workbench_TranslateOriginalTip>
+  <ATC_Workbench_TranslateOriginalStarted>Translating this row...</ATC_Workbench_TranslateOriginalStarted>
+  <ATC_Workbench_TranslateOriginalDone>Single-entry AI translation filled in. Not saved yet.</ATC_Workbench_TranslateOriginalDone>
+  <ATC_Workbench_TranslateOriginalFailed>Single-entry translation failed. Check the API or try again later.</ATC_Workbench_TranslateOriginalFailed>
+  <ATC_Workbench_TranslateOriginalBusyGlobal>A translation task is already running. Try this single-entry action after it finishes.</ATC_Workbench_TranslateOriginalBusyGlobal>
+  <ATC_Workbench_AllCategories>All categories ({0})</ATC_Workbench_AllCategories>
+  <ATC_Workbench_BatchReplaceBtn>Replace</ATC_Workbench_BatchReplaceBtn>
+  <ATC_Workbench_BatchReplaceTip>Find and replace text across multiple translations.</ATC_Workbench_BatchReplaceTip>
+  <ATC_Workbench_BatchReplaceTitle>Batch Find and Replace</ATC_Workbench_BatchReplaceTitle>
+  <ATC_Workbench_BatchFindLabel>Find</ATC_Workbench_BatchFindLabel>
+  <ATC_Workbench_BatchReplaceLabel>Replace with</ATC_Workbench_BatchReplaceLabel>
+  <ATC_Workbench_BatchScopeLabel>Scope</ATC_Workbench_BatchScopeLabel>
+  <ATC_Workbench_BatchCaseSensitive>Case sensitive</ATC_Workbench_BatchCaseSensitive>
+  <ATC_Workbench_BatchMatchCount>{0} entries will change</ATC_Workbench_BatchMatchCount>
+  <ATC_Workbench_BatchApplyBtn>Apply Replace</ATC_Workbench_BatchApplyBtn>
+  <ATC_Workbench_BatchScopeVisible>Visible results</ATC_Workbench_BatchScopeVisible>
+  <ATC_Workbench_BatchScopeCategory>This category</ATC_Workbench_BatchScopeCategory>
+  <ATC_Workbench_BatchScopeAll>All categories</ATC_Workbench_BatchScopeAll>
+  <ATC_Workbench_BatchConfirm>Replace text in {0} entries? The changes remain unsaved and can still be reverted.</ATC_Workbench_BatchConfirm>
+  <ATC_Workbench_BatchReplaceSuccess>Updated {0} entries. Not saved yet.</ATC_Workbench_BatchReplaceSuccess>
   <ATC_Workbench_SaveSynced>Synced</ATC_Workbench_SaveSynced>
   <ATC_Workbench_UnsavedChanges>Unsaved changes.</ATC_Workbench_UnsavedChanges>
   <ATC_Workbench_Saving>Saving...</ATC_Workbench_Saving>
@@ -515,4 +563,47 @@
   <ATC_Correction_Msg_SubmitFailedOutbox>Correction could not be submitted now. A local outbox copy was saved.</ATC_Correction_Msg_SubmitFailedOutbox>
   <ATC_Cloud_CorrectionSubmitFallback>Correction submit main route timed out, switching to backup channel...</ATC_Cloud_CorrectionSubmitFallback>
   <ATC_Cloud_CorrectionSubmitSavedOutbox>Correction submit failed and was saved locally: {0}</ATC_Cloud_CorrectionSubmitSavedOutbox>
+  <ATC_Corrections_Button>Entries</ATC_Corrections_Button>
+  <ATC_Corrections_ButtonTip>View approved single-entry translation corrections. Apply or remove them one by one.</ATC_Corrections_ButtonTip>
+  <ATC_Corrections_StatusCount>Single-entry fixes: {0}</ATC_Corrections_StatusCount>
+  <ATC_Corrections_StatusOfficial>Official text: single-entry fixes available</ATC_Corrections_StatusOfficial>
+  <ATC_Corrections_StatusChecking>Checking single-entry fixes...</ATC_Corrections_StatusChecking>
+  <ATC_Corrections_Title>Single-Entry Corrections - {0}</ATC_Corrections_Title>
+  <ATC_Corrections_Loading>Loading approved corrections...</ATC_Corrections_Loading>
+  <ATC_Corrections_LoadFailed>Failed to load corrections: {0}</ATC_Corrections_LoadFailed>
+  <ATC_Corrections_Empty>No approved single-entry corrections for this package and language yet.</ATC_Corrections_Empty>
+  <ATC_Corrections_UnknownContributor>Unknown contributor</ATC_Corrections_UnknownContributor>
+  <ATC_Corrections_Byline>By {0} / {1}</ATC_Corrections_Byline>
+  <ATC_Corrections_ApplyBtn>Apply This Entry</ATC_Corrections_ApplyBtn>
+  <ATC_Corrections_RemoveBtn>Remove This Entry</ATC_Corrections_RemoveBtn>
+  <ATC_Corrections_SourceBtn>View Original</ATC_Corrections_SourceBtn>
+  <ATC_Corrections_Applied>Applied locally</ATC_Corrections_Applied>
+  <ATC_Corrections_NotApplied>Not applied</ATC_Corrections_NotApplied>
+  <ATC_Corrections_ApplySuccess>Single-entry correction applied locally.</ATC_Corrections_ApplySuccess>
+  <ATC_Corrections_ApplyFailed>Could not apply this correction.</ATC_Corrections_ApplyFailed>
+  <ATC_Corrections_RemoveSuccess>Single-entry correction removed locally.</ATC_Corrections_RemoveSuccess>
+  <ATC_Corrections_RemoveFailed>This correction was not applied locally.</ATC_Corrections_RemoveFailed>
+  <ATC_Corrections_RefreshBtn>Refresh</ATC_Corrections_RefreshBtn>
+  <ATC_Workbench_ExportOriginalXml>Export Source XML</ATC_Workbench_ExportOriginalXml>
+  <ATC_Workbench_ExportOriginalXmlTip>Export all source text in the selected category to editable XML.</ATC_Workbench_ExportOriginalXmlTip>
+  <ATC_Workbench_ImportEditedXml>Import Edited XML</ATC_Workbench_ImportEditedXml>
+  <ATC_Workbench_ImportEditedXmlTip>Import the edited XML as unsaved workbench changes. Review them, then use Save and Apply.</ATC_Workbench_ImportEditedXmlTip>
+  <ATC_Workbench_OpenWorkspace>Open Workspace</ATC_Workbench_OpenWorkspace>
+  <ATC_Workbench_OpenWorkspaceTip>Open this mod's root folder under Upload_Workspace.</ATC_Workbench_OpenWorkspaceTip>
+  <ATC_Workbench_ManualXmlWorking>Processing manual translation XML...</ATC_Workbench_ManualXmlWorking>
+  <ATC_Workbench_ManualXmlExported>Exported {0} source entries.</ATC_Workbench_ManualXmlExported>
+  <ATC_Workbench_ManualXmlImported>Imported {0} changed entries. Not saved yet.</ATC_Workbench_ManualXmlImported>
+  <ATC_Workbench_ManualXmlNoEntries>No source entries are available in the selected category.</ATC_Workbench_ManualXmlNoEntries>
+  <ATC_Workbench_ManualXmlNoChanges>No matching changed entries were found in the edited XML.</ATC_Workbench_ManualXmlNoChanges>
+  <ATC_Workbench_ManualXmlImportFailed>Could not import the edited XML.</ATC_Workbench_ManualXmlImportFailed>
+  <ATC_Blacklist_Open>Manage Blacklists (Translate {0} / Download {1})</ATC_Blacklist_Open>
+  <ATC_Blacklist_OpenTip>Choose mods to skip during AI translation or cloud batch downloads.</ATC_Blacklist_OpenTip>
+  <ATC_Blacklist_Title>Translation and Cloud Download Blacklists</ATC_Blacklist_Title>
+  <ATC_Blacklist_TranslationColumn>Skip Translation</ATC_Blacklist_TranslationColumn>
+  <ATC_Blacklist_DownloadColumn>Skip Download</ATC_Blacklist_DownloadColumn>
+  <ATC_Blacklist_ClearAll>Clear All Blacklists</ATC_Blacklist_ClearAll>
+  <ATC_Blacklist_TranslationSkipped>{0} is in the translation blacklist and was skipped.</ATC_Blacklist_TranslationSkipped>
+  <ATC_Blacklist_DownloadSkipped>Cloud download skipped for blacklisted mod: {0}</ATC_Blacklist_DownloadSkipped>
+  <ATC_Blacklist_DownloadBlockedStatus>Cloud download blocked</ATC_Blacklist_DownloadBlockedStatus>
+  <ATC_Cloud_Btn_BatchBestTip>Downloads only active installed mods with a matching cloud translation. Mods unavailable in the cloud are skipped.</ATC_Cloud_Btn_BatchBestTip>
 </LanguageData>

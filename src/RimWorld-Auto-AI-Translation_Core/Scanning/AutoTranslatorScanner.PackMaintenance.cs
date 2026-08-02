@@ -271,7 +271,7 @@ namespace AutoTranslator_Core
 
                     if (changed)
                     {
-                        doc.Save(file);
+                        SaveLanguageXmlDocumentAtomic(file, doc);
                         NotifyTranslationFileChanged(file);
                         fixedFiles++;
                     }

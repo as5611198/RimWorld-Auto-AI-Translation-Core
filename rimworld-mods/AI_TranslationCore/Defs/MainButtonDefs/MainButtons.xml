@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <MainButtonDef>
+    <defName>ATC_MainButton</defName>
+    <label>AI Translation</label>
+    <description>Open AI Translation Network.</description>
+    <workerClass>AutoTranslator_Core.MainButtonWorker_AutoTranslator</workerClass>
+    <tabWindowClass>AutoTranslator_Core.MainTabWindow_AutoTranslator</tabWindowClass>
+    <order>10000</order>
+    <validWithoutMap>true</validWithoutMap>
+  </MainButtonDef>
+</Defs>

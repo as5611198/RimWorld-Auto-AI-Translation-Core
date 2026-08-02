@@ -818,6 +818,11 @@ namespace AutoTranslator_Core
             if (check == null || string.IsNullOrWhiteSpace(check.PackageId) || check.ActiveMods == null) return false;
 
             string targetPackageId = (check.PackageId ?? "").Trim().ToLowerInvariant();
+            List<KeyValuePair<string, string>> targetCandidates = check.ActiveMods
+                .Where(m => m != null && m.Active && !m.IsTranslationPatchMod && !string.IsNullOrWhiteSpace(m.PackageId))
+                .Select(m => new KeyValuePair<string, string>(m.PackageId ?? "", m.Name ?? ""))
+                .ToList();
+
             foreach (InstalledModStatusSnapshot patchMod in check.ActiveMods)
             {
                 if (patchMod == null || !patchMod.Active || !patchMod.IsTranslationPatchMod) continue;
@@ -827,6 +832,17 @@ namespace AutoTranslator_Core
                 foreach (string referencedPackageId in AutoTranslatorScanner.GetReferencedTargetPackageIdsFromRoot(patchMod.RootDir))
                 {
                     if (string.Equals(referencedPackageId, targetPackageId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+
+                foreach (string inferredPackageId in AutoTranslatorScanner.InferExternalPatchTargetPackageIds(
+                             patchMod.PackageId,
+                             patchMod.Name,
+                             targetCandidates))
+                {
+                    if (string.Equals(inferredPackageId, targetPackageId, StringComparison.OrdinalIgnoreCase))
                     {
                         return true;
                     }
@@ -1130,11 +1146,21 @@ namespace AutoTranslator_Core
         // EN: This method marks mod as translated.
         public static void MarkModAsTranslated(string packageId, string rootDir, bool refreshStatusCache = true)
         {
+            if (string.IsNullOrWhiteSpace(packageId)) return;
+
+            string effectiveRootDir = rootDir ?? "";
             var meta = ModLister.AllInstalledMods.FirstOrDefault(m =>
                 string.Equals(m.PackageId, packageId, StringComparison.OrdinalIgnoreCase));
-            if (meta == null) return;
+            if (string.IsNullOrWhiteSpace(effectiveRootDir) && meta != null && meta.RootDir != null)
+            {
+                effectiveRootDir = meta.RootDir.FullName;
+            }
 
-            SourceSnapshot source = BuildSourceSnapshot(meta);
+            SourceSnapshot source = BuildSourceSnapshot(
+                packageId,
+                effectiveRootDir,
+                AutoTranslatorMod.Settings.TargetLang,
+                false);
             if (AutoTranslatorMod.Settings.ModLastVerifiedTimes == null)
             {
                 AutoTranslatorMod.Settings.ModLastVerifiedTimes = new Dictionary<string, long>();

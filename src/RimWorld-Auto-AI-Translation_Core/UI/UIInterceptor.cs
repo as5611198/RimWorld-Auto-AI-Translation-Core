@@ -97,6 +97,7 @@ namespace AutoTranslator_Core
 
         private static readonly Regex DynamicNumberRegex = new Regex(@"(?<![A-Za-z0-9_])[-+]?\d+(?:[\.,]\d+)?(?:\s*(?:%|ms|s|h|d|kg|g|W|kW|MW|XP))?(?![A-Za-z0-9_])", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly Regex DynamicNumberPlaceholderRegex = new Regex(@"\{num\d+\}", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex LanguageDetectionNumericMarkerRegex = new Regex(@"(?<=\d)\s*(?:x|×)\s*(?=\d|\p{L}|[\s\)\]\},.;:!?]|$)|(?<=\p{L})\s*(?:x|×)\s*(?=\d)|(?<=\d)\s*(?:°\s*)?(?:C|F)\b|(?<=\d)\s*(?:kW|MW|W|XP|MB|GB|kB|kg|mm|cm|ms|L|g|m|s|h|d)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly ConcurrentDictionary<string, bool> FastBypassDecisionCache = new ConcurrentDictionary<string, bool>();
         private static readonly ConcurrentDictionary<string, bool> TextDecisionCache = new ConcurrentDictionary<string, bool>();
         private static readonly ConcurrentDictionary<string, UIRenderDecision> RenderDecisionCache = new ConcurrentDictionary<string, UIRenderDecision>();

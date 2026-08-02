@@ -252,6 +252,37 @@ namespace AutoTranslator_Core
                 Patch_GUI_Label_GUIContent.BypassInterceptor = false;
             }
         }
+
+        private void PromptPureAiRebuildForUpload()
+        {
+            if (_mod == null)
+            {
+                Messages.Message(AutoTranslatorScanner.FormatAiUploadNoCleanMessage(_modName), MessageTypeDefOf.RejectInput, false);
+                return;
+            }
+
+            if (AutoTranslatorSettings.IsRunning)
+            {
+                Messages.Message("ATC_Msg_PureAiRebuildBusy".Translate(), MessageTypeDefOf.RejectInput, false);
+                return;
+            }
+
+            string modName = string.IsNullOrWhiteSpace(_modName) ? _mod.Name : _modName;
+            Find.WindowStack.Add(new Dialog_MessageBox(
+                "ATC_Msg_AiUploadNoCleanEntriesWithRebuild".Translate(modName),
+                "ATC_Btn_PureAiRebuildForUpload".Translate(),
+                () =>
+                {
+                    this.Close();
+                    AutoTranslatorSettings.ActiveTab = 0;
+                    AutoTranslatorSettings.mainScrollPos = Vector2.zero;
+                    AutoTranslatorScanner.StartPureAiRebuildForUpload(_mod);
+                },
+                "ATC_Btn_Cancel".Translate(),
+                null,
+                "ATC_Title_PureAiRebuildForUpload".Translate()
+            ));
+        }
     }
 
 }

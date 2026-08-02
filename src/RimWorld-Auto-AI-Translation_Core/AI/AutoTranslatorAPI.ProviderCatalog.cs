@@ -57,13 +57,13 @@ namespace AutoTranslator_Core
             switch (provider)
             {
                 case TranslatorProvider.DeepSeek:
-                    return new ProviderRuntimeProfile { BatchSize = reasoning ? 6 : 12, FormatRetries = 1, TimeoutFloorSeconds = 300, QualityHintKey = "ATC_Profile_DeepSeek" };
+                    return new ProviderRuntimeProfile { BatchSize = reasoning ? 6 : 12, FormatRetries = 1, TimeoutFloorSeconds = reasoning ? 300 : 90, QualityHintKey = "ATC_Profile_DeepSeek" };
                 case TranslatorProvider.Google:
                     return new ProviderRuntimeProfile { BatchSize = 40, FormatRetries = 1, TimeoutFloorSeconds = 60, QualityHintKey = "ATC_Profile_Google" };
                 case TranslatorProvider.DeepL:
                     return new ProviderRuntimeProfile { BatchSize = 50, FormatRetries = 0, TimeoutFloorSeconds = 60, QualityHintKey = "ATC_Profile_DeepL" };
                 case TranslatorProvider.Custom_OpenAI:
-                    return new ProviderRuntimeProfile { BatchSize = reasoning ? 12 : 24, FormatRetries = 1, TimeoutFloorSeconds = 300, QualityHintKey = "ATC_Profile_Custom" };
+                    return new ProviderRuntimeProfile { BatchSize = reasoning ? 12 : 24, FormatRetries = 1, TimeoutFloorSeconds = reasoning ? 300 : 90, QualityHintKey = "ATC_Profile_Custom" };
                 case TranslatorProvider.OpenRouter:
                     return new ProviderRuntimeProfile { BatchSize = reasoning ? 12 : 28, FormatRetries = 1, TimeoutFloorSeconds = reasoning ? 300 : 90, QualityHintKey = "ATC_Profile_OpenRouter" };
                 default:
@@ -112,13 +112,6 @@ namespace AutoTranslator_Core
                     }
 
 
-                    if (config.Provider != TranslatorProvider.Google &&
-                        !cleanUrl.EndsWith("/v1") && !cleanUrl.EndsWith("/v1beta") &&
-                        !cleanUrl.EndsWith("/v4") && !cleanUrl.EndsWith("/api"))
-                    {
-                        cleanUrl += "/v1";
-                    }
-                    config.CustomBaseUrl = cleanUrl;
                     return cleanUrl;
                 }
                 else

@@ -24,6 +24,12 @@ namespace AutoTranslator_Core
         // EN: This method starts single scan.
         public static void StartSingleScan(ModMetaData targetMod)
         {
+            if (targetMod == null) return;
+            if (AutoTranslatorMod.Settings != null && AutoTranslatorMod.Settings.IsTranslationBlacklisted(targetMod.PackageId))
+            {
+                Messages.Message("ATC_Blacklist_TranslationSkipped".Translate(targetMod.Name), MessageTypeDefOf.NeutralEvent, false);
+                return;
+            }
 
             AutoTranslatorMod.Settings.SessionCharCount = 0;
             ResetValidationStats();
@@ -56,15 +62,6 @@ namespace AutoTranslator_Core
                         return;
                     }
 
-                    if (AutoTranslatorMod.Settings.AutoClearOldOnUpdate)
-                    {
-                        var updatedTracker = ModUpdateDetector.GetUpdatedOrNewModsBlocking();
-                        if (updatedTracker.Any(m => m.PackageId == targetMod.PackageId))
-                        {
-                            ClearOldTranslationFiles(new List<ModMetaData> { targetMod }, requestRuntimeRefresh: false);
-                        }
-                    }
-
                     settings.SubTaskName = "ATC_SubTask_TestingAPI".Translate();
                     AutoTranslatorSettings.AddLog("🔌 " + "ATC_Log_PreflightCheck".Translate());
 
@@ -75,6 +72,15 @@ namespace AutoTranslator_Core
                         settings.CurrentTaskName = "ATC_TaskFailed".Translate();
                         AutoTranslatorSettings.IsRunning = false;
                         return;
+                    }
+
+                    if (AutoTranslatorMod.Settings.AutoClearOldOnUpdate)
+                    {
+                        var updatedTracker = ModUpdateDetector.GetUpdatedOrNewModsBlocking();
+                        if (updatedTracker.Any(m => string.Equals(m.PackageId, targetMod.PackageId, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            ClearOldTranslationFiles(new List<ModMetaData> { targetMod }, requestRuntimeRefresh: false);
+                        }
                     }
 
 
@@ -149,6 +155,202 @@ namespace AutoTranslator_Core
                 }
             });
         }
+
+        public static void StartPureAiRebuildForUpload(ModMetaData targetMod)
+        {
+            if (targetMod == null) return;
+
+            AutoTranslatorMod.Settings.SessionCharCount = 0;
+            ResetValidationStats();
+            AutoTranslatorSettings.ResetPipelineCancellation();
+            AutoTranslatorSettings.IsRunning = true;
+            AutoTranslatorSettings.ActiveTab = 0;
+
+            var settings = AutoTranslatorMod.Settings;
+            string targetFolder = GetFolderNameByLanguage(settings.TargetLang);
+            settings.CurrentProgress = 0f;
+            settings.SubProgress = 0f;
+            settings.CurrentTaskName = AutoTranslatorAPI.TranslateText("ATC_Task_PureAiRebuildForUpload", targetMod.Name);
+            settings.SubTaskName = "";
+            AutoTranslatorSettings.AddLog("🚀 " + AutoTranslatorAPI.TranslateText("ATC_Log_PureAiRebuildStart", targetMod.Name));
+
+            Task.Run(async () =>
+            {
+                int aiTranslatedCount = 0;
+                try
+                {
+                    EnsurePackInitialized(runFullMaintenance: false);
+                    if (AutoTranslatorSettings.IsCancellationRequested) return;
+
+                    if (ShouldSkipTranslationPatchMod(targetMod))
+                    {
+                        AutoTranslatorSettings.AddErrorLog("❌ " + AutoTranslatorAPI.TranslateText("ATC_Log_PureAiRebuildBlockedPatchMod", targetMod.Name));
+                        settings.CurrentTaskName = "ATC_TaskFailed".Translate();
+                        return;
+                    }
+
+                    settings.SubTaskName = "ATC_SubTask_TestingAPI".Translate();
+                    AutoTranslatorSettings.AddLog("🔌 " + "ATC_Log_PreflightCheck".Translate());
+
+                    bool isApiAlive = await AutoTranslatorAPI.TestConnectionAsync();
+                    if (!isApiAlive)
+                    {
+                        AutoTranslatorSettings.AddErrorLog("❌ " + "ATC_LogError_ApiDeadAbort".Translate());
+                        settings.CurrentTaskName = "ATC_TaskFailed".Translate();
+                        return;
+                    }
+
+                    string workspaceLangRoot = GetTranslationOutputLanguageRoot(targetMod, targetFolder, TranslationOutputMode.PureAiWorkspace);
+                    BackupAndClearPureAiWorkspace(targetMod, workspaceLangRoot);
+
+                    var langRoots = GetAllEffectiveLangPaths(targetMod);
+                    var defsRoots = GetAllEffectiveDefsPaths(targetMod);
+                    bool hasLang = langRoots.Count > 0;
+                    bool hasDefs = defsRoots.Count > 0;
+
+                    if (!hasLang && !hasDefs)
+                    {
+                        AutoTranslatorSettings.AddLog("⏭️ " + "ATC_Log_SkipMod".Translate());
+                    }
+                    else
+                    {
+                        if (hasLang)
+                        {
+                            int totalLangRoots = Math.Max(1, langRoots.Count);
+                            for (int i = 0; i < langRoots.Count; i++)
+                            {
+                                settings.CurrentProgress = 0.1f + 0.35f * i / totalLangRoots;
+                                settings.SubTaskName = "ATC_SubTask_TranslatingKeyed".Translate();
+                                aiTranslatedCount += await ProcessModKeyedSources(targetMod, langRoots[i], TranslationOutputMode.PureAiWorkspace);
+                            }
+                        }
+
+                        if (AutoTranslatorSettings.IsCancellationRequested) return;
+                        if (hasDefs || hasLang)
+                        {
+                            settings.CurrentProgress = 0.55f;
+                            settings.SubTaskName = "ATC_SubTask_TranslatingDef".Translate();
+                            AutoTranslatorSettings.AddLog("📦 " + "ATC_Log_DefScan".Translate());
+                            aiTranslatedCount += await ProcessModDefInjected(targetMod, langRoots, defsRoots, TranslationOutputMode.PureAiWorkspace);
+                        }
+                    }
+
+                    if (!AutoTranslatorSettings.IsCancellationRequested)
+                    {
+                        if (aiTranslatedCount > 0)
+                        {
+                            WritePureAiWorkspaceMeta(targetMod.PackageId, targetFolder, workspaceLangRoot, aiTranslatedCount);
+                            AutoTranslatorSettings.AddLog("✅ " + AutoTranslatorAPI.TranslateText("ATC_Log_PureAiRebuildDone", targetMod.Name, aiTranslatedCount));
+                            ATC_Dispatcher.RunOnMainThread(() =>
+                                Messages.Message("ATC_Msg_PureAiRebuildDone".Translate(targetMod.Name), MessageTypeDefOf.PositiveEvent, false));
+                        }
+                        else
+                        {
+                            AutoTranslatorSettings.AddLog("⚠️ " + AutoTranslatorAPI.TranslateText("ATC_Log_PureAiRebuildNoEntries", targetMod.Name));
+                            ATC_Dispatcher.RunOnMainThread(() =>
+                                Messages.Message("ATC_Msg_PureAiRebuildNoEntries".Translate(targetMod.Name), MessageTypeDefOf.RejectInput, false));
+                        }
+
+                        settings.CurrentTaskName = "ATC_TaskDone".Translate();
+                        settings.CurrentProgress = 1f;
+                        settings.SubTaskName = "";
+                        settings.SubProgress = 1f;
+                        LogValidationSummary();
+                        ModUpdateDetector.ClearStatusCache();
+                        TranslationWorkbenchTab.RequestRefresh();
+                    }
+                }
+                catch (Exception e)
+                {
+                    AutoTranslatorSettings.AddLog("❌ " + AutoTranslatorAPI.TranslateText("ATC_Log_TaskError", e.Message));
+                    Log.Error($"[AutoTranslationCore] Pure AI rebuild task interrupted: {e.Message}");
+                }
+                finally
+                {
+                    AutoTranslatorSettings.IsRunning = false;
+                    if (AutoTranslatorSettings.IsCancellationRequested)
+                    {
+                        settings.CurrentTaskName = "";
+                        settings.CurrentProgress = 0f;
+                        settings.SubTaskName = "";
+                        settings.SubProgress = 0f;
+                    }
+                }
+            });
+        }
+
+        private static void BackupAndClearPureAiWorkspace(ModMetaData mod, string workspaceLangRoot)
+        {
+            if (mod == null || string.IsNullOrWhiteSpace(workspaceLangRoot)) return;
+
+            try
+            {
+                if (Directory.Exists(workspaceLangRoot))
+                {
+                    string backupRoot = Path.Combine(
+                        GetLocalPackPath(),
+                        "Backups",
+                        "PureAIRebuild",
+                        DateTime.Now.ToString("yyyyMMdd_HHmmss") + "_" + SanitizeFileName(mod.PackageId));
+                    Directory.CreateDirectory(backupRoot);
+                    CopyDirectoryContents(workspaceLangRoot, backupRoot);
+                    Directory.Delete(workspaceLangRoot, true);
+                    AutoTranslatorSettings.AddLog("🧰 " + AutoTranslatorAPI.TranslateText("ATC_Log_PureAiWorkspaceBackedUp", mod.Name));
+                }
+
+                Directory.CreateDirectory(workspaceLangRoot);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning($"[AutoTranslationCore] Failed to backup pure AI workspace for {mod.PackageId}: {ex.Message}");
+                Directory.CreateDirectory(workspaceLangRoot);
+            }
+        }
+
+        private static void CopyDirectoryContents(string sourceDir, string destDir)
+        {
+            if (string.IsNullOrWhiteSpace(sourceDir) || string.IsNullOrWhiteSpace(destDir) || !Directory.Exists(sourceDir)) return;
+
+            foreach (string dir in Directory.GetDirectories(sourceDir, "*", SearchOption.AllDirectories))
+            {
+                string rel = dir.Substring(sourceDir.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                Directory.CreateDirectory(Path.Combine(destDir, rel));
+            }
+
+            foreach (string file in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
+            {
+                string rel = file.Substring(sourceDir.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                string dest = Path.Combine(destDir, rel);
+                Directory.CreateDirectory(Path.GetDirectoryName(dest));
+                File.Copy(file, dest, true);
+            }
+        }
+
+        private static void WritePureAiWorkspaceMeta(string packageId, string targetLangFolder, string workspaceLangRoot, int newAiCount)
+        {
+            if (string.IsNullOrWhiteSpace(packageId) || string.IsNullOrWhiteSpace(workspaceLangRoot)) return;
+
+            try
+            {
+                Directory.CreateDirectory(workspaceLangRoot);
+                string cleanPackageId = packageId.Replace(".", "_").ToLower();
+                string metaPath = Path.Combine(workspaceLangRoot, $"{cleanPackageId}_ATC_Meta.json");
+                LocalModMeta meta = new LocalModMeta
+                {
+                    OriginalRecordId = "",
+                    TargetModVersion = RimWorld.VersionControl.CurrentVersionStringWithoutBuild,
+                    TranslationDate = DateTime.UtcNow,
+                    IsSmartMerged = false,
+                    MergedAiCount = newAiCount
+                };
+
+                File.WriteAllText(metaPath, JsonConvert.SerializeObject(meta, Newtonsoft.Json.Formatting.Indented));
+            }
+            catch (Exception ex)
+            {
+                Log.Warning($"[AutoTranslationCore] WritePureAiWorkspaceMeta error: {ex.Message}");
+            }
+        }
         // 這個方法負責啟動 Full掃描 流程。
         // EN: This method starts full scan.
         public static void StartFullScan()
@@ -161,6 +363,8 @@ namespace AutoTranslator_Core
 
             var mods = ModLister.AllInstalledMods.Where(m =>
                             !BlacklistedModules.Contains(m.PackageId.ToLower()) &&
+                            !settings.IsTranslationBlacklisted(m.PackageId) &&
+                            !IsOfficialBaseGameOrDlcPackage(m.PackageId) &&
                             (!settings.OnlyScanActiveMods || m.Active)).ToList();
             AutoTranslatorSettings.AddLog("🌐 " + AutoTranslatorAPI.TranslateText("ATC_Log_StartScan", mods.Count));
 
@@ -192,19 +396,6 @@ namespace AutoTranslator_Core
                                 .Select(m => m.PackageId),
                             StringComparer.OrdinalIgnoreCase)
                         : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-                    if (updatedPackageIds.Count > 0)
-                    {
-                        var updatedModsToClear = mods
-                            .Where(m => m != null &&
-                                        !IsTranslationPatchMod(m) &&
-                                        updatedPackageIds.Contains(m.PackageId))
-                            .ToList();
-                        if (updatedModsToClear.Count > 0)
-                        {
-                            ClearOldTranslationFiles(updatedModsToClear, requestRuntimeRefresh: false);
-                        }
-                    }
 
                     BuildGlobalTranslationDatabase(mods);
                     int total = mods.Count;
@@ -238,6 +429,11 @@ namespace AutoTranslator_Core
                         settings.SubProgress = 0f;
                         settings.SubTaskName = "ATC_SubTask_Scanning".Translate();
                         AutoTranslatorSettings.AddLog("🔍 " + AutoTranslatorAPI.TranslateText("ATC_Log_ScanMod", mod.Name));
+
+                        if (updatedPackageIds.Contains(mod.PackageId))
+                        {
+                            ClearOldTranslationFiles(new List<ModMetaData> { mod }, requestRuntimeRefresh: false);
+                        }
 
                         var langRoots = GetAllEffectiveLangPaths(mod);
                         var defsRoots = GetAllEffectiveDefsPaths(mod);
@@ -324,8 +520,15 @@ namespace AutoTranslator_Core
 
         // 這個方法負責啟動 Multi掃描 流程。
         // EN: This method starts multi scan.
-        public static void StartMultiScan(List<ModMetaData> targetMods)
+        public static void StartMultiScan(List<ModMetaData> targetMods, bool includeOfficialGamePackages = false)
         {
+            targetMods = (targetMods ?? new List<ModMetaData>())
+                .Where(mod => mod != null &&
+                              (AutoTranslatorMod.Settings == null || !AutoTranslatorMod.Settings.IsTranslationBlacklisted(mod.PackageId)) &&
+                              (includeOfficialGamePackages || !IsOfficialBaseGameOrDlcPackage(mod.PackageId)))
+                .ToList();
+            if (targetMods.Count == 0) return;
+
             AutoTranslatorMod.Settings.SessionCharCount = 0;
             ResetValidationStats();
             AutoTranslatorSettings.IsRunning = true;
@@ -365,19 +568,6 @@ namespace AutoTranslator_Core
                             StringComparer.OrdinalIgnoreCase)
                         : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                    if (updatedPackageIds.Count > 0)
-                    {
-                        var updatedModsToClear = targetMods
-                            .Where(m => m != null &&
-                                        !IsTranslationPatchMod(m) &&
-                                        updatedPackageIds.Contains(m.PackageId))
-                            .ToList();
-                        if (updatedModsToClear.Count > 0)
-                        {
-                            ClearOldTranslationFiles(updatedModsToClear, requestRuntimeRefresh: false);
-                        }
-                    }
-
                     BuildGlobalTranslationDatabase(activeMods);
                     int current = 0;
                     foreach (var mod in targetMods)
@@ -402,6 +592,11 @@ namespace AutoTranslator_Core
                         settings.SubProgress = 0f;
                         settings.SubTaskName = "ATC_SubTask_Scanning".Translate();
                         AutoTranslatorSettings.AddLog(AutoTranslatorAPI.TranslateText("ATC_Log_ScanMod", mod.Name));
+
+                        if (updatedPackageIds.Contains(mod.PackageId))
+                        {
+                            ClearOldTranslationFiles(new List<ModMetaData> { mod }, requestRuntimeRefresh: false);
+                        }
 
                         var langRoots = GetAllEffectiveLangPaths(mod);
                         var defsRoots = GetAllEffectiveDefsPaths(mod);

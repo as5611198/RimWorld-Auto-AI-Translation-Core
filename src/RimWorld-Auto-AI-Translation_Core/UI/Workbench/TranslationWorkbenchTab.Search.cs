@@ -107,6 +107,47 @@ namespace AutoTranslator_Core
                 _cachedVisibleRetainedKey = "";
                 _cachedVisibleSourceCount = -1;
                 _cachedVisibleDataVersion = -1;
+                _cachedAllCategoryItems = null;
+                _cachedAllCategoryItemsDataVersion = -1;
+            }
+
+            private static bool IsAllWorkbenchCategoriesSelected()
+            {
+                return string.Equals(_selectedCategory, AllWorkbenchCategoriesView, StringComparison.Ordinal);
+            }
+
+            private static bool IsWorkbenchCategoryVisible(string category)
+            {
+                return IsAllWorkbenchCategoriesSelected() ||
+                       string.Equals(_selectedCategory ?? "", category ?? "", StringComparison.OrdinalIgnoreCase);
+            }
+
+            private static string GetWorkbenchItemCategory(WorkbenchItem item)
+            {
+                if (item != null && !string.IsNullOrWhiteSpace(item.Category)) return item.Category;
+                return IsAllWorkbenchCategoriesSelected() ? "" : _selectedCategory ?? "";
+            }
+
+            private static List<WorkbenchItem> GetCurrentWorkbenchSourceItems()
+            {
+                if (!IsAllWorkbenchCategoriesSelected())
+                {
+                    return _categorizedData.TryGetValue(_selectedCategory ?? "", out List<WorkbenchItem> categoryItems) && categoryItems != null
+                        ? categoryItems
+                        : new List<WorkbenchItem>();
+                }
+
+                if (_cachedAllCategoryItems != null && _cachedAllCategoryItemsDataVersion == _categorizedDataVersion)
+                {
+                    return _cachedAllCategoryItems;
+                }
+
+                _cachedAllCategoryItems = _categorizedData
+                    .SelectMany(pair => pair.Value ?? new List<WorkbenchItem>())
+                    .Where(item => item != null)
+                    .ToList();
+                _cachedAllCategoryItemsDataVersion = _categorizedDataVersion;
+                return _cachedAllCategoryItems;
             }
 
             private static List<WorkbenchItem> GetVisibleItemsForCurrentCategory(List<WorkbenchItem> sourceItems)
@@ -139,19 +180,24 @@ namespace AutoTranslator_Core
                 {
                     string searchLower = searchText.ToLowerInvariant();
                     _cachedVisibleItems = sourceItems
-                        .Where(i =>
-                            (i.OriginalText != null && i.OriginalText.ToLowerInvariant().Contains(searchLower)) ||
-                            (i.TranslatedText != null && i.TranslatedText.ToLowerInvariant().Contains(searchLower)) ||
-                            (i.Key != null && i.Key.ToLowerInvariant().Contains(searchLower)))
+                        .Select((item, index) => new { Item = item, Index = index, Rank = GetWorkbenchSearchRank(item, searchLower) })
+                        .Where(entry => entry.Rank < int.MaxValue)
+                        .OrderBy(entry => entry.Rank)
+                        .ThenBy(entry => entry.Index)
+                        .Select(entry => entry.Item)
                         .ToList();
                 }
 
                 if (_activeWorkbenchFocus != null &&
-                    string.Equals(_selectedCategory ?? "", _activeWorkbenchFocus.Category ?? "", StringComparison.OrdinalIgnoreCase) &&
+                    IsWorkbenchCategoryVisible(_activeWorkbenchFocus.Category) &&
                     !string.IsNullOrWhiteSpace(_activeWorkbenchFocus.Key) &&
-                    !_cachedVisibleItems.Any(i => i != null && string.Equals(i.Key, _activeWorkbenchFocus.Key, StringComparison.OrdinalIgnoreCase)))
+                    !_cachedVisibleItems.Any(i => i != null &&
+                                                  string.Equals(GetWorkbenchItemCategory(i), _activeWorkbenchFocus.Category ?? "", StringComparison.OrdinalIgnoreCase) &&
+                                                  string.Equals(i.Key, _activeWorkbenchFocus.Key, StringComparison.OrdinalIgnoreCase)))
                 {
-                    WorkbenchItem focusedItem = sourceItems.FirstOrDefault(i => i != null && string.Equals(i.Key, _activeWorkbenchFocus.Key, StringComparison.OrdinalIgnoreCase));
+                    WorkbenchItem focusedItem = sourceItems.FirstOrDefault(i => i != null &&
+                        string.Equals(GetWorkbenchItemCategory(i), _activeWorkbenchFocus.Category ?? "", StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(i.Key, _activeWorkbenchFocus.Key, StringComparison.OrdinalIgnoreCase));
                     if (focusedItem != null)
                     {
                         _cachedVisibleItems = new List<WorkbenchItem>(_cachedVisibleItems) { focusedItem };
@@ -159,10 +205,14 @@ namespace AutoTranslator_Core
                 }
 
                 if (!string.IsNullOrWhiteSpace(retainedKey) &&
-                    string.Equals(_selectedCategory ?? "", retainedCategory, StringComparison.OrdinalIgnoreCase) &&
-                    !_cachedVisibleItems.Any(i => i != null && string.Equals(i.Key, retainedKey, StringComparison.OrdinalIgnoreCase)))
+                    IsWorkbenchCategoryVisible(retainedCategory) &&
+                    !_cachedVisibleItems.Any(i => i != null &&
+                                                  string.Equals(GetWorkbenchItemCategory(i), retainedCategory, StringComparison.OrdinalIgnoreCase) &&
+                                                  string.Equals(i.Key, retainedKey, StringComparison.OrdinalIgnoreCase)))
                 {
-                    WorkbenchItem retainedItem = sourceItems.FirstOrDefault(i => i != null && string.Equals(i.Key, retainedKey, StringComparison.OrdinalIgnoreCase));
+                    WorkbenchItem retainedItem = sourceItems.FirstOrDefault(i => i != null &&
+                        string.Equals(GetWorkbenchItemCategory(i), retainedCategory, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(i.Key, retainedKey, StringComparison.OrdinalIgnoreCase));
                     if (retainedItem != null)
                     {
                         _cachedVisibleItems = new List<WorkbenchItem>(_cachedVisibleItems) { retainedItem };
@@ -178,6 +228,19 @@ namespace AutoTranslator_Core
                 _cachedVisibleSourceCount = sourceItems.Count;
                 _cachedVisibleDataVersion = _categorizedDataVersion;
                 return _cachedVisibleItems;
+            }
+
+            private static int GetWorkbenchSearchRank(WorkbenchItem item, string searchLower)
+            {
+                if (item == null || string.IsNullOrEmpty(searchLower)) return int.MaxValue;
+
+                string key = (item.Key ?? "").ToLowerInvariant();
+                string original = (item.OriginalText ?? "").ToLowerInvariant();
+                string translated = (item.TranslatedText ?? "").ToLowerInvariant();
+
+                if (key.StartsWith(searchLower) || original.StartsWith(searchLower) || translated.StartsWith(searchLower)) return 0;
+                if (key.Contains(searchLower) || original.Contains(searchLower) || translated.Contains(searchLower)) return 1;
+                return int.MaxValue;
             }
 
             // 這個方法負責建立 Translated模組快取 所需資料。
@@ -298,6 +361,15 @@ namespace AutoTranslator_Core
                                 foreach (var file in allXmls) filesToScan.Add(new GlobalSearchFileWorkItem { FilePath = file, Mod = mod.Mod, Category = GetWorkbenchCategoryFromTranslationFile(file) });
                             }
                         }
+
+                        if (targetFolderFilter != null && langFilter.HasValue &&
+                            AutoTranslatorScanner.IsOfficialBaseGameOrDlcPackage(packageId))
+                        {
+                            foreach (var tarFile in AutoTranslatorScanner.GetOfficialTarTranslationFiles(packageId, mod.RootDir, langFilter.Value))
+                            {
+                                filesToScan.Add(new GlobalSearchFileWorkItem { TarFile = tarFile, Mod = mod.Mod, Category = tarFile.Category });
+                            }
+                        }
                     }
 
 
@@ -311,7 +383,9 @@ namespace AutoTranslator_Core
 
                         _globalSearchProgress = (float)i / totalFiles;
 
-                        var dict = AutoTranslatorScanner.LoadXmlFileToDict(item.FilePath);
+                        var dict = item.TarFile != null && langFilter.HasValue
+                            ? AutoTranslatorScanner.LoadOfficialTarXmlFileToDict(item.TarFile, langFilter.Value)
+                            : AutoTranslatorScanner.LoadXmlFileToDict(item.FilePath);
                         foreach (var kv in dict)
                         {
                             if ((kv.Value != null && kv.Value.ToLowerInvariant().Contains(searchLower)) ||
@@ -336,12 +410,26 @@ namespace AutoTranslator_Core
                 SearchDone:
 
                     _globalSearchProgress = 1f;
+                    results = results
+                        .OrderBy(result => GetGlobalSearchResultRank(result, searchLower))
+                        .ThenBy(result => result.Key ?? "", StringComparer.OrdinalIgnoreCase)
+                        .ToList();
 
                     ATC_Dispatcher.RunOnMainThread(() => {
                         _globalSearchResults = results;
                         _isGlobalSearching = false;
                     });
                 });
+            }
+
+            private static int GetGlobalSearchResultRank(GlobalSearchResult result, string searchLower)
+            {
+                if (result == null || string.IsNullOrEmpty(searchLower)) return int.MaxValue;
+                string key = (result.Key ?? "").ToLowerInvariant();
+                string translated = (result.TranslatedText ?? "").ToLowerInvariant();
+                if (key.StartsWith(searchLower) || translated.StartsWith(searchLower)) return 0;
+                if (key.Contains(searchLower) || translated.Contains(searchLower)) return 1;
+                return int.MaxValue;
             }
 
             private static string GetWorkbenchCategoryFromTranslationFile(string filePath)

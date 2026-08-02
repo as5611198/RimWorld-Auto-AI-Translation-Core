@@ -51,18 +51,18 @@ namespace AutoTranslator_Core
             return TryGetActiveExternalTargetLanguagePatch(mod, targetLang, out _, out _);
         }
 
-        public static bool TryGetActiveExternalTargetLanguagePatch(
-            ModMetaData mod,
+        public static bool HasActiveExternalTargetLanguagePatch(
+            string packageId,
             TargetLanguage targetLang,
             out string patchName,
             out string patchPackageId)
         {
             patchName = "";
             patchPackageId = "";
-            if (mod == null || string.IsNullOrWhiteSpace(mod.PackageId)) return false;
+            if (string.IsNullOrWhiteSpace(packageId)) return false;
 
             EnsureExternalTargetLanguagePatchCache(targetLang);
-            string targetPackageId = NormalizeExternalPatchPackageId(mod.PackageId);
+            string targetPackageId = NormalizeExternalPatchPackageId(packageId);
 
             lock (ExternalTargetLanguagePatchLock)
             {
@@ -76,6 +76,18 @@ namespace AutoTranslator_Core
             }
 
             return false;
+        }
+
+        public static bool TryGetActiveExternalTargetLanguagePatch(
+            ModMetaData mod,
+            TargetLanguage targetLang,
+            out string patchName,
+            out string patchPackageId)
+        {
+            patchName = "";
+            patchPackageId = "";
+            if (mod == null || string.IsNullOrWhiteSpace(mod.PackageId)) return false;
+            return HasActiveExternalTargetLanguagePatch(mod.PackageId, targetLang, out patchName, out patchPackageId);
         }
 
         // 這個方法負責確保 External目標語言補丁快取 已準備完成。
@@ -95,7 +107,15 @@ namespace AutoTranslator_Core
 
             try
             {
-                foreach (ModMetaData patchMod in ModLister.AllInstalledMods.Where(m =>
+                List<ModMetaData> activeMods = ModLister.AllInstalledMods
+                    .Where(m => m != null && m.Active && !string.IsNullOrWhiteSpace(m.PackageId))
+                    .ToList();
+                List<KeyValuePair<string, string>> targetCandidates = activeMods
+                    .Where(m => !IsTranslationPatchMod(m))
+                    .Select(m => new KeyValuePair<string, string>(m.PackageId ?? "", m.Name ?? ""))
+                    .ToList();
+
+                foreach (ModMetaData patchMod in activeMods.Where(m =>
                              m != null &&
                              m.Active &&
                              IsTranslationPatchMod(m) &&
@@ -105,15 +125,15 @@ namespace AutoTranslator_Core
 
                     foreach (string targetPackageId in GetReferencedTargetPackageIds(patchMod))
                     {
-                        if (string.IsNullOrWhiteSpace(targetPackageId)) continue;
-                        if (string.Equals(targetPackageId, patchPackageId, StringComparison.OrdinalIgnoreCase)) continue;
-                        if (cache.ContainsKey(targetPackageId)) continue;
+                        RememberExternalTargetLanguagePatch(cache, targetPackageId, patchMod, patchPackageId);
+                    }
 
-                        cache[targetPackageId] = new ExternalTargetLanguagePatch
-                        {
-                            PatchName = patchMod.Name ?? "",
-                            PatchPackageId = patchMod.PackageId ?? ""
-                        };
+                    foreach (string inferredPackageId in InferExternalPatchTargetPackageIds(
+                                 patchMod.PackageId,
+                                 patchMod.Name,
+                                 targetCandidates))
+                    {
+                        RememberExternalTargetLanguagePatch(cache, inferredPackageId, patchMod, patchPackageId);
                     }
                 }
             }
@@ -124,6 +144,26 @@ namespace AutoTranslator_Core
                 _externalTargetLanguagePatchCache = cache;
                 _externalTargetLanguagePatchCacheLang = targetLang;
             }
+        }
+
+        private static void RememberExternalTargetLanguagePatch(
+            Dictionary<string, ExternalTargetLanguagePatch> cache,
+            string targetPackageId,
+            ModMetaData patchMod,
+            string patchPackageId)
+        {
+            if (cache == null || patchMod == null) return;
+
+            targetPackageId = NormalizeExternalPatchPackageId(targetPackageId);
+            if (string.IsNullOrWhiteSpace(targetPackageId)) return;
+            if (string.Equals(targetPackageId, patchPackageId, StringComparison.OrdinalIgnoreCase)) return;
+            if (cache.ContainsKey(targetPackageId)) return;
+
+            cache[targetPackageId] = new ExternalTargetLanguagePatch
+            {
+                PatchName = patchMod.Name ?? "",
+                PatchPackageId = patchMod.PackageId ?? ""
+            };
         }
 
         // 這個方法負責取得 Referenced目標PackageIds 資料。
@@ -249,6 +289,86 @@ namespace AutoTranslator_Core
                 string token = NormalizeExternalPatchPackageId(match.Value);
                 if (!string.IsNullOrWhiteSpace(token)) yield return token;
             }
+        }
+
+        public static List<string> InferExternalPatchTargetPackageIds(
+            string patchPackageId,
+            string patchName,
+            IEnumerable<KeyValuePair<string, string>> targetCandidates)
+        {
+            var matches = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (targetCandidates == null) return matches.ToList();
+
+            string patchPackageIdentity = NormalizeExternalPatchIdentity(patchPackageId, true);
+            string patchNameIdentity = NormalizeExternalPatchIdentity(patchName, true);
+            if (patchPackageIdentity.Length < 6 && patchNameIdentity.Length < 6) return matches.ToList();
+
+            string normalizedPatchPackageId = NormalizeExternalPatchPackageId(patchPackageId);
+            foreach (KeyValuePair<string, string> candidate in targetCandidates)
+            {
+                string candidatePackageId = NormalizeExternalPatchPackageId(candidate.Key);
+                if (string.IsNullOrWhiteSpace(candidatePackageId)) continue;
+                if (string.Equals(candidatePackageId, normalizedPatchPackageId, StringComparison.OrdinalIgnoreCase)) continue;
+
+                string candidatePackageIdentity = NormalizeExternalPatchIdentity(candidatePackageId, false);
+                string candidateNameIdentity = NormalizeExternalPatchIdentity(candidate.Value, false);
+
+                bool packageMatch = IsStrongExternalPatchIdentityMatch(patchPackageIdentity, candidatePackageIdentity);
+                bool nameMatch = IsStrongExternalPatchIdentityMatch(patchNameIdentity, candidateNameIdentity);
+                if (packageMatch || nameMatch)
+                {
+                    matches.Add(candidatePackageId);
+                }
+            }
+
+            return matches.Count == 1 ? matches.ToList() : new List<string>();
+        }
+
+        private static bool IsStrongExternalPatchIdentityMatch(string patchIdentity, string targetIdentity)
+        {
+            return patchIdentity.Length >= 6 &&
+                   targetIdentity.Length >= 6 &&
+                   string.Equals(patchIdentity, targetIdentity, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string NormalizeExternalPatchIdentity(string value, bool stripLanguageMarkers)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return "";
+
+            string text = value.ToLowerInvariant();
+            if (stripLanguageMarkers)
+            {
+                text = Regex.Replace(text, @"(^|[\s._\-\[\]\(\):]+)(zh[-_ ]?cn|zh[-_ ]?tw|zh|cn|tw|zhtc|l10n)(?=$|[\s._\-\[\]\(\):]+)", " ");
+                string[] markers =
+                {
+                    "chinese simplified",
+                    "chinese traditional",
+                    "simplified chinese",
+                    "traditional chinese",
+                    "chinese",
+                    "translation",
+                    "language",
+                    "中文",
+                    "漢化",
+                    "汉化",
+                    "翻譯",
+                    "翻译",
+                    "簡體",
+                    "简体",
+                    "繁體",
+                    "繁体",
+                    "簡中",
+                    "简中",
+                    "繁中"
+                };
+
+                foreach (string marker in markers)
+                {
+                    text = text.Replace(marker, " ");
+                }
+            }
+
+            return new string(text.Where(char.IsLetterOrDigit).ToArray());
         }
 
         // 這個方法負責清理並標準化 External補丁PackageId 內容。

@@ -52,28 +52,36 @@ namespace AutoTranslator_Core
 
                 foreach (var categoryPair in _categorizedData)
                 {
-                    bool categoryModified = categoryPair.Value.Any(item =>
-                        item.IsModified ||
-                        !string.Equals(item.TranslatedText ?? "", item.OriginalTranslatedText ?? "", StringComparison.Ordinal));
+                    bool categoryModified = categoryPair.Value.Any(HasWorkbenchItemUnsavedChanges);
                     if (!categoryModified) continue;
 
                     WorkbenchSaveCategorySnapshot category = new WorkbenchSaveCategorySnapshot
                     {
                         Category = categoryPair.Key,
-                        ClearKeys = new HashSet<string>(
-                            categoryPair.Value.Where(item => !string.IsNullOrWhiteSpace(item.Key)).Select(item => item.Key),
-                            StringComparer.OrdinalIgnoreCase)
+                        ClearKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                     };
 
                     foreach (WorkbenchItem item in categoryPair.Value)
                     {
                         if (item == null || string.IsNullOrWhiteSpace(item.Key)) continue;
-                        category.Items.Add(new WorkbenchSaveItemSnapshot
+                        WorkbenchSaveItemSnapshot snapshotItem = new WorkbenchSaveItemSnapshot
                         {
                             Key = item.Key,
+                            OriginalText = item.OriginalText,
                             TranslatedText = item.TranslatedText,
-                            IsModified = item.IsModified
-                        });
+                            OriginalTranslatedText = item.OriginalTranslatedText,
+                            OriginalTranslatedTextIsReadOnlyReference = item.OriginalTranslatedTextIsReadOnlyReference,
+                            SavedTranslatedText = item.SavedTranslatedText,
+                            SavedTranslatedTextIsReadOnlyReference = item.SavedTranslatedTextIsReadOnlyReference,
+                            IsModified = HasWorkbenchItemUnsavedChanges(item)
+                        };
+
+                        if (snapshotItem.IsModified && !ShouldSaveWorkbenchSnapshotItem(snapshotItem))
+                        {
+                            category.ClearKeys.Add(snapshotItem.Key);
+                        }
+
+                        category.Items.Add(snapshotItem);
                     }
 
                     snapshot.Categories.Add(category);
@@ -131,18 +139,34 @@ namespace AutoTranslator_Core
                         Dictionary<string, string> fullDictToSave = new Dictionary<string, string>();
                         foreach (WorkbenchSaveItemSnapshot item in category.Items)
                         {
-                            if (!string.IsNullOrWhiteSpace(item.TranslatedText)) fullDictToSave[item.Key] = item.TranslatedText;
+                            if (ShouldSaveWorkbenchSnapshotItem(item))
+                            {
+                                fullDictToSave[item.Key] = item.TranslatedText;
+                            }
                             if (item.IsModified) result.SavedCount++;
                         }
 
                         if (fullDictToSave.Count > 0)
                         {
                             AutoTranslatorScanner.SaveXml(targetFile, fullDictToSave);
+                            AutoTranslatorScanner.SaveProvenanceForFile(
+                                Path.Combine(snapshot.PackPath, "Languages", snapshot.TargetLangFolder),
+                                snapshot.PackageId,
+                                targetFile,
+                                fullDictToSave,
+                                BuildManualEditProvenance(snapshot, category, targetFile, fullDictToSave));
                             AutoTranslatorScanner.SaveXml(workspaceFile, fullDictToSave);
+                            AutoTranslatorScanner.SaveProvenanceForFile(
+                                Path.Combine(workspaceBaseDir, snapshot.PackageId, snapshot.TargetLangFolder),
+                                snapshot.PackageId,
+                                workspaceFile,
+                                fullDictToSave,
+                                BuildManualEditProvenance(snapshot, category, workspaceFile, fullDictToSave));
                             result.TouchedTranslationFiles = true;
                         }
                     }
 
+                    UpdateWorkbenchRestoreBaselines(snapshot);
                     result.HasSavedTranslation = HasAnySavedTranslationForCurrentMod(snapshot.TargetLangFolder, snapshot.CleanPackageId);
                     result.SourceFingerprint = ModUpdateDetector.BuildSourceFingerprintSnapshot(
                         snapshot.PackageId,
@@ -153,6 +177,55 @@ namespace AutoTranslator_Core
                 {
                     result.Error = ex.Message;
                     Verse.Log.Warning($"[AutoTranslationCore] Workbench background save failed: {ex}");
+                }
+
+                return result;
+            }
+
+            private static bool ShouldSaveWorkbenchSnapshotItem(WorkbenchSaveItemSnapshot item)
+            {
+                if (item == null || string.IsNullOrWhiteSpace(item.TranslatedText)) return false;
+
+                bool revertedToReadOnlyOriginal =
+                    item.OriginalTranslatedTextIsReadOnlyReference &&
+                    SameWorkbenchText(item.TranslatedText, item.OriginalTranslatedText);
+                if (revertedToReadOnlyOriginal) return false;
+
+                bool unchangedReadOnlyReference =
+                    item.SavedTranslatedTextIsReadOnlyReference &&
+                    !item.IsModified &&
+                    SameWorkbenchText(item.TranslatedText, item.SavedTranslatedText);
+                return !unchangedReadOnlyReference;
+            }
+
+            private static Dictionary<string, AutoTranslatorScanner.TranslationProvenanceEntry> BuildManualEditProvenance(
+                WorkbenchSaveSnapshot snapshot,
+                WorkbenchSaveCategorySnapshot category,
+                string targetFile,
+                Dictionary<string, string> savedData)
+            {
+                Dictionary<string, AutoTranslatorScanner.TranslationProvenanceEntry> result =
+                    new Dictionary<string, AutoTranslatorScanner.TranslationProvenanceEntry>(StringComparer.OrdinalIgnoreCase);
+                if (snapshot == null || category == null || category.Items == null || savedData == null) return result;
+
+                HashSet<string> modifiedKeys = new HashSet<string>(
+                    category.Items
+                        .Where(i => i != null && i.IsModified && !string.IsNullOrWhiteSpace(i.Key))
+                        .Select(i => i.Key),
+                    StringComparer.OrdinalIgnoreCase);
+
+                foreach (KeyValuePair<string, string> pair in savedData)
+                {
+                    if (modifiedKeys.Contains(pair.Key))
+                    {
+                        result[pair.Key] = AutoTranslatorScanner.CreateProvenance(
+                            AutoTranslatorScanner.ProvenanceKindManualEdit,
+                            snapshot.PackageId,
+                            snapshot.Mod != null ? snapshot.Mod.Name : "",
+                            targetFile,
+                            snapshot.TargetLangFolder,
+                            pair.Value);
+                    }
                 }
 
                 return result;
@@ -196,15 +269,19 @@ namespace AutoTranslator_Core
                 foreach (WorkbenchSaveCategorySnapshot category in snapshot.Categories)
                 {
                     if (category == null || !_categorizedData.TryGetValue(category.Category, out List<WorkbenchItem> currentItems)) continue;
-                    HashSet<string> modifiedKeys = new HashSet<string>(
-                        category.Items.Where(i => i != null && i.IsModified && !string.IsNullOrWhiteSpace(i.Key)).Select(i => i.Key),
-                        StringComparer.OrdinalIgnoreCase);
+                    Dictionary<string, WorkbenchSaveItemSnapshot> snapshotItems = category.Items
+                        .Where(i => i != null && !string.IsNullOrWhiteSpace(i.Key))
+                        .GroupBy(i => i.Key, StringComparer.OrdinalIgnoreCase)
+                        .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
                     foreach (WorkbenchItem item in currentItems)
                     {
-                        if (item == null || !modifiedKeys.Contains(item.Key ?? "")) continue;
+                        if (item == null || !snapshotItems.TryGetValue(item.Key ?? "", out WorkbenchSaveItemSnapshot savedItem)) continue;
                         item.IsModified = false;
-                        item.OriginalTranslatedText = item.TranslatedText;
+                        item.SavedTranslatedText = item.TranslatedText;
+                        item.SavedTranslatedTextIsReadOnlyReference =
+                            savedItem.OriginalTranslatedTextIsReadOnlyReference &&
+                            SameWorkbenchText(savedItem.TranslatedText, savedItem.OriginalTranslatedText);
                     }
                 }
 

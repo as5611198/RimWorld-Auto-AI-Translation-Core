@@ -20,20 +20,57 @@ namespace AutoTranslator_Core
     // EN: This class manages the main workflow and state for AutoTranslatorScanner.
     public static partial class AutoTranslatorScanner
     {
+        private enum TranslationOutputMode
+        {
+            LivePack,
+            PureAiWorkspace
+        }
+
+        private static string GetTranslationOutputLanguageRoot(ModMetaData mod, string targetFolder, TranslationOutputMode outputMode)
+        {
+            if (outputMode == TranslationOutputMode.PureAiWorkspace && mod != null && !string.IsNullOrEmpty(mod.PackageId))
+            {
+                return Path.Combine(GetLocalPackPath(), "Upload_Workspace", mod.PackageId, targetFolder);
+            }
+
+            return Path.Combine(GetLocalPackPath(), "Languages", targetFolder);
+        }
+
+        private static List<string> GetPureAiSourceBucketPaths(string langRoot, TargetLanguage targetLang, string bucketName)
+        {
+            List<string> englishPaths = new List<string>();
+            foreach (string englishDir in ResolveLanguageFolders(langRoot, GetFolderNameByLanguage(TargetLanguage.English)))
+            {
+                englishPaths.AddRange(GetLanguageBucketPaths(englishDir, bucketName));
+            }
+
+            englishPaths = englishPaths.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            if (englishPaths.Count > 0 || targetLang == TargetLanguage.English) return englishPaths;
+
+            return GetTranslatableLanguageBucketPaths(langRoot, targetLang, bucketName, false);
+        }
+
         // 這個方法負責處理 模組Keyed 流程。
         // EN: This method processes mod Keyed.
         private static async Task<int> ProcessModKeyedSources(ModMetaData mod, string langRoot)
         {
+            return await ProcessModKeyedSources(mod, langRoot, TranslationOutputMode.LivePack);
+        }
+
+        private static async Task<int> ProcessModKeyedSources(ModMetaData mod, string langRoot, TranslationOutputMode outputMode)
+        {
             int aiTranslatedCount = 0;
             var settings = AutoTranslatorMod.Settings;
-            List<string> keyedSourcePaths = GetTranslatableLanguageBucketPaths(langRoot, settings.TargetLang, "Keyed", false);
+            List<string> keyedSourcePaths = outputMode == TranslationOutputMode.PureAiWorkspace
+                ? GetPureAiSourceBucketPaths(langRoot, settings.TargetLang, "Keyed")
+                : GetTranslatableLanguageBucketPaths(langRoot, settings.TargetLang, "Keyed", false);
             if (keyedSourcePaths.Count == 0) return 0;
 
             AutoTranslatorSettings.AddLog("⚙️ " + "ATC_Log_KeyedScan".Translate());
             HashSet<string> processedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (List<KeyedFileWorkItem> keyedFiles in BuildKeyedFileWorkItems(mod, keyedSourcePaths))
             {
-                aiTranslatedCount += await ProcessMergedModKeyed(mod, langRoot, keyedFiles, processedKeys);
+                aiTranslatedCount += await ProcessMergedModKeyed(mod, langRoot, keyedFiles, processedKeys, outputMode);
             }
 
             return aiTranslatedCount;
@@ -50,6 +87,7 @@ namespace AutoTranslator_Core
         private class KeyedSourceEntry
         {
             public string Value;
+            public string SourceFile;
             public bool FileLooksLikeTarget;
             public int SourceOrder;
         }
@@ -102,15 +140,26 @@ namespace AutoTranslator_Core
 
         private static async Task<int> ProcessMergedModKeyed(ModMetaData mod, string langRoot, List<KeyedFileWorkItem> sourceFiles, HashSet<string> processedKeys)
         {
+            return await ProcessMergedModKeyed(mod, langRoot, sourceFiles, processedKeys, TranslationOutputMode.LivePack);
+        }
+
+        private static async Task<int> ProcessMergedModKeyed(ModMetaData mod, string langRoot, List<KeyedFileWorkItem> sourceFiles, HashSet<string> processedKeys, TranslationOutputMode outputMode)
+        {
             int aiTranslatedCount = 0;
             if (sourceFiles == null || sourceFiles.Count == 0) return 0;
 
             var settings = AutoTranslatorMod.Settings;
             string targetFolder = GetFolderNameByLanguage(settings.TargetLang);
-            string packKeyedDir = Path.Combine(GetLocalPackPath(), "Languages", targetFolder, "Keyed");
+            string packLangRoot = GetTranslationOutputLanguageRoot(mod, targetFolder, outputMode);
+            string packKeyedDir = Path.Combine(packLangRoot, "Keyed");
             string targetFile = Path.Combine(packKeyedDir, sourceFiles[0].TargetFileName);
-            var packDict = LoadXmlFileToDict(targetFile);
+            bool pureAiWorkspace = outputMode == TranslationOutputMode.PureAiWorkspace;
+            var packDict = pureAiWorkspace
+                ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                : LoadXmlFileToDict(targetFile);
             Dictionary<string, string> nativeTargetDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, TranslationProvenanceEntry> nativeTargetSourceDict =
+                new Dictionary<string, TranslationProvenanceEntry>(StringComparer.OrdinalIgnoreCase);
 
             string secondaryTag = "";
             if (settings.TargetLang == TargetLanguage.Traditional)
@@ -120,16 +169,26 @@ namespace AutoTranslator_Core
 
             try
             {
-                foreach (string relativeKeyedFile in sourceFiles.Select(i => i.RelativeKeyedFile).Distinct(StringComparer.OrdinalIgnoreCase))
+                if (!pureAiWorkspace)
                 {
-                    foreach (string targetLangDir in ResolveLanguageFolders(langRoot, targetFolder))
+                    foreach (string relativeKeyedFile in sourceFiles.Select(i => i.RelativeKeyedFile).Distinct(StringComparer.OrdinalIgnoreCase))
                     {
-                        foreach (string targetKeyedDir in GetLanguageBucketPaths(targetLangDir, "Keyed"))
+                        foreach (string targetLangDir in ResolveLanguageFolders(langRoot, targetFolder))
                         {
-                            string targetKeyedFile = Path.Combine(targetKeyedDir, relativeKeyedFile);
-                            foreach (var kv in LoadXmlFileToDict(targetKeyedFile, settings.TargetLang))
+                            foreach (string targetKeyedDir in GetLanguageBucketPaths(targetLangDir, "Keyed"))
                             {
-                                nativeTargetDict[kv.Key] = kv.Value;
+                                string targetKeyedFile = Path.Combine(targetKeyedDir, relativeKeyedFile);
+                                foreach (var kv in LoadXmlFileToDict(targetKeyedFile, settings.TargetLang))
+                                {
+                                    nativeTargetDict[kv.Key] = kv.Value;
+                                    nativeTargetSourceDict[kv.Key] = CreateProvenance(
+                                        ProvenanceKindModNativeTarget,
+                                        mod.PackageId,
+                                        mod.Name,
+                                        targetKeyedFile,
+                                        targetFolder,
+                                        kv.Value);
+                                }
                             }
                         }
                     }
@@ -176,6 +235,7 @@ namespace AutoTranslator_Core
                         entries.Add(new KeyedSourceEntry
                         {
                             Value = value,
+                            SourceFile = sourceFile.File,
                             FileLooksLikeTarget = keyedFileLooksLikeTarget,
                             SourceOrder = sourceFile.SourceOrder
                         });
@@ -183,8 +243,16 @@ namespace AutoTranslator_Core
                 }
 
                 Dictionary<string, string> finalData = new Dictionary<string, string>(packDict, StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, TranslationProvenanceEntry> provenanceByKey =
+                    new Dictionary<string, TranslationProvenanceEntry>(StringComparer.OrdinalIgnoreCase);
+                foreach (var pair in packDict)
+                {
+                    provenanceByKey[pair.Key] = GetFileEntryProvenance(packLangRoot, mod.PackageId, targetFile, pair.Key, pair.Value);
+                }
+
                 List<string> keysToAI = new List<string>();
                 List<string> valuesToAI = new List<string>();
+                List<TranslationProvenanceEntry> aiSources = new List<TranslationProvenanceEntry>();
 
                 foreach (string key in orderedKeys)
                 {
@@ -194,25 +262,73 @@ namespace AutoTranslator_Core
                     KeyedSourceEntry sourceEntry = PickBestKeyedSourceEntry(entries, settings.TargetLang);
                     string sourceText = sourceEntry != null ? sourceEntry.Value : "";
 
-                    if (nativeTargetDict.TryGetValue(key, out string nativeVal)) finalData[key] = nativeVal;
-                    else if (packDict.TryGetValue(key, out string packVal))
-                        UseExistingOrQueueForAI(finalData, keysToAI, valuesToAI, key, packVal, sourceText);
-                    else if (GlobalPrimaryKeyedDict.TryGetValue(key, out string pVal))
-                        UseExistingOrQueueForAI(finalData, keysToAI, valuesToAI, key, pVal, sourceText);
-                    else if (GlobalSecondaryKeyedDict.TryGetValue(key, out string sVal) && !string.IsNullOrEmpty(secondaryTag))
+                    if (!pureAiWorkspace && nativeTargetDict.TryGetValue(key, out string nativeVal))
+                    {
+                        finalData[key] = nativeVal;
+                        if (nativeTargetSourceDict.TryGetValue(key, out TranslationProvenanceEntry nativeSource))
+                            provenanceByKey[key] = CloneProvenance(nativeSource, nativeVal);
+                    }
+                    else if (!pureAiWorkspace && packDict.TryGetValue(key, out string packVal))
+                    {
+                        int before = keysToAI.Count;
+                        bool usedExistingValue;
+                        bool setValue = UseExistingOrQueueForAI(finalData, keysToAI, valuesToAI, key, packVal, sourceText, out usedExistingValue);
+                        if (setValue)
+                        {
+                            provenanceByKey[key] = usedExistingValue
+                                ? GetFileEntryProvenance(packLangRoot, mod.PackageId, targetFile, key, finalData[key])
+                                : CreateProvenance(ProvenanceKindModNativeTarget, mod.PackageId, mod.Name, sourceEntry != null ? sourceEntry.SourceFile : "", targetFolder, finalData[key]);
+                        }
+                        else if (keysToAI.Count > before)
+                        {
+                            aiSources.Add(CreateProvenance(ProvenanceKindAI, mod.PackageId, mod.Name, sourceEntry != null ? sourceEntry.SourceFile : "", "English", ""));
+                        }
+                    }
+                    else if (!pureAiWorkspace && GlobalPrimaryKeyedDict.TryGetValue(key, out string pVal))
+                    {
+                        int before = keysToAI.Count;
+                        bool usedExistingValue;
+                        bool setValue = UseExistingOrQueueForAI(finalData, keysToAI, valuesToAI, key, pVal, sourceText, out usedExistingValue);
+                        if (setValue)
+                        {
+                            TranslationProvenanceEntry sourceInfo = null;
+                            GlobalPrimaryKeyedSourceDict.TryGetValue(key, out sourceInfo);
+                            provenanceByKey[key] = usedExistingValue
+                                ? CloneProvenance(sourceInfo, finalData[key])
+                                : CreateProvenance(ProvenanceKindModNativeTarget, mod.PackageId, mod.Name, sourceEntry != null ? sourceEntry.SourceFile : "", targetFolder, finalData[key]);
+                        }
+                        else if (keysToAI.Count > before)
+                        {
+                            aiSources.Add(CreateProvenance(ProvenanceKindAI, mod.PackageId, mod.Name, sourceEntry != null ? sourceEntry.SourceFile : "", "English", ""));
+                        }
+                    }
+                    else if (!pureAiWorkspace && GlobalSecondaryKeyedDict.TryGetValue(key, out string sVal) && !string.IsNullOrEmpty(secondaryTag))
                     {
                         keysToAI.Add(key);
                         valuesToAI.Add(PrepareSecondaryTranslationSource(sVal, sourceText));
+                        TranslationProvenanceEntry secondarySource = null;
+                        GlobalSecondaryKeyedSourceDict.TryGetValue(key, out secondarySource);
+                        aiSources.Add(CreateProvenance(
+                            ProvenanceKindAIFromSecondary,
+                            secondarySource != null ? secondarySource.SourcePackageId : mod.PackageId,
+                            secondarySource != null ? secondarySource.SourceModName : mod.Name,
+                            secondarySource != null ? secondarySource.SourceFile : "",
+                            secondarySource != null ? secondarySource.SourceLanguage : "",
+                            "",
+                            secondarySource != null ? secondarySource.SourceKind : ""));
                     }
                     else if (sourceEntry != null &&
+                             !pureAiWorkspace &&
                              (sourceEntry.FileLooksLikeTarget || LanguageDetector.LooksLikeTargetLanguage(sourceEntry.Value, settings.TargetLang)))
                     {
                         finalData[key] = sourceEntry.Value;
+                        provenanceByKey[key] = CreateProvenance(ProvenanceKindModNativeTarget, mod.PackageId, mod.Name, sourceEntry.SourceFile, targetFolder, sourceEntry.Value);
                     }
                     else if (sourceEntry != null)
                     {
                         keysToAI.Add(key);
                         valuesToAI.Add(sourceEntry.Value);
+                        aiSources.Add(CreateProvenance(ProvenanceKindAI, mod.PackageId, mod.Name, sourceEntry.SourceFile, "English", ""));
                     }
 
                     if (processedKeys != null && finalData.ContainsKey(key)) processedKeys.Add(key);
@@ -236,6 +352,9 @@ namespace AutoTranslator_Core
                             }
 
                             finalData[k] = v;
+                            provenanceByKey[k] = i < aiSources.Count
+                                ? CloneProvenance(aiSources[i], v)
+                                : CreateProvenance(ProvenanceKindAI, mod.PackageId, mod.Name, sourceFiles[0].File, "English", v);
                             if (processedKeys != null) processedKeys.Add(k);
                             acceptedCount++;
                         }
@@ -247,7 +366,11 @@ namespace AutoTranslator_Core
                 }
 
                 AutoTranslatorSettings.AddLog("✅ " + AutoTranslatorAPI.TranslateText("ATC_Log_NoMissing", Path.GetFileName(sourceFiles[0].File)));
-                if (finalData.Count > 0) SaveXml(targetFile, finalData);
+                if (finalData.Count > 0)
+                {
+                    SaveXml(targetFile, finalData);
+                    SaveProvenanceForFile(packLangRoot, mod.PackageId, targetFile, finalData, provenanceByKey);
+                }
             }
             catch (XmlException xmlEx)
             {
@@ -282,6 +405,11 @@ namespace AutoTranslator_Core
 
         private static async Task<int> ProcessModDefInjected(ModMetaData mod, List<string> langRoots, List<string> defsRoots)
         {
+            return await ProcessModDefInjected(mod, langRoots, defsRoots, TranslationOutputMode.LivePack);
+        }
+
+        private static async Task<int> ProcessModDefInjected(ModMetaData mod, List<string> langRoots, List<string> defsRoots, TranslationOutputMode outputMode)
+        {
             int aiTranslatedCount = 0;
             var settings = AutoTranslatorMod.Settings;
             string targetFolder = GetFolderNameByLanguage(settings.TargetLang);
@@ -291,33 +419,55 @@ namespace AutoTranslator_Core
                 secondaryTag = "ATC_Tag_FromSimplified".Translate().ToString();
             else if (settings.TargetLang == TargetLanguage.Simplified)
                 secondaryTag = "ATC_Tag_FromTraditional".Translate().ToString();
-            string packDefBaseDir = Path.Combine(GetLocalPackPath(), "Languages", targetFolder, "DefInjected");
+            string packLangRoot = GetTranslationOutputLanguageRoot(mod, targetFolder, outputMode);
+            string packDefBaseDir = Path.Combine(packLangRoot, "DefInjected");
+            bool pureAiWorkspace = outputMode == TranslationOutputMode.PureAiWorkspace;
 
 
             var englishKeys = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
             var modSelfTargetLang = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
             var modSelfSecondaryLang = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+            var modSelfTargetSources = new Dictionary<string, Dictionary<string, TranslationProvenanceEntry>>(StringComparer.OrdinalIgnoreCase);
+            var modSelfSecondarySources = new Dictionary<string, Dictionary<string, TranslationProvenanceEntry>>(StringComparer.OrdinalIgnoreCase);
 
 
-            Action<string, Dictionary<string, Dictionary<string, string>>, TargetLanguage?> LoadDefsToDict = (path, targetDict, lang) => {
+            Action<string, Dictionary<string, Dictionary<string, string>>, Dictionary<string, Dictionary<string, TranslationProvenanceEntry>>, TargetLanguage?, string> LoadDefsToDict = (path, targetDict, sourceDict, lang, sourceKind) => {
                 if (string.IsNullOrEmpty(path) || !Directory.Exists(path)) return;
                 foreach (var typeDir in Directory.GetDirectories(path))
                 {
                     string defType = Path.GetFileName(typeDir);
                     if (!targetDict.ContainsKey(defType))
                         targetDict[defType] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    if (sourceDict != null && !sourceDict.ContainsKey(defType))
+                        sourceDict[defType] = new Dictionary<string, TranslationProvenanceEntry>(StringComparer.OrdinalIgnoreCase);
                     foreach (var file in GetXmlFilesCached(typeDir, SearchOption.AllDirectories))
                     {
                         var d = LoadXmlFileToDict(file, lang);
-                        foreach (var kv in d) targetDict[defType][kv.Key] = kv.Value;
+                        foreach (var kv in d)
+                        {
+                            targetDict[defType][kv.Key] = kv.Value;
+                            if (sourceDict != null)
+                            {
+                                sourceDict[defType][kv.Key] = CreateProvenance(sourceKind, mod.PackageId, mod.Name, file, lang.HasValue ? GetFolderNameByLanguage(lang.Value) : "", kv.Value);
+                            }
+                        }
                     }
                 }
                 foreach (var file in GetXmlFilesCached(path, SearchOption.TopDirectoryOnly))
                 {
                     if (!targetDict.ContainsKey("General"))
                         targetDict["General"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    if (sourceDict != null && !sourceDict.ContainsKey("General"))
+                        sourceDict["General"] = new Dictionary<string, TranslationProvenanceEntry>(StringComparer.OrdinalIgnoreCase);
                     var d = LoadXmlFileToDict(file, lang);
-                    foreach (var kv in d) targetDict["General"][kv.Key] = kv.Value;
+                    foreach (var kv in d)
+                    {
+                        targetDict["General"][kv.Key] = kv.Value;
+                        if (sourceDict != null)
+                        {
+                            sourceDict["General"][kv.Key] = CreateProvenance(sourceKind, mod.PackageId, mod.Name, file, lang.HasValue ? GetFolderNameByLanguage(lang.Value) : "", kv.Value);
+                        }
+                    }
                 }
             };
 
@@ -335,62 +485,70 @@ namespace AutoTranslator_Core
 
             foreach (var lRoot in langRoots)
             {
-                List<string> sourceDefDirs = GetTranslatableLanguageBucketPaths(lRoot, settings.TargetLang, "DefInjected", false);
+                List<string> sourceDefDirs = pureAiWorkspace
+                    ? GetPureAiSourceBucketPaths(lRoot, settings.TargetLang, "DefInjected")
+                    : GetTranslatableLanguageBucketPaths(lRoot, settings.TargetLang, "DefInjected", false);
                 for (int i = sourceDefDirs.Count - 1; i >= 0; i--)
                 {
-                    LoadDefsToDict(sourceDefDirs[i], englishKeys, null);
+                    LoadDefsToDict(sourceDefDirs[i], englishKeys, null, null, ProvenanceKindUnknownLegacy);
                 }
 
-                foreach (string targetLangDir in ResolveLanguageFolders(lRoot, targetFolder))
+                if (!pureAiWorkspace)
                 {
-                    foreach (string targetDefDir in GetLanguageBucketPaths(targetLangDir, "DefInjected"))
+                    foreach (string targetLangDir in ResolveLanguageFolders(lRoot, targetFolder))
                     {
-                        LoadDefsToDict(targetDefDir, modSelfTargetLang, settings.TargetLang);
-                    }
-                }
-
-                if (!string.IsNullOrEmpty(otherFolder))
-                {
-                    TargetLanguage secLang = settings.TargetLang == TargetLanguage.Traditional ? TargetLanguage.Simplified : TargetLanguage.Traditional;
-                    foreach (string secondaryLangDir in ResolveLanguageFolders(lRoot, otherFolder))
-                    {
-                        foreach (string secondaryDefDir in GetLanguageBucketPaths(secondaryLangDir, "DefInjected"))
+                        foreach (string targetDefDir in GetLanguageBucketPaths(targetLangDir, "DefInjected"))
                         {
-                            LoadDefsToDict(secondaryDefDir, modSelfSecondaryLang, secLang);
+                            LoadDefsToDict(targetDefDir, modSelfTargetLang, modSelfTargetSources, settings.TargetLang, ProvenanceKindModNativeTarget);
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(otherFolder))
+                    {
+                        TargetLanguage secLang = settings.TargetLang == TargetLanguage.Traditional ? TargetLanguage.Simplified : TargetLanguage.Traditional;
+                        foreach (string secondaryLangDir in ResolveLanguageFolders(lRoot, otherFolder))
+                        {
+                            foreach (string secondaryDefDir in GetLanguageBucketPaths(secondaryLangDir, "DefInjected"))
+                            {
+                                LoadDefsToDict(secondaryDefDir, modSelfSecondaryLang, modSelfSecondarySources, secLang, ProvenanceKindModNativeTarget);
+                            }
                         }
                     }
                 }
             }
 
-            foreach (var lRoot in langRoots)
+            if (!pureAiWorkspace)
             {
-                foreach (string targetLangDir in ResolveLanguageFolders(lRoot, targetFolder))
+                foreach (var lRoot in langRoots)
                 {
-                    foreach (string targetDefDir in GetLanguageBucketPaths(targetLangDir, "DefInjected"))
+                    foreach (string targetLangDir in ResolveLanguageFolders(lRoot, targetFolder))
                     {
-                        LoadDefsToDict(targetDefDir, modSelfTargetLang, settings.TargetLang);
-                    }
-                }
-
-                if (!string.IsNullOrEmpty(otherFolder))
-                {
-                    TargetLanguage secLang = settings.TargetLang == TargetLanguage.Traditional ? TargetLanguage.Simplified : TargetLanguage.Traditional;
-                    foreach (string secondaryLangDir in ResolveLanguageFolders(lRoot, otherFolder))
-                    {
-                        foreach (string secondaryDefDir in GetLanguageBucketPaths(secondaryLangDir, "DefInjected"))
+                        foreach (string targetDefDir in GetLanguageBucketPaths(targetLangDir, "DefInjected"))
                         {
-                            LoadDefsToDict(secondaryDefDir, modSelfSecondaryLang, secLang);
+                            LoadDefsToDict(targetDefDir, modSelfTargetLang, modSelfTargetSources, settings.TargetLang, ProvenanceKindModNativeTarget);
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(otherFolder))
+                    {
+                        TargetLanguage secLang = settings.TargetLang == TargetLanguage.Traditional ? TargetLanguage.Simplified : TargetLanguage.Traditional;
+                        foreach (string secondaryLangDir in ResolveLanguageFolders(lRoot, otherFolder))
+                        {
+                            foreach (string secondaryDefDir in GetLanguageBucketPaths(secondaryLangDir, "DefInjected"))
+                            {
+                                LoadDefsToDict(secondaryDefDir, modSelfSecondaryLang, modSelfSecondarySources, secLang, ProvenanceKindModNativeTarget);
+                            }
                         }
                     }
                 }
             }
 
-            if (englishKeys.Count == 0 && modSelfTargetLang.Count == 0)
+            if (englishKeys.Count == 0 && (pureAiWorkspace || modSelfTargetLang.Count == 0))
                 return aiTranslatedCount;
 
 
             int modSelfTargetCount = modSelfTargetLang.Sum(kv => kv.Value.Count);
-            if (modSelfTargetCount > 0)
+            if (!pureAiWorkspace && modSelfTargetCount > 0)
             {
                 AutoTranslatorSettings.AddLog("✅ " +
                     AutoTranslatorAPI.TranslateText("ATC_Log_SkipExistingTranslation", mod.Name, modSelfTargetCount));
@@ -398,7 +556,10 @@ namespace AutoTranslator_Core
 
 
             var allDefTypes = new HashSet<string>(englishKeys.Keys, StringComparer.OrdinalIgnoreCase);
-            foreach (var k in modSelfTargetLang.Keys) allDefTypes.Add(k);
+            if (!pureAiWorkspace)
+            {
+                foreach (var k in modSelfTargetLang.Keys) allDefTypes.Add(k);
+            }
 
             int totalDefs = allDefTypes.Count;
             int currentDef = 0;
@@ -433,11 +594,16 @@ namespace AutoTranslator_Core
 
                 string cleanPackageId = mod.PackageId.Replace(".", "_");
                 string targetFile = Path.Combine(packDefBaseDir, defType, $"{cleanPackageId}_AutoTranslated.xml");
-                var packDict = LoadXmlFileToDict(targetFile);
+                var packDict = pureAiWorkspace
+                    ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    : LoadXmlFileToDict(targetFile);
 
                 Dictionary<string, string> finalData = new Dictionary<string, string>();
+                Dictionary<string, TranslationProvenanceEntry> provenanceByKey =
+                    new Dictionary<string, TranslationProvenanceEntry>(StringComparer.OrdinalIgnoreCase);
                 List<string> keysToAI = new List<string>();
                 List<string> valuesToAI = new List<string>();
+                List<TranslationProvenanceEntry> aiSources = new List<TranslationProvenanceEntry>();
 
                 foreach (var key in keysForThisType)
                 {
@@ -445,51 +611,114 @@ namespace AutoTranslator_Core
                     string globalKeyGen = $"General/{key}";
 
 
-                    if (selfDict != null && selfDict.TryGetValue(key, out string selfVal)
-                             && !string.IsNullOrWhiteSpace(selfVal))
+                    if (!pureAiWorkspace && selfDict != null && selfDict.TryGetValue(key, out string selfVal)
+                              && !string.IsNullOrWhiteSpace(selfVal))
                     {
                         finalData[key] = selfVal;
+                        if (modSelfTargetSources.TryGetValue(defType, out Dictionary<string, TranslationProvenanceEntry> selfSourceDict) &&
+                            selfSourceDict.TryGetValue(key, out TranslationProvenanceEntry selfSource))
+                        {
+                            provenanceByKey[key] = CloneProvenance(selfSource, selfVal);
+                        }
+                        else
+                        {
+                            provenanceByKey[key] = CreateProvenance(ProvenanceKindModNativeTarget, mod.PackageId, mod.Name, "", targetFolder, selfVal);
+                        }
                     }
 
 
-                    else if (packDict.TryGetValue(key, out string packVal))
+                    else if (!pureAiWorkspace && packDict.TryGetValue(key, out string packVal))
                     {
-                        UseExistingOrQueueForAI(finalData, keysToAI, valuesToAI, key, packVal, engDict != null && engDict.TryGetValue(key, out string packSourceVal) ? packSourceVal : "");
+                        int before = keysToAI.Count;
+                        bool usedExistingValue;
+                        bool setValue = UseExistingOrQueueForAI(finalData, keysToAI, valuesToAI, key, packVal, engDict != null && engDict.TryGetValue(key, out string packSourceVal) ? packSourceVal : "", out usedExistingValue);
+                        if (setValue)
+                        {
+                            provenanceByKey[key] = usedExistingValue
+                                ? GetFileEntryProvenance(packLangRoot, mod.PackageId, targetFile, key, finalData[key])
+                                : CreateProvenance(ProvenanceKindModNativeTarget, mod.PackageId, mod.Name, "", targetFolder, finalData[key]);
+                        }
+                        else if (keysToAI.Count > before)
+                        {
+                            aiSources.Add(CreateProvenance(ProvenanceKindAI, mod.PackageId, mod.Name, "", "English", ""));
+                        }
                     }
 
-                    else if (GlobalPrimaryDefDict.TryGetValue(globalKey, out string pVal)
-                             || GlobalPrimaryDefDict.TryGetValue(globalKeyGen, out pVal))
+                    else if (!pureAiWorkspace &&
+                             (GlobalPrimaryDefDict.TryGetValue(globalKey, out string pVal)
+                             || GlobalPrimaryDefDict.TryGetValue(globalKeyGen, out pVal)))
                     {
-                        UseExistingOrQueueForAI(finalData, keysToAI, valuesToAI, key, pVal, engDict != null && engDict.TryGetValue(key, out string globalSourceVal) ? globalSourceVal : "");
+                        int before = keysToAI.Count;
+                        bool usedExistingValue;
+                        bool setValue = UseExistingOrQueueForAI(finalData, keysToAI, valuesToAI, key, pVal, engDict != null && engDict.TryGetValue(key, out string globalSourceVal) ? globalSourceVal : "", out usedExistingValue);
+                        if (setValue)
+                        {
+                            TranslationProvenanceEntry sourceInfo = null;
+                            if (!GlobalPrimaryDefSourceDict.TryGetValue(globalKey, out sourceInfo))
+                                GlobalPrimaryDefSourceDict.TryGetValue(globalKeyGen, out sourceInfo);
+                            provenanceByKey[key] = usedExistingValue
+                                ? CloneProvenance(sourceInfo, finalData[key])
+                                : CreateProvenance(ProvenanceKindModNativeTarget, mod.PackageId, mod.Name, "", targetFolder, finalData[key]);
+                        }
+                        else if (keysToAI.Count > before)
+                        {
+                            aiSources.Add(CreateProvenance(ProvenanceKindAI, mod.PackageId, mod.Name, "", "English", ""));
+                        }
                     }
 
-                    else if (modSelfSecondaryLang.TryGetValue(defType, out var secDict)
-                             && secDict.TryGetValue(key, out string secVal)
-                             && !string.IsNullOrEmpty(secondaryTag))
+                    else if (!pureAiWorkspace &&
+                             modSelfSecondaryLang.TryGetValue(defType, out var secDict)
+                              && secDict.TryGetValue(key, out string secVal)
+                              && !string.IsNullOrEmpty(secondaryTag))
                     {
                         keysToAI.Add(key);
                         valuesToAI.Add(PrepareSecondaryTranslationSource(secVal, engDict != null && engDict.TryGetValue(key, out string secondarySourceVal) ? secondarySourceVal : ""));
+                        TranslationProvenanceEntry secondarySource = null;
+                        if (modSelfSecondarySources.TryGetValue(defType, out Dictionary<string, TranslationProvenanceEntry> secSourceDict))
+                            secSourceDict.TryGetValue(key, out secondarySource);
+                        aiSources.Add(CreateProvenance(
+                            ProvenanceKindAIFromSecondary,
+                            secondarySource != null ? secondarySource.SourcePackageId : mod.PackageId,
+                            secondarySource != null ? secondarySource.SourceModName : mod.Name,
+                            secondarySource != null ? secondarySource.SourceFile : "",
+                            secondarySource != null ? secondarySource.SourceLanguage : "",
+                            "",
+                            secondarySource != null ? secondarySource.SourceKind : ""));
                     }
 
-                    else if ((GlobalSecondaryDefDict.TryGetValue(globalKey, out string sVal)
+                    else if (!pureAiWorkspace &&
+                             ((GlobalSecondaryDefDict.TryGetValue(globalKey, out string sVal)
                               || GlobalSecondaryDefDict.TryGetValue(globalKeyGen, out sVal))
-                             && !string.IsNullOrEmpty(secondaryTag))
+                             && !string.IsNullOrEmpty(secondaryTag)))
                     {
                         keysToAI.Add(key);
                         valuesToAI.Add(PrepareSecondaryTranslationSource(sVal, engDict != null && engDict.TryGetValue(key, out string globalSecondarySourceVal) ? globalSecondarySourceVal : ""));
+                        TranslationProvenanceEntry secondarySource = null;
+                        if (!GlobalSecondaryDefSourceDict.TryGetValue(globalKey, out secondarySource))
+                            GlobalSecondaryDefSourceDict.TryGetValue(globalKeyGen, out secondarySource);
+                        aiSources.Add(CreateProvenance(
+                            ProvenanceKindAIFromSecondary,
+                            secondarySource != null ? secondarySource.SourcePackageId : mod.PackageId,
+                            secondarySource != null ? secondarySource.SourceModName : mod.Name,
+                            secondarySource != null ? secondarySource.SourceFile : "",
+                            secondarySource != null ? secondarySource.SourceLanguage : "",
+                            "",
+                            secondarySource != null ? secondarySource.SourceKind : ""));
                     }
 
                     else if (engDict != null && engDict.TryGetValue(key, out string engVal)
                              && !string.IsNullOrEmpty(engVal))
                     {
-                        if (LanguageDetector.LooksLikeTargetLanguage(engVal, settings.TargetLang))
+                        if (!pureAiWorkspace && LanguageDetector.LooksLikeTargetLanguage(engVal, settings.TargetLang))
                         {
                             finalData[key] = engVal;
+                            provenanceByKey[key] = CreateProvenance(ProvenanceKindModNativeTarget, mod.PackageId, mod.Name, "", targetFolder, engVal);
                         }
                         else
                         {
                             keysToAI.Add(key);
                             valuesToAI.Add(engVal);
+                            aiSources.Add(CreateProvenance(ProvenanceKindAI, mod.PackageId, mod.Name, "", "English", ""));
                         }
                     }
                 }
@@ -514,6 +743,9 @@ namespace AutoTranslator_Core
                             }
 
                             finalData[k] = v;
+                            provenanceByKey[k] = i < aiSources.Count
+                                ? CloneProvenance(aiSources[i], v)
+                                : CreateProvenance(ProvenanceKindAI, mod.PackageId, mod.Name, "", "English", v);
                             acceptedCount++;
                         }
                         AutoTranslatorSettings.AddLog("✨ " + AutoTranslatorAPI.TranslateText("ATC_Log_AIFinish", defType));
@@ -526,7 +758,11 @@ namespace AutoTranslator_Core
                     AutoTranslatorSettings.AddLog("✅ " + AutoTranslatorAPI.TranslateText("ATC_Log_NoMissing", $"Def:{defType}"));
                 }
 
-                if (finalData.Count > 0) SaveXml(targetFile, finalData);
+                if (finalData.Count > 0)
+                {
+                    SaveXml(targetFile, finalData);
+                    SaveProvenanceForFile(packLangRoot, mod.PackageId, targetFile, finalData, provenanceByKey);
+                }
             }
             return aiTranslatedCount;
         }
@@ -559,84 +795,17 @@ namespace AutoTranslator_Core
                         await semaphore.WaitAsync();
                         try
                         {
-                            List<string> chunkRes = null;
-                            bool hasRetried = false;
+                            if (AutoTranslatorSettings.IsCancellationRequested || AutoTranslatorSettings.IsSkipCurrentRequested) return;
 
-                            for (int r = 0; r < 3; r++)
-                            {
-                                if (AutoTranslatorSettings.IsCancellationRequested || AutoTranslatorSettings.IsSkipCurrentRequested) return;
-
-                                chunkRes = await AutoTranslatorAPI.TranslateBatchAsync(chunk, suppressFinalParseError: true);
-
-                                if (chunkRes != null && chunkRes.Count == chunk.Count)
-                                {
-                                    if (hasRetried)
-                                    {
-                                        AutoTranslatorSettings.AddLog("✅ " + "ATC_Log_ApiRecovered".Translate());
-                                    }
-                                    break;
-                                }
-
-                                hasRetried = true;
-                                int baseDelay = (int)Math.Pow(2, r) * 1000;
-                                int jitter = new System.Random().Next(50, 600);
-                                int delayMs = baseDelay + jitter;
-
-                                AutoTranslatorSettings.AddLog("⚠️ " + AutoTranslatorAPI.TranslateText("ATC_Log_ApiRetry", baseDelay / 1000));
-
-
-                                ATC_Dispatcher.RunOnMainThread(() =>
-                                    Verse.Log.Warning($"[AutoTranslationCore] " + AutoTranslatorAPI.TranslateText("ATC_Log_ApiRetry", baseDelay / 1000))
-                                );
-
-                                int remainingDelay = delayMs;
-                                while (remainingDelay > 0)
-                                {
-                                    if (AutoTranslatorSettings.IsCancellationRequested || AutoTranslatorSettings.IsSkipCurrentRequested) return;
-
-                                    int slice = Math.Min(remainingDelay, 100);
-                                    await Task.Delay(slice);
-                                    remainingDelay -= slice;
-                                }
-                            }
-
-                            if (chunkRes == null || chunkRes.Count != chunk.Count)
-                            {
-                                chunkRes = await TranslateAdaptiveSmallChunks(chunk, contextInfo);
-                            }
+                            // TranslateBatchAsync already owns network and format retries. Retrying the
+                            // same chunk again here multiplied worst-case waits into tens of minutes.
+                            List<string> chunkRes = await AutoTranslatorAPI.TranslateBatchAsync(chunk, suppressFinalParseError: true);
 
                             if (chunkRes == null || chunkRes.Count != chunk.Count)
                             {
                                 AutoTranslatorSettings.AddLog("🔄 " + "ATC_Log_ApiFallback".Translate());
-
-                                chunkRes = new List<string>();
-                                bool loggedErrorForThisChunk = false;
-
-                                foreach (var t in chunk)
-                                {
-                                    if (AutoTranslatorSettings.IsCancellationRequested || AutoTranslatorSettings.IsSkipCurrentRequested) return;
-                                    var single = await AutoTranslatorAPI.TranslateBatchAsync(new List<string> { t }, suppressFinalParseError: true);
-
-                                    if (single != null && single.Count > 0)
-                                    {
-                                        chunkRes.Add(single[0]);
-                                    }
-                                    else
-                                    {
-                                        chunkRes.Add(t);
-
-                                        if (!loggedErrorForThisChunk)
-                                        {
-                                            AutoTranslatorSettings.AddErrorLog("❌ " + AutoTranslatorAPI.TranslateText("ATC_LogError_ApiCritical", contextInfo));
-
-
-                                            ATC_Dispatcher.RunOnMainThread(() =>
-                                                Verse.Log.Error($"[AutoTranslationCore] ❌ " + AutoTranslatorAPI.TranslateText("ATC_LogError_ApiCritical", contextInfo))
-                                            );
-                                            loggedErrorForThisChunk = true;
-                                        }
-                                    }
-                                }
+                                AutoTranslatorSettings.AddErrorLog("❌ " + AutoTranslatorAPI.TranslateText("ATC_LogError_ApiCritical", contextInfo));
+                                chunkRes = new List<string>(chunk);
                             }
 
                             if (chunkRes != null && chunkRes.Count == chunk.Count)
@@ -710,12 +879,19 @@ namespace AutoTranslator_Core
 
         // 這個方法負責處理 UseExistingOr佇列ForAI 相關流程。
         // EN: This method handles use existing or queue for AI.
-        private static void UseExistingOrQueueForAI(Dictionary<string, string> finalData, List<string> keysToAI, List<string> valuesToAI, string key, string existingTranslation, string sourceText)
+        private static bool UseExistingOrQueueForAI(Dictionary<string, string> finalData, List<string> keysToAI, List<string> valuesToAI, string key, string existingTranslation, string sourceText)
         {
+            bool usedExistingValue;
+            return UseExistingOrQueueForAI(finalData, keysToAI, valuesToAI, key, existingTranslation, sourceText, out usedExistingValue);
+        }
+
+        private static bool UseExistingOrQueueForAI(Dictionary<string, string> finalData, List<string> keysToAI, List<string> valuesToAI, string key, string existingTranslation, string sourceText, out bool usedExistingValue)
+        {
+            usedExistingValue = false;
             if (!string.IsNullOrWhiteSpace(sourceText) && IsUntranslatableGrammarRule(sourceText))
             {
                 finalData[key] = sourceText;
-                return;
+                return true;
             }
 
             string candidate = existingTranslation;
@@ -730,17 +906,19 @@ namespace AutoTranslator_Core
                 AddValidationStat(s => s.ProtectedTokenMismatchDetected++);
                 keysToAI.Add(key);
                 valuesToAI.Add(sourceText);
-                return;
+                return false;
             }
 
             if (!string.IsNullOrWhiteSpace(sourceText) && TranslationHasLikelyEnglishResidual(candidate, sourceText, true))
             {
                 keysToAI.Add(key);
                 valuesToAI.Add(sourceText);
-                return;
+                return false;
             }
 
             finalData[key] = candidate;
+            usedExistingValue = true;
+            return true;
         }
 
         private static string PrepareSecondaryTranslationSource(string secondaryTranslation, string primarySourceText)
@@ -806,6 +984,9 @@ namespace AutoTranslator_Core
                 return translatedTexts;
             }
 
+            const int maxResidualRetriesPerBatch = 2;
+            int residualRetries = 0;
+
             for (int i = 0; i < translatedTexts.Count; i++)
             {
                 string sanitized = SanitizeTranslationResult(translatedTexts[i], sourceTexts[i]);
@@ -839,6 +1020,16 @@ namespace AutoTranslator_Core
                 {
                     AddValidationStat(s => s.ProtectedTokenMismatchRetried++);
                 }
+
+                if (residualRetries >= maxResidualRetriesPerBatch)
+                {
+                    if (englishResidual) MarkEnglishResidualRejected(contextInfo);
+                    else AddValidationStat(s => s.ProtectedTokenMismatchFallback++);
+                    translatedTexts[i] = englishResidual ? sanitized : null;
+                    continue;
+                }
+
+                residualRetries++;
                 List<string> single = await AutoTranslatorAPI.TranslateBatchAsync(new List<string> { sourceTexts[i] }, suppressFinalParseError: true);
                 if (single != null && single.Count > 0)
                 {

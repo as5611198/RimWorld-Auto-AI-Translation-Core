@@ -142,12 +142,50 @@ namespace AutoTranslator_Core
                     }
 
                     AutoTranslatorScanner.SaveXml(targetFile, existing);
+                    AutoTranslatorScanner.SaveProvenanceForFile(
+                        snapshot.SourceDir,
+                        snapshot.PackageId,
+                        targetFile,
+                        existing,
+                        BuildManualEditProvenance(snapshot, category, targetFile, existing));
                 }
             }
             catch (Exception ex)
             {
                 result.Error = ex.Message;
                 Log.Warning($"[AutoTranslationCore] Upload preview background save failed: {ex}");
+            }
+
+            return result;
+        }
+
+        private static Dictionary<string, AutoTranslatorScanner.TranslationProvenanceEntry> BuildManualEditProvenance(
+            UploadPreviewSaveSnapshot snapshot,
+            UploadPreviewSaveCategorySnapshot category,
+            string targetFile,
+            Dictionary<string, string> savedData)
+        {
+            Dictionary<string, AutoTranslatorScanner.TranslationProvenanceEntry> result =
+                new Dictionary<string, AutoTranslatorScanner.TranslationProvenanceEntry>(StringComparer.OrdinalIgnoreCase);
+            if (snapshot == null || category == null || category.Items == null || savedData == null) return result;
+
+            HashSet<string> modifiedKeys = new HashSet<string>(
+                category.Items
+                    .Where(i => i != null && !string.IsNullOrWhiteSpace(i.Key))
+                    .Select(i => i.Key),
+                StringComparer.OrdinalIgnoreCase);
+
+            foreach (KeyValuePair<string, string> pair in savedData)
+            {
+                if (!modifiedKeys.Contains(pair.Key)) continue;
+
+                result[pair.Key] = AutoTranslatorScanner.CreateProvenance(
+                    AutoTranslatorScanner.ProvenanceKindManualEdit,
+                    snapshot.PackageId,
+                    "",
+                    targetFile,
+                    "",
+                    pair.Value);
             }
 
             return result;

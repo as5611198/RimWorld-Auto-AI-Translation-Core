@@ -152,7 +152,10 @@ namespace AutoTranslator_Core
                     ((m.PackageId ?? "").ToLowerInvariant().Contains(searchLower)));
             }
 
-            _cachedCloudDisplayMods = mods.ToList();
+            _cachedCloudDisplayMods = mods
+                .OrderByDescending(m => AutoTranslatorScanner.IsOfficialBaseGameOrDlcPackage(m.PackageId))
+                .ThenBy(m => m.Name ?? "", StringComparer.OrdinalIgnoreCase)
+                .ToList();
             _cachedCloudSearchText = searchText;
             _cachedCloudValidModCount = validMods.Count;
             _cachedCloudDisplayValidVersion = ValidModsCacheVersion;

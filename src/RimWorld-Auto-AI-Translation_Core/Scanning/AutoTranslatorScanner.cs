@@ -40,6 +40,7 @@ namespace AutoTranslator_Core
             new Dictionary<string, Dictionary<string, HashSet<string>>>(StringComparer.OrdinalIgnoreCase);
         private static int _startupFullMemoryDropQueued = 0;
         private static int _memoryDropPrepareRunning = 0;
+        private static int _memoryDropGeneration = 0;
         private static MemoryDropPayload _pendingMemoryDropPayload = null;
         private static MemoryDropApplyState _activeMemoryDropApply = null;
         private static bool _pendingStaticCachedTranslationRefresh = false;
@@ -50,6 +51,10 @@ namespace AutoTranslator_Core
         private static Dictionary<string, string> GlobalSecondaryDefDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private static Dictionary<string, string> GlobalPrimaryKeyedDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private static Dictionary<string, string> GlobalSecondaryKeyedDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private static Dictionary<string, TranslationProvenanceEntry> GlobalPrimaryDefSourceDict = new Dictionary<string, TranslationProvenanceEntry>(StringComparer.OrdinalIgnoreCase);
+        private static Dictionary<string, TranslationProvenanceEntry> GlobalSecondaryDefSourceDict = new Dictionary<string, TranslationProvenanceEntry>(StringComparer.OrdinalIgnoreCase);
+        private static Dictionary<string, TranslationProvenanceEntry> GlobalPrimaryKeyedSourceDict = new Dictionary<string, TranslationProvenanceEntry>(StringComparer.OrdinalIgnoreCase);
+        private static Dictionary<string, TranslationProvenanceEntry> GlobalSecondaryKeyedSourceDict = new Dictionary<string, TranslationProvenanceEntry>(StringComparer.OrdinalIgnoreCase);
         private static readonly object GlobalTranslationDatabaseCacheLock = new object();
         private static int GlobalTranslationDatabaseCacheGeneration = 0;
         private static string GlobalTranslationDatabaseCacheKey = null;
@@ -57,6 +62,10 @@ namespace AutoTranslator_Core
         private static Dictionary<string, string> GlobalTranslationDatabaseCachedSecondaryDefDict = null;
         private static Dictionary<string, string> GlobalTranslationDatabaseCachedPrimaryKeyedDict = null;
         private static Dictionary<string, string> GlobalTranslationDatabaseCachedSecondaryKeyedDict = null;
+        private static Dictionary<string, TranslationProvenanceEntry> GlobalTranslationDatabaseCachedPrimaryDefSourceDict = null;
+        private static Dictionary<string, TranslationProvenanceEntry> GlobalTranslationDatabaseCachedSecondaryDefSourceDict = null;
+        private static Dictionary<string, TranslationProvenanceEntry> GlobalTranslationDatabaseCachedPrimaryKeyedSourceDict = null;
+        private static Dictionary<string, TranslationProvenanceEntry> GlobalTranslationDatabaseCachedSecondaryKeyedSourceDict = null;
         private static readonly TranslationValidationStats _validationStats = new TranslationValidationStats();
         private static readonly HashSet<string> _loggedEnglishResidualContexts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -127,8 +136,19 @@ namespace AutoTranslator_Core
             "tooltip", "explanation", "caption", "labelShortAdj", "baseInspectLine", "inspectLine",
             "fuelLabel", "fuelGizmoLabel", "permanentLabel", "destroyedOutLabel",
             "customLetterLabel", "customLetterText",
+            "extraTooltip", "disabledReason", "confirmationDialogText", "invalidTargetMessage",
+            "cannotUseMessage", "targetingLabel", "targetLabel", "gizmoLabel", "gizmoDescription",
+            "settingsLabel", "settingsDescription", "settingsTooltip",
             "rulesStrings"
         };
+
+        public static bool IsWorkbenchManualExportPath(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath)) return false;
+            string normalized = filePath.Replace('\\', '/');
+            return normalized.IndexOf("/Upload_Workspace/", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                   normalized.IndexOf("/Manual_Translation/", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
 
 
         // 這個欄位保存 BlacklistedFields 的執行狀態或快取資料。

@@ -142,7 +142,8 @@ namespace AutoTranslator_Core
             if (PendingTranslations.ContainsKey(cacheKey)) return true;
 
 
-            if (lookupText.All(char.IsDigit) || !LetterRegex.IsMatch(lookupText))
+            string languageSample = GetLanguageDetectionSample(lookupText);
+            if (string.IsNullOrWhiteSpace(languageSample) || languageSample.All(char.IsDigit) || !LetterRegex.IsMatch(languageSample))
             {
                 RememberIgnored(text);
                 return false;
@@ -152,11 +153,11 @@ namespace AutoTranslator_Core
             bool isForeignText = false;
 
 
-            bool hasEnglish = EnglishRegex.IsMatch(lookupText);
-            bool hasCyrillic = CyrillicRegex.IsMatch(lookupText);
-            bool hasKana = KanaRegex.IsMatch(lookupText);
-            bool hasHangul = HangulRegex.IsMatch(lookupText);
-            bool hasCJK = CJKRegex.IsMatch(lookupText);
+            bool hasEnglish = EnglishRegex.IsMatch(languageSample);
+            bool hasCyrillic = CyrillicRegex.IsMatch(languageSample);
+            bool hasKana = KanaRegex.IsMatch(languageSample);
+            bool hasHangul = HangulRegex.IsMatch(languageSample);
+            bool hasCJK = CJKRegex.IsMatch(languageSample);
 
             switch (targetLang)
             {

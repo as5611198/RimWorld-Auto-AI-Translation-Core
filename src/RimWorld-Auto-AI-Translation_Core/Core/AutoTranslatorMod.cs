@@ -84,6 +84,8 @@ namespace AutoTranslator_Core
         private static Dictionary<string, ModMetaData> _cachedCloudLocalModMap = null;
         private static int _cachedCloudLocalModMapCount = -1;
         private static int _cachedCloudLocalModMapVersion = -1;
+        private static readonly Dictionary<string, int> _singleCorrectionCountCache = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        private static readonly HashSet<string> _singleCorrectionCountFetchInFlight = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private static readonly LogViewCache _runtimeLogViewCache = new LogViewCache();
         private static readonly LogViewCache _errorLogViewCache = new LogViewCache();
 
@@ -177,8 +179,9 @@ namespace AutoTranslator_Core
 
                         if (snapshot != null &&
                             !ShouldSkipValidModPackage(snapshot.PackageId) &&
-                            AutoTranslatorScanner.HasScannableTranslationSources(snapshot.PackageId, snapshot.RootDir) &&
-                            snapshot.Mod != null)
+                            snapshot.Mod != null &&
+                            (AutoTranslatorScanner.IsOfficialBaseGameOrDlcPackage(snapshot.PackageId) ||
+                             AutoTranslatorScanner.HasScannableTranslationSources(snapshot.PackageId, snapshot.RootDir)))
                         {
                             validMods.Add(snapshot.Mod);
                         }
@@ -259,8 +262,7 @@ namespace AutoTranslator_Core
 
             string pid = packageId.ToLowerInvariant();
             return pid == "auto.aitranslation.core" ||
-                   pid == "aitranslation.pack" ||
-                   pid.StartsWith("ludeon.rimworld");
+                   pid == "aitranslation.pack";
         }
 
 
@@ -435,6 +437,8 @@ namespace AutoTranslator_Core
             AutoTranslatorSettings.SelectedCloudVersion.Clear();
             AutoTranslatorSettings.CloudSearchText = "";
             _cachedCloudLookup = null;
+            _singleCorrectionCountCache.Clear();
+            _singleCorrectionCountFetchInFlight.Clear();
             _lastCloudRegistryCount = -1;
             _lastCloudLangFolder = "";
         }
@@ -502,6 +506,8 @@ namespace AutoTranslator_Core
                             }
 
                             _cachedCloudLookup = null;
+                            _singleCorrectionCountCache.Clear();
+                            _singleCorrectionCountFetchInFlight.Clear();
                             _lastCloudRegistryCount = -1;
                             _lastCloudLangFolder = "";
                         }

@@ -454,6 +454,17 @@ namespace AutoTranslator_Core
             EnsureRenderDecisionSettingsCurrent();
             string renderKey = BuildRenderDecisionKey(original);
 
+            if (TryGetCachedTranslationKnownSafe(original, out translated))
+            {
+                if (!HasRenderableUICharacters(translated))
+                {
+                    translated = null;
+                    return false;
+                }
+                RememberRenderDecision(renderKey, UIRenderDecisionKind.Translated, translated, 0L);
+                return true;
+            }
+
             if (RenderDecisionCache.TryGetValue(renderKey, out UIRenderDecision decision)
                 && decision.Version == _renderDecisionVersion)
             {
@@ -461,7 +472,7 @@ namespace AutoTranslator_Core
                 {
                     case UIRenderDecisionKind.Translated:
                         translated = decision.TranslatedText;
-                        return !string.IsNullOrWhiteSpace(translated);
+                        return HasRenderableUICharacters(translated);
                     case UIRenderDecisionKind.PassThrough:
                         return false;
                     case UIRenderDecisionKind.Classifying:

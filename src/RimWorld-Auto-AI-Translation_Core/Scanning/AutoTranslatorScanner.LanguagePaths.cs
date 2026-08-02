@@ -196,6 +196,20 @@ namespace AutoTranslator_Core
             return result.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         }
 
+        public static List<string> GetTargetLanguageBucketPaths(string langRoot, TargetLanguage targetLang, string bucketName)
+        {
+            List<string> result = new List<string>();
+            if (string.IsNullOrWhiteSpace(bucketName)) return result;
+
+            string targetFolder = GetFolderNameByLanguage(targetLang);
+            foreach (string targetRoot in ResolveLanguageFolders(langRoot, targetFolder))
+            {
+                AddLanguageBucketPath(result, targetRoot, bucketName);
+            }
+
+            return result.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
         private static List<string> GetLanguageBucketPaths(string languageFolderPath, string bucketName)
         {
             List<string> result = new List<string>();

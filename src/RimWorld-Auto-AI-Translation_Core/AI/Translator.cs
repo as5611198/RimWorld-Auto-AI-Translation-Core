@@ -211,12 +211,13 @@ namespace AutoTranslator_Core
                 string jsonPayload = JsonConvert.SerializeObject(payload);
                 var profile = GetRuntimeProfile(targetConfig.Provider, model);
                 bool isConnectionTestRequest = texts.Count == 1 && texts[0] == "Connection Test";
-                int maxRetries = isConnectionTestRequest ? 0 : 2;
+                bool reasoningModel = IsReasoningModel(model);
+                int maxRetries = isConnectionTestRequest || reasoningModel ? 0 : 1;
                 int maxFormatRetries = profile.FormatRetries;
                 int formatRetryCount = 0;
                 bool hadFormatRetry = false;
                 int customTimeout = AutoTranslatorMod.Settings.TimeoutSeconds > 0 ? AutoTranslatorMod.Settings.TimeoutSeconds : 60;
-                if (IsReasoningModel(model)) customTimeout = 300;
+                if (reasoningModel) customTimeout = 300;
                 customTimeout = Math.Max(customTimeout, profile.TimeoutFloorSeconds);
 
                 for (int attempt = 0; attempt <= maxRetries; attempt++)

@@ -10,6 +10,87 @@ namespace AutoTranslator_Core
 {
     public static partial class AutoTranslatorCloudClient
     {
+        public static async Task<List<AppliedTranslationCorrection>> FetchAppliedCorrectionsAsync(string packageId, string targetLangFolder)
+        {
+            if (string.IsNullOrWhiteSpace(packageId) || string.IsNullOrWhiteSpace(targetLangFolder))
+                return new List<AppliedTranslationCorrection>();
+
+            int maxRetries = 3;
+            for (int attempt = 0; attempt <= maxRetries; attempt++)
+            {
+                if (attempt >= 2 && CloudApiBaseUrl == PrimaryApiBaseUrl)
+                {
+                    CloudApiBaseUrl = BackupApiBaseUrl;
+                    LogCloudTranslatedWarning("ATC_Cloud_CorrectionSubmitFallback");
+                }
+
+                try
+                {
+                    string url = $"{CloudApiBaseUrl}/corrections/applied/{Uri.EscapeDataString(packageId)}/{Uri.EscapeDataString(targetLangFolder)}";
+                    var tcs = new TaskCompletionSource<string>();
+
+                    ATC_Dispatcher.RunOnMainThread(() =>
+                    {
+                        try
+                        {
+                            var request = UnityEngine.Networking.UnityWebRequest.Get(url);
+                            request.timeout = 30;
+                            var operation = request.SendWebRequest();
+                            operation.completed += (op) =>
+                            {
+                                try
+                                {
+                                    if (UnityWebRequestCompat.IsSuccess(request))
+                                    {
+                                        byte[] rawData = request.downloadHandler != null ? request.downloadHandler.data : null;
+                                        if (rawData != null && rawData.Length > 0)
+                                        {
+                                            System.Text.Encoding tolerantUtf8 = new System.Text.UTF8Encoding(false, false);
+                                            tcs.TrySetResult(tolerantUtf8.GetString(rawData));
+                                        }
+                                        else
+                                        {
+                                            tcs.TrySetResult("");
+                                        }
+                                    }
+                                    else
+                                    {
+                                        tcs.TrySetException(new Exception(request.error));
+                                    }
+                                }
+                                catch (Exception innerEx) { tcs.TrySetException(innerEx); }
+                                finally { request.Dispose(); }
+                            };
+                        }
+                        catch (Exception dispatchEx) { tcs.TrySetException(dispatchEx); }
+                    });
+
+                    string jsonResponse = await WaitForCloudTask(tcs.Task, 40, "applied corrections fetch");
+                    if (string.IsNullOrWhiteSpace(jsonResponse))
+                        return null;
+
+                    AppliedTranslationCorrectionsResponse response =
+                        JsonConvert.DeserializeObject<AppliedTranslationCorrectionsResponse>(jsonResponse);
+                    if (response == null || response.Corrections == null)
+                        return null;
+                    return response.Corrections;
+                }
+                catch (Exception ex)
+                {
+                    if (attempt == maxRetries)
+                    {
+                        Verse.Log.Warning($"[ATC Cloud] Applied correction fetch failed for {packageId}/{targetLangFolder}: {ex.Message}");
+                        return null;
+                    }
+                }
+
+                int delay = (int)Math.Pow(2, attempt + 1) * 1000 + new Random().Next(100, 500);
+                await Task.Delay(delay);
+            }
+
+            return null;
+        }
+
         public static async Task<bool> SubmitCorrectionAsync(TranslationCorrectionSubmission submission, string adminToken)
         {
             if (submission == null) return false;

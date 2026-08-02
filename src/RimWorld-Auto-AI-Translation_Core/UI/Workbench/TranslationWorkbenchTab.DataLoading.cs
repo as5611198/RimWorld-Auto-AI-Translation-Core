@@ -79,9 +79,15 @@ namespace AutoTranslator_Core
 
 
                 string targetLangFolder = targetMod.TargetLangFolder;
+                bool officialTarReference = AutoTranslatorScanner.IsOfficialBaseGameOrDlcPackage(targetMod.PackageId);
+                Dictionary<string, WorkbenchRestoreBaselineEntry> restoreBaselines =
+                    LoadWorkbenchRestoreBaselines(targetMod.PackageId, targetLangFolder);
 
                 var engKeyed = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 var transKeyed = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                var nativeReferenceKeyed = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                var officialReferenceKeyed = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                var readOnlyReferenceKeyed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
                 foreach (var langRoot in langRoots)
                 {
@@ -93,11 +99,18 @@ namespace AutoTranslator_Core
                             if (!engKeyed.ContainsKey(kv.Key)) engKeyed[kv.Key] = kv.Value;
                         }
                     }
-                    string modTransKeyedPath = System.IO.Path.Combine(langRoot, targetLangFolder, "Keyed");
-                    if (System.IO.Directory.Exists(modTransKeyedPath))
+                    foreach (string modTransKeyedPath in AutoTranslatorScanner.GetTargetLanguageBucketPaths(langRoot, targetMod.TargetLang, "Keyed"))
                     {
                         var dict = AutoTranslatorScanner.LoadXmlFilesToDict(modTransKeyedPath);
-                        foreach (var kv in dict) transKeyed[kv.Key] = kv.Value;
+                        foreach (var kv in dict)
+                        {
+                            nativeReferenceKeyed[kv.Key] = kv.Value;
+                            if (!transKeyed.ContainsKey(kv.Key))
+                            {
+                                transKeyed[kv.Key] = kv.Value;
+                                readOnlyReferenceKeyed.Add(kv.Key);
+                            }
+                        }
                     }
                 }
 
@@ -110,7 +123,11 @@ namespace AutoTranslator_Core
                         if (System.IO.Path.GetFileName(file).ToLower().Contains(idMatch))
                         {
                             var d = AutoTranslatorScanner.LoadXmlFileToDict(file);
-                            foreach (var kv in d) transKeyed[kv.Key] = kv.Value;
+                            foreach (var kv in d)
+                            {
+                                transKeyed[kv.Key] = kv.Value;
+                                readOnlyReferenceKeyed.Remove(kv.Key);
+                            }
                         }
                     }
                 }
@@ -121,7 +138,28 @@ namespace AutoTranslator_Core
                     foreach (var file in AutoTranslatorScanner.GetXmlFilesForTranslationCache(workspaceKeyedDir, System.IO.SearchOption.AllDirectories))
                     {
                         var d = AutoTranslatorScanner.LoadXmlFileToDict(file);
-                        foreach (var kv in d) transKeyed[kv.Key] = kv.Value;
+                        foreach (var kv in d)
+                        {
+                            transKeyed[kv.Key] = kv.Value;
+                            readOnlyReferenceKeyed.Remove(kv.Key);
+                        }
+                    }
+                }
+
+                if (officialTarReference)
+                {
+                    foreach (var kv in AutoTranslatorScanner.LoadOfficialTarTranslationsByCategory(
+                                 targetMod.PackageId,
+                                 targetMod.RootDir,
+                                 targetMod.TargetLang,
+                                 "Keyed"))
+                    {
+                        officialReferenceKeyed[kv.Key] = kv.Value;
+                        if (!transKeyed.ContainsKey(kv.Key))
+                        {
+                            transKeyed[kv.Key] = kv.Value;
+                            readOnlyReferenceKeyed.Add(kv.Key);
+                        }
                     }
                 }
 
@@ -131,19 +169,71 @@ namespace AutoTranslator_Core
                     foreach (var kv in engKeyed)
                     {
                         string translated = transKeyed.ContainsKey(kv.Key) ? transKeyed[kv.Key] : "";
-                        list.Add(new WorkbenchItem { Key = kv.Key, OriginalText = kv.Value, TranslatedText = translated, OriginalTranslatedText = translated });
+                        bool readOnlyReference = readOnlyReferenceKeyed.Contains(kv.Key);
+                        string originalTranslatedText = translated;
+                        bool originalTranslatedTextIsReadOnlyReference = readOnlyReference;
+                        if (TryGetWorkbenchRestoreBaseline(restoreBaselines, "Keyed", kv.Key, out WorkbenchRestoreBaselineEntry baseline))
+                        {
+                            originalTranslatedText = baseline.OriginalTranslatedText ?? "";
+                            originalTranslatedTextIsReadOnlyReference = baseline.OriginalTranslatedTextIsReadOnlyReference;
+                            if (string.IsNullOrEmpty(originalTranslatedText) &&
+                                nativeReferenceKeyed.TryGetValue(kv.Key, out string nativeTranslated) &&
+                                !string.IsNullOrEmpty(nativeTranslated))
+                            {
+                                originalTranslatedText = nativeTranslated;
+                                originalTranslatedTextIsReadOnlyReference = true;
+                            }
+                            else if (string.IsNullOrEmpty(originalTranslatedText) &&
+                                     officialReferenceKeyed.TryGetValue(kv.Key, out string baselineOfficialTranslated) &&
+                                     !string.IsNullOrEmpty(baselineOfficialTranslated))
+                            {
+                                originalTranslatedText = baselineOfficialTranslated;
+                                originalTranslatedTextIsReadOnlyReference = true;
+                            }
+                        }
+                        else if (nativeReferenceKeyed.TryGetValue(kv.Key, out string nativeTranslated))
+                        {
+                            originalTranslatedText = nativeTranslated ?? "";
+                            originalTranslatedTextIsReadOnlyReference = true;
+                        }
+                        else if (officialReferenceKeyed.TryGetValue(kv.Key, out string officialTranslated))
+                        {
+                            originalTranslatedText = officialTranslated ?? "";
+                            originalTranslatedTextIsReadOnlyReference = true;
+                        }
+
+                        list.Add(new WorkbenchItem
+                        {
+                            Key = kv.Key,
+                            OriginalText = kv.Value,
+                            TranslatedText = translated,
+                            OriginalTranslatedText = originalTranslatedText,
+                            OriginalTranslatedTextIsReadOnlyReference = originalTranslatedTextIsReadOnlyReference,
+                            SavedTranslatedText = translated,
+                            SavedTranslatedTextIsReadOnlyReference = readOnlyReference
+                        });
                     }
                     resultData["Keyed"] = list;
                 }
 
                 var engDefs = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
                 var transDefs = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+                var nativeReferenceDefs = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+                var officialReferenceDefs = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+                var readOnlyReferenceDefs = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+                var officialNormalizedDefPaths = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
                 var rawDefTypesAlreadyTarget = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 var rawDefLanguageSamples = new List<string>();
 
                 foreach (var defRoot in defsRoots)
                 {
                     var dict = AutoTranslatorScanner.ExtractEnglishFromRawDefs(defRoot);
+                    if (officialTarReference)
+                    {
+                        MergeOfficialDefPathAliases(
+                            officialNormalizedDefPaths,
+                            AutoTranslatorScanner.ExtractOfficialDefPathAliasesFromRawDefs(defRoot));
+                    }
                     foreach (var typeKv in dict)
                     {
                         rawDefLanguageSamples.AddRange(typeKv.Value.Values.Where(v => !string.IsNullOrWhiteSpace(v)).Take(40));
@@ -179,6 +269,19 @@ namespace AutoTranslator_Core
                     }
                 }
 
+                foreach (var langRoot in langRoots)
+                {
+                    foreach (string modTransDefDir in AutoTranslatorScanner.GetTargetLanguageBucketPaths(langRoot, targetMod.TargetLang, "DefInjected"))
+                    {
+                        LoadWorkbenchDefInjectedTranslations(
+                            modTransDefDir,
+                            nativeReferenceDefs,
+                            targetMod.TargetLang,
+                            transDefs,
+                            readOnlyReferenceDefs);
+                    }
+                }
+
                 string workspaceDefDir = System.IO.Path.Combine(AutoTranslatorScanner.GetLocalPackPath(), "Upload_Workspace", targetMod.PackageId, targetLangFolder, "DefInjected");
                 if (System.IO.Directory.Exists(workspaceDefDir))
                 {
@@ -189,7 +292,46 @@ namespace AutoTranslator_Core
                         foreach (var file in AutoTranslatorScanner.GetXmlFilesForTranslationCache(typeDir, System.IO.SearchOption.TopDirectoryOnly))
                         {
                             var d = AutoTranslatorScanner.LoadXmlFileToDict(file);
-                            foreach (var kv in d) transDefs[defType][kv.Key] = kv.Value;
+                            foreach (var kv in d)
+                            {
+                                transDefs[defType][kv.Key] = kv.Value;
+                                if (readOnlyReferenceDefs.TryGetValue(defType, out HashSet<string> readOnlyKeys))
+                                {
+                                    readOnlyKeys.Remove(kv.Key);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (officialTarReference)
+                {
+                    var officialDefTranslations = AutoTranslatorScanner.LoadOfficialTarDefTranslations(
+                        targetMod.PackageId,
+                        targetMod.RootDir,
+                        targetMod.TargetLang);
+                    foreach (var typeKv in officialDefTranslations)
+                    {
+                        if (!officialReferenceDefs.ContainsKey(typeKv.Key))
+                            officialReferenceDefs[typeKv.Key] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                        if (!transDefs.ContainsKey(typeKv.Key))
+                            transDefs[typeKv.Key] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                        if (!readOnlyReferenceDefs.ContainsKey(typeKv.Key))
+                            readOnlyReferenceDefs[typeKv.Key] = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                        foreach (var kv in typeKv.Value)
+                        {
+                            string workbenchKey = ResolveOfficialWorkbenchDefKey(
+                                typeKv.Key,
+                                kv.Key,
+                                engDefs,
+                                officialNormalizedDefPaths);
+                            officialReferenceDefs[typeKv.Key][workbenchKey] = kv.Value;
+                            if (!transDefs[typeKv.Key].ContainsKey(workbenchKey))
+                            {
+                                transDefs[typeKv.Key][workbenchKey] = kv.Value;
+                                readOnlyReferenceDefs[typeKv.Key].Add(workbenchKey);
+                            }
                         }
                     }
                 }
@@ -201,19 +343,88 @@ namespace AutoTranslator_Core
                     foreach (var kv in typeKv.Value)
                     {
                         string translated = "";
+                        bool readOnlyReference = false;
                         if (transDefs.ContainsKey(defType) && transDefs[defType].ContainsKey(kv.Key))
+                        {
                             translated = transDefs[defType][kv.Key];
+                            readOnlyReference = readOnlyReferenceDefs.TryGetValue(defType, out HashSet<string> readOnlyKeys) && readOnlyKeys.Contains(kv.Key);
+                        }
                         else if (rawDefsLookLikeTarget || rawDefTypesAlreadyTarget.Contains(defType) || LanguageDetector.LooksLikeTargetLanguage(kv.Value, targetMod.TargetLang))
+                        {
                             translated = kv.Value;
-                        list.Add(new WorkbenchItem { Key = kv.Key, OriginalText = kv.Value, TranslatedText = translated, OriginalTranslatedText = translated });
+                        }
+
+                        string originalTranslatedText = translated;
+                        bool originalTranslatedTextIsReadOnlyReference = readOnlyReference;
+                        if (TryGetWorkbenchRestoreBaseline(restoreBaselines, defType, kv.Key, out WorkbenchRestoreBaselineEntry baseline))
+                        {
+                            originalTranslatedText = baseline.OriginalTranslatedText ?? "";
+                            originalTranslatedTextIsReadOnlyReference = baseline.OriginalTranslatedTextIsReadOnlyReference;
+                            if (string.IsNullOrEmpty(originalTranslatedText) &&
+                                nativeReferenceDefs.TryGetValue(defType, out Dictionary<string, string> nativeDefBaselineTranslations) &&
+                                nativeDefBaselineTranslations.TryGetValue(kv.Key, out string nativeTranslated) &&
+                                !string.IsNullOrEmpty(nativeTranslated))
+                            {
+                                originalTranslatedText = nativeTranslated;
+                                originalTranslatedTextIsReadOnlyReference = true;
+                            }
+                            else if (string.IsNullOrEmpty(originalTranslatedText) &&
+                                     officialReferenceDefs.TryGetValue(defType, out Dictionary<string, string> baselineOfficialDefTypeTranslations) &&
+                                     baselineOfficialDefTypeTranslations.TryGetValue(kv.Key, out string baselineOfficialTranslated) &&
+                                     !string.IsNullOrEmpty(baselineOfficialTranslated))
+                            {
+                                originalTranslatedText = baselineOfficialTranslated;
+                                originalTranslatedTextIsReadOnlyReference = true;
+                            }
+                        }
+                        else if (nativeReferenceDefs.TryGetValue(defType, out Dictionary<string, string> nativeDefTypeTranslations) &&
+                                 nativeDefTypeTranslations.TryGetValue(kv.Key, out string nativeTranslated))
+                        {
+                            originalTranslatedText = nativeTranslated ?? "";
+                            originalTranslatedTextIsReadOnlyReference = true;
+                        }
+                        else if (officialReferenceDefs.TryGetValue(defType, out Dictionary<string, string> officialDefTypeTranslations) &&
+                                 officialDefTypeTranslations.TryGetValue(kv.Key, out string officialTranslated))
+                        {
+                            originalTranslatedText = officialTranslated ?? "";
+                            originalTranslatedTextIsReadOnlyReference = true;
+                        }
+
+                        list.Add(new WorkbenchItem
+                        {
+                            Key = kv.Key,
+                            OriginalText = kv.Value,
+                            TranslatedText = translated,
+                            OriginalTranslatedText = originalTranslatedText,
+                            OriginalTranslatedTextIsReadOnlyReference = originalTranslatedTextIsReadOnlyReference,
+                            SavedTranslatedText = translated,
+                            SavedTranslatedTextIsReadOnlyReference = readOnlyReference
+                        });
                     }
                     if (list.Count > 0) resultData[defType] = list;
+                }
+
+                foreach (KeyValuePair<string, List<WorkbenchItem>> categoryPair in resultData)
+                {
+                    if (categoryPair.Value == null) continue;
+                    foreach (WorkbenchItem item in categoryPair.Value)
+                    {
+                        if (item != null) item.Category = categoryPair.Key;
+                    }
                 }
 
                 ATC_Dispatcher.RunOnMainThread(() => {
                     if (_editingMod != targetMod.Mod) return;
                     _categorizedData = resultData;
                     WorkbenchFocusRequest focus = _pendingWorkbenchFocus;
+                    if (focus != null && officialTarReference && !string.IsNullOrWhiteSpace(focus.Category))
+                    {
+                        focus.Key = ResolveOfficialWorkbenchDefKey(
+                            focus.Category,
+                            focus.Key,
+                            engDefs,
+                            officialNormalizedDefPaths);
+                    }
                     string selectedCategory = _categorizedData.Keys.FirstOrDefault() ?? "";
                     if (focus != null && !string.IsNullOrWhiteSpace(focus.Category) && _categorizedData.ContainsKey(focus.Category))
                     {
@@ -229,6 +440,131 @@ namespace AutoTranslator_Core
                     _cachedVisibleItems = null;
                     _isLoading = false;
                 });
+            }
+
+            private static void MergeOfficialDefPathAliases(
+                Dictionary<string, Dictionary<string, string>> target,
+                Dictionary<string, Dictionary<string, string>> source)
+            {
+                if (target == null || source == null) return;
+                foreach (KeyValuePair<string, Dictionary<string, string>> typePair in source)
+                {
+                    if (!target.TryGetValue(typePair.Key, out Dictionary<string, string> aliases))
+                    {
+                        aliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                        target[typePair.Key] = aliases;
+                    }
+
+                    if (typePair.Value == null) continue;
+                    foreach (KeyValuePair<string, string> alias in typePair.Value)
+                    {
+                        aliases[alias.Key] = alias.Value;
+                    }
+                }
+            }
+
+            private static string ResolveOfficialWorkbenchDefKey(
+                string defType,
+                string officialKey,
+                Dictionary<string, Dictionary<string, string>> englishDefs,
+                Dictionary<string, Dictionary<string, string>> normalizedPathsBySuggestedPath)
+            {
+                string key = officialKey ?? "";
+                if (string.IsNullOrWhiteSpace(defType) || string.IsNullOrWhiteSpace(key)) return key;
+                if (englishDefs != null &&
+                    englishDefs.TryGetValue(defType, out Dictionary<string, string> directEnglish) &&
+                    directEnglish.ContainsKey(key))
+                {
+                    return key;
+                }
+
+                if (normalizedPathsBySuggestedPath != null &&
+                    normalizedPathsBySuggestedPath.TryGetValue(defType, out Dictionary<string, string> aliases) &&
+                    aliases.TryGetValue(key, out string normalizedKey) &&
+                    !string.IsNullOrWhiteSpace(normalizedKey))
+                {
+                    return normalizedKey;
+                }
+
+                return key;
+            }
+
+            private static void LoadWorkbenchDefInjectedTranslations(
+                string defInjectedDir,
+                Dictionary<string, Dictionary<string, string>> target,
+                TargetLanguage targetLang)
+            {
+                LoadWorkbenchDefInjectedTranslations(defInjectedDir, target, targetLang, null, null);
+            }
+
+            private static void LoadWorkbenchDefInjectedTranslations(
+                string defInjectedDir,
+                Dictionary<string, Dictionary<string, string>> target,
+                TargetLanguage targetLang,
+                Dictionary<string, Dictionary<string, string>> currentTranslations,
+                Dictionary<string, HashSet<string>> readOnlyReferenceKeys)
+            {
+                if (target == null || string.IsNullOrEmpty(defInjectedDir) || !Directory.Exists(defInjectedDir)) return;
+
+                foreach (string typeDir in Directory.GetDirectories(defInjectedDir))
+                {
+                    string defType = Path.GetFileName(typeDir);
+                    if (string.IsNullOrEmpty(defType)) continue;
+                    if (!target.ContainsKey(defType))
+                    {
+                        target[defType] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    }
+
+                    foreach (string file in AutoTranslatorScanner.GetXmlFilesForTranslationCache(typeDir, SearchOption.AllDirectories))
+                    {
+                        var d = AutoTranslatorScanner.LoadXmlFileToDict(file, targetLang);
+                        foreach (var kv in d)
+                        {
+                            target[defType][kv.Key] = kv.Value;
+                            AddWorkbenchReadOnlyReferenceTranslation(currentTranslations, readOnlyReferenceKeys, defType, kv.Key, kv.Value);
+                        }
+                    }
+                }
+
+                foreach (string file in AutoTranslatorScanner.GetXmlFilesForTranslationCache(defInjectedDir, SearchOption.TopDirectoryOnly))
+                {
+                    if (!target.ContainsKey("General"))
+                    {
+                        target["General"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    }
+
+                    var d = AutoTranslatorScanner.LoadXmlFileToDict(file, targetLang);
+                    foreach (var kv in d)
+                    {
+                        target["General"][kv.Key] = kv.Value;
+                        AddWorkbenchReadOnlyReferenceTranslation(currentTranslations, readOnlyReferenceKeys, "General", kv.Key, kv.Value);
+                    }
+                }
+            }
+
+            private static void AddWorkbenchReadOnlyReferenceTranslation(
+                Dictionary<string, Dictionary<string, string>> currentTranslations,
+                Dictionary<string, HashSet<string>> readOnlyReferenceKeys,
+                string defType,
+                string key,
+                string value)
+            {
+                if (currentTranslations == null || readOnlyReferenceKeys == null) return;
+                if (string.IsNullOrEmpty(defType) || string.IsNullOrEmpty(key)) return;
+                if (!currentTranslations.ContainsKey(defType))
+                {
+                    currentTranslations[defType] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                }
+
+                if (currentTranslations[defType].ContainsKey(key)) return;
+
+                currentTranslations[defType][key] = value;
+                if (!readOnlyReferenceKeys.ContainsKey(defType))
+                {
+                    readOnlyReferenceKeys[defType] = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                }
+
+                readOnlyReferenceKeys[defType].Add(key);
             }
 
             private static float GetInitialItemScrollForFocus(WorkbenchFocusRequest focus, string selectedCategory)

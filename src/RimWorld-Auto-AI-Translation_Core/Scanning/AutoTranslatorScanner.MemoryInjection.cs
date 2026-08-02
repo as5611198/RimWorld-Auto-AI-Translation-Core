@@ -23,6 +23,37 @@ namespace AutoTranslator_Core
         private const int MemoryDropKeyedApplyBudget = 3000;
         private const int MemoryDropDefApplyBudget = 3000;
 
+        private sealed class RuntimeKeyedBaseline
+        {
+            public bool HadReplacement;
+            public string Key;
+            public string Value;
+        }
+
+        private sealed class RuntimeDefBaseline
+        {
+            public Type DefType;
+            public string Path;
+            public bool HadInjection;
+            public string Injection;
+        }
+
+        private sealed class RuntimeDefRestoreRemoval
+        {
+            public DefInjectionPackage Package;
+            public string Path;
+            public DefInjectionPackage.DefInjection Injection;
+        }
+
+        private static readonly Dictionary<string, RuntimeKeyedBaseline> RuntimeKeyedBaselines =
+            new Dictionary<string, RuntimeKeyedBaseline>(StringComparer.OrdinalIgnoreCase);
+        private static readonly HashSet<string> RuntimeInjectedKeyedKeys =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<string, RuntimeDefBaseline> RuntimeDefBaselines =
+            new Dictionary<string, RuntimeDefBaseline>(StringComparer.OrdinalIgnoreCase);
+        private static readonly HashSet<string> RuntimeInjectedDefKeys =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         private class MemoryDropPayload
         {
             public bool KeyedOnly;
@@ -36,6 +67,8 @@ namespace AutoTranslator_Core
             public Dictionary<string, string> Keyed = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             public List<MemoryDropDefTypePayload> DefsByType = new List<MemoryDropDefTypePayload>();
             public DateTime PreparedAtUtc;
+            public int OfficialFallbackKeyed;
+            public int OfficialFallbackDefs;
         }
 
         private class MemoryDropDefTypePayload
@@ -54,12 +87,15 @@ namespace AutoTranslator_Core
             public List<KeyValuePair<string, string>> CurrentDefEntries;
             public int CurrentDefEntryIndex;
             public DefInjectionPackage CurrentPackage;
+            public Type CurrentDefType;
             public int InjectedKeyed;
             public int InjectedDefs;
             public int ClearedKeyed;
             public int ClearedDefs;
+            public int RejectedDefs;
             public bool NeedsDataInjection;
             public bool PackageClearApplied;
+            public readonly List<RuntimeDefRestoreRemoval> TemporaryDefRestores = new List<RuntimeDefRestoreRemoval>();
         }
 
         // 這個方法負責重置 ValidationStats 狀態。
@@ -276,16 +312,19 @@ namespace AutoTranslator_Core
                 return;
             }
 
-            Task.Run(() => PrepareMemoryDropPayloadWorker(keyedOnly, packageIds, clearKeysByPackage));
+            int generation = Volatile.Read(ref _memoryDropGeneration);
+            Task.Run(() => PrepareMemoryDropPayloadWorker(keyedOnly, packageIds, clearKeysByPackage, generation));
         }
 
-        private static void PrepareMemoryDropPayloadWorker(bool keyedOnly, List<string> packageIds, Dictionary<string, Dictionary<string, HashSet<string>>> clearKeysByPackage)
+        private static void PrepareMemoryDropPayloadWorker(bool keyedOnly, List<string> packageIds, Dictionary<string, Dictionary<string, HashSet<string>>> clearKeysByPackage, int generation)
         {
             try
             {
                 MemoryDropPayload payload = BuildMemoryDropPayload(keyedOnly, packageIds, clearKeysByPackage);
                 lock (_pendingInjectLock)
                 {
+                    if (generation != Volatile.Read(ref _memoryDropGeneration)) return;
+
                     if (payload != null)
                     {
                         _pendingMemoryDropPayload = payload;
@@ -455,7 +494,109 @@ namespace AutoTranslator_Core
                 }
             }
 
+            AddOfficialPackageFallbacksForClearedKeys(payload, packageIds, clearKeysByPackage);
             return payload;
+        }
+
+        private static void AddOfficialPackageFallbacksForClearedKeys(
+            MemoryDropPayload payload,
+            List<string> packageIds,
+            Dictionary<string, Dictionary<string, HashSet<string>>> clearKeysByPackage)
+        {
+            if (payload == null || !payload.PackageScoped || packageIds == null || clearKeysByPackage == null) return;
+            if (AutoTranslatorMod.Settings == null) return;
+
+            foreach (string packageId in packageIds)
+            {
+                if (string.IsNullOrWhiteSpace(packageId)) continue;
+                if (!IsOfficialBaseGameOrDlcPackage(packageId)) continue;
+                if (!clearKeysByPackage.TryGetValue(packageId, out Dictionary<string, HashSet<string>> packageClearKeys) ||
+                    packageClearKeys == null ||
+                    packageClearKeys.Count == 0)
+                {
+                    continue;
+                }
+
+                string rootDir = GetInstalledModRootDir(packageId);
+                if (string.IsNullOrWhiteSpace(rootDir)) continue;
+
+                if (packageClearKeys.TryGetValue("Keyed", out HashSet<string> keyedKeys) &&
+                    keyedKeys != null &&
+                    keyedKeys.Count > 0)
+                {
+                    Dictionary<string, string> officialKeyed = LoadOfficialTarTranslationsByCategory(
+                        packageId,
+                        rootDir,
+                        AutoTranslatorMod.Settings.TargetLang,
+                        "Keyed");
+                    foreach (string key in keyedKeys)
+                    {
+                        if (string.IsNullOrWhiteSpace(key)) continue;
+                        if (payload.Keyed.ContainsKey(key)) continue;
+                        if (!officialKeyed.TryGetValue(key, out string value) || string.IsNullOrWhiteSpace(value)) continue;
+
+                        payload.Keyed[key] = value;
+                        payload.OfficialFallbackKeyed++;
+                    }
+                }
+
+                Dictionary<string, Dictionary<string, string>> officialDefs = null;
+                foreach (KeyValuePair<string, HashSet<string>> pair in packageClearKeys)
+                {
+                    if (pair.Value == null || pair.Value.Count == 0) continue;
+                    if (pair.Key.Equals("Keyed", StringComparison.OrdinalIgnoreCase)) continue;
+
+                    if (officialDefs == null)
+                    {
+                        officialDefs = LoadOfficialTarDefTranslations(packageId, rootDir, AutoTranslatorMod.Settings.TargetLang);
+                    }
+
+                    if (!officialDefs.TryGetValue(pair.Key, out Dictionary<string, string> officialTypeTranslations)) continue;
+                    MemoryDropDefTypePayload typePayload = GetOrCreateMemoryDropDefPayload(payload, pair.Key);
+
+                    foreach (string key in pair.Value)
+                    {
+                        if (string.IsNullOrWhiteSpace(key)) continue;
+                        if (typePayload.Data.ContainsKey(key)) continue;
+                        if (!officialTypeTranslations.TryGetValue(key, out string value) || string.IsNullOrWhiteSpace(value)) continue;
+
+                        typePayload.Data[key] = value;
+                        payload.OfficialFallbackDefs++;
+                    }
+                }
+            }
+        }
+
+        private static MemoryDropDefTypePayload GetOrCreateMemoryDropDefPayload(MemoryDropPayload payload, string defTypeName)
+        {
+            MemoryDropDefTypePayload existing = payload.DefsByType.FirstOrDefault(p =>
+                p != null && string.Equals(p.DefTypeName, defTypeName, StringComparison.OrdinalIgnoreCase));
+            if (existing != null) return existing;
+
+            MemoryDropDefTypePayload created = new MemoryDropDefTypePayload
+            {
+                DefTypeName = defTypeName ?? "",
+                Data = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            };
+            payload.DefsByType.Add(created);
+            return created;
+        }
+
+        private static string GetInstalledModRootDir(string packageId)
+        {
+            try
+            {
+                ModMetaData mod = ModLister.AllInstalledMods.FirstOrDefault(m =>
+                    m != null &&
+                    string.Equals(m.PackageId, packageId, StringComparison.OrdinalIgnoreCase) &&
+                    m.RootDir != null &&
+                    Directory.Exists(m.RootDir.FullName));
+                return mod != null ? mod.RootDir.FullName : "";
+            }
+            catch
+            {
+                return "";
+            }
         }
 
         private static void MergePendingPackageClearKeys(string packageId, Dictionary<string, HashSet<string>> clearKeysByDefType)
@@ -626,16 +767,34 @@ namespace AutoTranslator_Core
                 return;
             }
 
+            if (activeLang.keyedReplacements == null)
+            {
+                activeLang.keyedReplacements = new Dictionary<string, LoadedLanguage.KeyedReplacement>();
+            }
+
             if (state.Payload.ClearKeysByDefType.TryGetValue("Keyed", out HashSet<string> keyedKeys) &&
-                keyedKeys != null && keyedKeys.Count > 0 && activeLang.keyedReplacements != null)
+                keyedKeys != null && keyedKeys.Count > 0)
             {
                 foreach (string key in keyedKeys)
                 {
                     if (string.IsNullOrWhiteSpace(key)) continue;
-                    if (activeLang.keyedReplacements.Remove(key))
+                    if (!RuntimeInjectedKeyedKeys.Remove(key)) continue;
+
+                    if (RuntimeKeyedBaselines.TryGetValue(key, out RuntimeKeyedBaseline baseline) && baseline.HadReplacement)
                     {
-                        state.ClearedKeyed++;
+                        activeLang.keyedReplacements[key] = new LoadedLanguage.KeyedReplacement
+                        {
+                            key = baseline.Key ?? key,
+                            value = baseline.Value ?? ""
+                        };
                     }
+                    else
+                    {
+                        activeLang.keyedReplacements.Remove(key);
+                    }
+
+                    RuntimeKeyedBaselines.Remove(key);
+                    state.ClearedKeyed++;
                 }
             }
 
@@ -647,18 +806,249 @@ namespace AutoTranslator_Core
                 Type defType = GenTypes.GetTypeInAnyAssembly(pair.Key);
                 if (defType == null) continue;
 
-                DefInjectionPackage package = activeLang.defInjections?.FirstOrDefault(p => p.defType == defType);
-                if (package?.injections == null) continue;
+                DefInjectionPackage package = GetOrCreateRuntimeDefPackage(activeLang, defType);
+                if (package == null) continue;
 
                 foreach (string key in pair.Value)
                 {
                     if (string.IsNullOrWhiteSpace(key)) continue;
-                    if (package.injections.Remove(key))
+                    string runtimeKey = GetRuntimeDefKey(defType, key);
+                    if (!RuntimeInjectedDefKeys.Remove(runtimeKey)) continue;
+
+                    package.injections.TryGetValue(key, out DefInjectionPackage.DefInjection currentInjection);
+                    if (RuntimeDefBaselines.TryGetValue(runtimeKey, out RuntimeDefBaseline baseline) && baseline.HadInjection)
                     {
-                        state.ClearedDefs++;
-                        state.NeedsDataInjection = true;
+                        package.injections[key] = CreateRuntimeDefInjection(key, baseline.Injection);
                     }
+                    else if (currentInjection != null && currentInjection.replacedString != null)
+                    {
+                        DefInjectionPackage.DefInjection restoreInjection = CreateRuntimeDefInjection(key, currentInjection.replacedString);
+                        package.injections[key] = restoreInjection;
+                        state.TemporaryDefRestores.Add(new RuntimeDefRestoreRemoval
+                        {
+                            Package = package,
+                            Path = key,
+                            Injection = restoreInjection
+                        });
+                    }
+                    else
+                    {
+                        package.injections.Remove(key);
+                    }
+
+                    RuntimeDefBaselines.Remove(runtimeKey);
+                    state.ClearedDefs++;
+                    state.NeedsDataInjection = true;
                 }
+            }
+        }
+
+        private static void RememberRuntimeKeyedBaseline(LoadedLanguage activeLang, string key)
+        {
+            if (activeLang == null || string.IsNullOrWhiteSpace(key) || RuntimeInjectedKeyedKeys.Contains(key)) return;
+            if (RuntimeKeyedBaselines.ContainsKey(key)) return;
+
+            LoadedLanguage.KeyedReplacement replacement = null;
+            bool hadReplacement = activeLang.keyedReplacements != null &&
+                activeLang.keyedReplacements.TryGetValue(key, out replacement);
+            RuntimeKeyedBaselines[key] = new RuntimeKeyedBaseline
+            {
+                HadReplacement = hadReplacement,
+                Key = hadReplacement ? replacement.key : key,
+                Value = hadReplacement ? replacement.value : null
+            };
+        }
+
+        private static void RememberRuntimeDefBaseline(Type defType, DefInjectionPackage package, string path)
+        {
+            if (defType == null || package == null || string.IsNullOrWhiteSpace(path)) return;
+
+            string runtimeKey = GetRuntimeDefKey(defType, path);
+            if (RuntimeInjectedDefKeys.Contains(runtimeKey) || RuntimeDefBaselines.ContainsKey(runtimeKey)) return;
+
+            DefInjectionPackage.DefInjection existing = null;
+            bool hadInjection = package.injections != null &&
+                package.injections.TryGetValue(path, out existing);
+            RuntimeDefBaselines[runtimeKey] = new RuntimeDefBaseline
+            {
+                DefType = defType,
+                Path = path,
+                HadInjection = hadInjection,
+                Injection = hadInjection ? existing.injection : null
+            };
+        }
+
+        private static string GetRuntimeDefKey(Type defType, string path)
+        {
+            return (defType != null ? defType.FullName : "") + "\n" + (path ?? "");
+        }
+
+        private static DefInjectionPackage.DefInjection CreateRuntimeDefInjection(string path, string value)
+        {
+            return new DefInjectionPackage.DefInjection
+            {
+                path = path,
+                injection = value ?? "",
+                injected = false
+            };
+        }
+
+        private static DefInjectionPackage GetOrCreateRuntimeDefPackage(LoadedLanguage activeLang, Type defType)
+        {
+            if (activeLang == null || defType == null) return null;
+            if (activeLang.defInjections == null)
+            {
+                activeLang.defInjections = new List<DefInjectionPackage>();
+            }
+
+            DefInjectionPackage package = activeLang.defInjections.FirstOrDefault(p => p.defType == defType);
+            if (package == null)
+            {
+                package = new DefInjectionPackage(defType);
+                activeLang.defInjections.Add(package);
+            }
+
+            if (package.injections == null)
+            {
+                package.injections = new Dictionary<string, DefInjectionPackage.DefInjection>();
+            }
+            return package;
+        }
+
+        private static void RemoveTemporaryDefRestores(IEnumerable<RuntimeDefRestoreRemoval> removals)
+        {
+            if (removals == null) return;
+
+            foreach (RuntimeDefRestoreRemoval removal in removals)
+            {
+                if (removal?.Package?.injections == null || string.IsNullOrWhiteSpace(removal.Path)) continue;
+                if (removal.Package.injections.TryGetValue(removal.Path, out DefInjectionPackage.DefInjection current) &&
+                    ReferenceEquals(current, removal.Injection))
+                {
+                    removal.Package.injections.Remove(removal.Path);
+                }
+            }
+        }
+
+        public static void RestoreRuntimeTranslationsAfterPackReset()
+        {
+            if (!UnityData.IsInMainThread)
+            {
+                ATC_Dispatcher.RunOnMainThread(RestoreRuntimeTranslationsAfterPackReset);
+                return;
+            }
+
+            Interlocked.Increment(ref _memoryDropGeneration);
+            lock (_pendingInjectLock)
+            {
+                _pendingMemoryDrop = false;
+                _pendingKeyedMemoryDrop = false;
+                _pendingMemoryDropPackageIds.Clear();
+                _pendingMemoryDropClearKeysByPackage.Clear();
+                _pendingMemoryDropPayload = null;
+            }
+            _activeMemoryDropApply = null;
+            Interlocked.Exchange(ref _startupFullMemoryDropQueued, 0);
+
+            LoadedLanguage activeLang = LanguageDatabase.activeLanguage;
+            if (activeLang == null)
+            {
+                RuntimeKeyedBaselines.Clear();
+                RuntimeInjectedKeyedKeys.Clear();
+                RuntimeDefBaselines.Clear();
+                RuntimeInjectedDefKeys.Clear();
+                ResetMemoryDropStamps();
+                return;
+            }
+
+            if (activeLang.keyedReplacements == null)
+            {
+                activeLang.keyedReplacements = new Dictionary<string, LoadedLanguage.KeyedReplacement>();
+            }
+
+            int restoredKeyed = 0;
+            foreach (string key in RuntimeInjectedKeyedKeys.ToList())
+            {
+                if (RuntimeKeyedBaselines.TryGetValue(key, out RuntimeKeyedBaseline baseline) && baseline.HadReplacement)
+                {
+                    activeLang.keyedReplacements[key] = new LoadedLanguage.KeyedReplacement
+                    {
+                        key = baseline.Key ?? key,
+                        value = baseline.Value ?? ""
+                    };
+                }
+                else
+                {
+                    activeLang.keyedReplacements.Remove(key);
+                }
+                restoredKeyed++;
+            }
+
+            bool needsDefInjection = false;
+            int restoredDefs = 0;
+            var temporaryRemovals = new List<RuntimeDefRestoreRemoval>();
+            foreach (RuntimeDefBaseline baseline in RuntimeDefBaselines.Values.ToList())
+            {
+                if (baseline?.DefType == null || string.IsNullOrWhiteSpace(baseline.Path)) continue;
+                string runtimeKey = GetRuntimeDefKey(baseline.DefType, baseline.Path);
+                if (!RuntimeInjectedDefKeys.Contains(runtimeKey)) continue;
+
+                DefInjectionPackage package = GetOrCreateRuntimeDefPackage(activeLang, baseline.DefType);
+                if (package == null) continue;
+
+                package.injections.TryGetValue(baseline.Path, out DefInjectionPackage.DefInjection currentInjection);
+                if (baseline.HadInjection)
+                {
+                    package.injections[baseline.Path] = CreateRuntimeDefInjection(baseline.Path, baseline.Injection);
+                    needsDefInjection = true;
+                    restoredDefs++;
+                }
+                else if (currentInjection != null && currentInjection.replacedString != null)
+                {
+                    DefInjectionPackage.DefInjection restoreInjection = CreateRuntimeDefInjection(baseline.Path, currentInjection.replacedString);
+                    package.injections[baseline.Path] = restoreInjection;
+                    temporaryRemovals.Add(new RuntimeDefRestoreRemoval
+                    {
+                        Package = package,
+                        Path = baseline.Path,
+                        Injection = restoreInjection
+                    });
+                    needsDefInjection = true;
+                    restoredDefs++;
+                }
+                else
+                {
+                    package.injections.Remove(baseline.Path);
+                }
+            }
+
+            if (needsDefInjection)
+            {
+                activeLang.InjectIntoData_BeforeImpliedDefs();
+                activeLang.InjectIntoData_AfterImpliedDefs();
+                RemoveTemporaryDefRestores(temporaryRemovals);
+                NormalizeInjectedDefs();
+            }
+
+            RuntimeKeyedBaselines.Clear();
+            RuntimeInjectedKeyedKeys.Clear();
+            RuntimeDefBaselines.Clear();
+            RuntimeInjectedDefKeys.Clear();
+            ResetMemoryDropStamps();
+
+            if (restoredKeyed > 0)
+            {
+                RequestStaticCachedTranslationRefresh();
+            }
+            Log.Message($"[AutoTranslationCore] Restored runtime translation baselines after pack reset: Keyed={restoredKeyed}, Defs={restoredDefs}.");
+        }
+
+        private static void ResetMemoryDropStamps()
+        {
+            lock (_memoryDropStampLock)
+            {
+                _lastKeyedMemoryDropStamp = null;
+                _lastFullMemoryDropStamp = null;
             }
         }
 
@@ -666,12 +1056,17 @@ namespace AutoTranslator_Core
         {
             if (state == null || activeLang == null || state.KeyedEntries == null) return false;
             if (state.KeyedIndex >= state.KeyedEntries.Count) return false;
+            if (activeLang.keyedReplacements == null)
+            {
+                activeLang.keyedReplacements = new Dictionary<string, LoadedLanguage.KeyedReplacement>();
+            }
 
             int remaining = MemoryDropKeyedApplyBudget;
             while (state.KeyedIndex < state.KeyedEntries.Count && remaining-- > 0)
             {
                 var kvp = state.KeyedEntries[state.KeyedIndex++];
 
+                RememberRuntimeKeyedBaseline(activeLang, kvp.Key);
                 if (activeLang.keyedReplacements.TryGetValue(kvp.Key, out LoadedLanguage.KeyedReplacement existingReplacement))
                 {
                     RememberStaticTranslationSourceHint(kvp.Key, existingReplacement.value);
@@ -683,6 +1078,7 @@ namespace AutoTranslator_Core
                     value = kvp.Value
                 };
                 RememberStaticTranslationTargetHint(kvp.Key, kvp.Value);
+                RuntimeInjectedKeyedKeys.Add(kvp.Key);
                 state.InjectedKeyed++;
             }
 
@@ -706,19 +1102,15 @@ namespace AutoTranslator_Core
                         continue;
                     }
 
-                    DefInjectionPackage package = activeLang.defInjections.FirstOrDefault(p => p.defType == defType);
+                    DefInjectionPackage package = GetOrCreateRuntimeDefPackage(activeLang, defType);
                     if (package == null)
                     {
-                        package = new DefInjectionPackage(defType);
-                        activeLang.defInjections.Add(package);
-                    }
-
-                    if (package.injections == null)
-                    {
-                        package.injections = new Dictionary<string, DefInjectionPackage.DefInjection>();
+                        state.DefTypeIndex++;
+                        continue;
                     }
 
                     state.CurrentPackage = package;
+                    state.CurrentDefType = defType;
                     state.CurrentDefEntries = typePayload.Data != null
                         ? typePayload.Data.ToList()
                         : new List<KeyValuePair<string, string>>();
@@ -728,11 +1120,19 @@ namespace AutoTranslator_Core
                 while (state.CurrentDefEntryIndex < state.CurrentDefEntries.Count && remaining-- > 0)
                 {
                     var kvp = state.CurrentDefEntries[state.CurrentDefEntryIndex++];
+                    if (IsUnsafeRuntimeDefInjectionPath(kvp.Key))
+                    {
+                        state.RejectedDefs++;
+                        continue;
+                    }
+
+                    RememberRuntimeDefBaseline(state.CurrentDefType, state.CurrentPackage, kvp.Key);
                     state.CurrentPackage.injections[kvp.Key] = new DefInjectionPackage.DefInjection
                     {
                         path = kvp.Key,
                         injection = kvp.Value
                     };
+                    RuntimeInjectedDefKeys.Add(GetRuntimeDefKey(state.CurrentDefType, kvp.Key));
                     state.InjectedDefs++;
                     state.NeedsDataInjection = true;
                 }
@@ -740,6 +1140,7 @@ namespace AutoTranslator_Core
                 if (state.CurrentDefEntryIndex >= state.CurrentDefEntries.Count)
                 {
                     state.CurrentPackage = null;
+                    state.CurrentDefType = null;
                     state.CurrentDefEntries = null;
                     state.CurrentDefEntryIndex = 0;
                     state.DefTypeIndex++;
@@ -762,8 +1163,14 @@ namespace AutoTranslator_Core
                     {
                         activeLang.InjectIntoData_BeforeImpliedDefs();
                         activeLang.InjectIntoData_AfterImpliedDefs();
+                        RemoveTemporaryDefRestores(state.TemporaryDefRestores);
                         NormalizeInjectedDefs();
                     }
+                }
+
+                if (state.RejectedDefs > 0)
+                {
+                    Log.Warning($"[AutoTranslationCore] Blocked {state.RejectedDefs} unsafe DefInjected entries during memory injection.");
                 }
 
                 if (success && (state.InjectedKeyed > 0 || state.InjectedDefs > 0 || state.ClearedKeyed > 0 || state.ClearedDefs > 0))
@@ -784,6 +1191,10 @@ namespace AutoTranslator_Core
                             ? "Package memory drop"
                             : "Memory Drop Success";
                     Log.Message($"[AutoTranslationCore] {mode}: Injected {state.InjectedKeyed} Keyed & {state.InjectedDefs} Defs without restart. Cleared {state.ClearedKeyed} Keyed & {state.ClearedDefs} Defs. Package={state.Payload.PackageId ?? "<full>"}");
+                    if (state.Payload.OfficialFallbackKeyed > 0 || state.Payload.OfficialFallbackDefs > 0)
+                    {
+                        Log.Message($"[AutoTranslationCore] Official fallback restored {state.Payload.OfficialFallbackKeyed} Keyed & {state.Payload.OfficialFallbackDefs} Defs during package memory drop.");
+                    }
                 }
 
                 if (success && state.Payload.KeyedOnly && state.InjectedKeyed > 0)
@@ -918,19 +1329,54 @@ namespace AutoTranslator_Core
 
             ThingDef productDef = recipe.products[0].thingDef;
             if (productDef == null || string.IsNullOrWhiteSpace(productDef.label)) return;
-            if (!ShouldNormalizeAutoGeneratedRecipeLabel(recipe)) return;
+            string translatedProductLabel = ResolveTranslatedRecipeProductLabel(productDef);
+            if (string.IsNullOrWhiteSpace(translatedProductLabel)) return;
+            bool normalizeLabel = ShouldNormalizeAutoGeneratedRecipeLabel(recipe);
+            bool normalizeJobString = ShouldNormalizeAutoGeneratedRecipeJobString(recipe);
+            if (!normalizeLabel && !normalizeJobString) return;
 
             string verb = GetRecipeVerb(recipe);
             if (string.IsNullOrWhiteSpace(verb)) return;
 
-            recipe.label = $"{verb} {productDef.label}";
+            if (normalizeLabel)
+            {
+                recipe.label = $"{verb} {translatedProductLabel}";
+            }
             if (recipe.defName.StartsWith("Make_", StringComparison.OrdinalIgnoreCase) &&
                 IsMakeRecipeVerb(recipe) &&
                 !string.IsNullOrWhiteSpace(recipe.jobString) &&
-                ShouldNormalizeAutoGeneratedRecipeJobString(recipe))
+                normalizeJobString)
             {
-                recipe.jobString = "RecipeMakeJobString".Translate(productDef.label).Resolve();
+                recipe.jobString = "RecipeMakeJobString".Translate(translatedProductLabel).Resolve();
             }
+        }
+
+        private static string ResolveTranslatedRecipeProductLabel(ThingDef productDef)
+        {
+            if (productDef == null || string.IsNullOrWhiteSpace(productDef.label)) return "";
+            TargetLanguage targetLanguage = AutoTranslatorMod.Settings.TargetLang;
+            if (targetLanguage == TargetLanguage.English || LanguageDetector.LooksLikeTargetLanguage(productDef.label, targetLanguage))
+            {
+                return productDef.label;
+            }
+
+            string normalizedPath = productDef.defName + ".label";
+            string globalKey = "ThingDef/" + normalizedPath;
+            if (GlobalPrimaryDefDict.TryGetValue(globalKey, out string cachedLabel) && !string.IsNullOrWhiteSpace(cachedLabel))
+            {
+                return cachedLabel;
+            }
+
+            LoadedLanguage activeLanguage = LanguageDatabase.activeLanguage;
+            DefInjectionPackage package = activeLanguage?.defInjections?.FirstOrDefault(p => p.defType == typeof(ThingDef));
+            if (package?.injections != null &&
+                package.injections.TryGetValue(normalizedPath, out DefInjectionPackage.DefInjection injection) &&
+                !string.IsNullOrWhiteSpace(injection.injection))
+            {
+                return injection.injection;
+            }
+
+            return "";
         }
 
         private static bool IsKeyedMemoryDropStampCurrent(string keyedPath, string targetFolder)
@@ -1014,18 +1460,21 @@ namespace AutoTranslator_Core
         {
             if (recipe == null || string.IsNullOrWhiteSpace(recipe.defName) || string.IsNullOrWhiteSpace(recipe.label)) return false;
             if (!recipe.defName.StartsWith("Make_", StringComparison.OrdinalIgnoreCase)) return false;
-            if (LanguageDetector.LooksLikeTargetLanguage(recipe.label, AutoTranslatorMod.Settings.TargetLang)) return false;
+            bool hasEnglishResidual = HasLikelyEnglishResidual(recipe.label, recipe.label);
+            if (LanguageDetector.LooksLikeTargetLanguage(recipe.label, AutoTranslatorMod.Settings.TargetLang) && !hasEnglishResidual) return false;
 
             return recipe.label.StartsWith("make ", StringComparison.OrdinalIgnoreCase) ||
                    recipe.label.StartsWith("make_", StringComparison.OrdinalIgnoreCase) ||
-                   recipe.label.StartsWith("Make ", StringComparison.Ordinal);
+                   recipe.label.StartsWith("Make ", StringComparison.Ordinal) ||
+                   hasEnglishResidual;
         }
 
         private static bool ShouldNormalizeAutoGeneratedRecipeJobString(RecipeDef recipe)
         {
             if (recipe == null || string.IsNullOrWhiteSpace(recipe.jobString)) return false;
-            if (LanguageDetector.LooksLikeTargetLanguage(recipe.jobString, AutoTranslatorMod.Settings.TargetLang)) return false;
-            return recipe.jobString.StartsWith("Making ", StringComparison.OrdinalIgnoreCase);
+            bool hasEnglishResidual = HasLikelyEnglishResidual(recipe.jobString, recipe.jobString);
+            if (LanguageDetector.LooksLikeTargetLanguage(recipe.jobString, AutoTranslatorMod.Settings.TargetLang) && !hasEnglishResidual) return false;
+            return recipe.jobString.StartsWith("Making ", StringComparison.OrdinalIgnoreCase) || hasEnglishResidual;
         }
 
         private static bool IsMakeRecipeVerb(RecipeDef recipe)
@@ -1116,6 +1565,10 @@ namespace AutoTranslator_Core
             GlobalSecondaryDefDict.Clear();
             GlobalPrimaryKeyedDict.Clear();
             GlobalSecondaryKeyedDict.Clear();
+            GlobalPrimaryDefSourceDict.Clear();
+            GlobalSecondaryDefSourceDict.Clear();
+            GlobalPrimaryKeyedSourceDict.Clear();
+            GlobalSecondaryKeyedSourceDict.Clear();
             AutoTranslatorSettings.AddLog("🧹 " + "ATC_Log_Clean".Translate());
         }
 
@@ -1132,6 +1585,10 @@ namespace AutoTranslator_Core
                 GlobalTranslationDatabaseCachedSecondaryDefDict = null;
                 GlobalTranslationDatabaseCachedPrimaryKeyedDict = null;
                 GlobalTranslationDatabaseCachedSecondaryKeyedDict = null;
+                GlobalTranslationDatabaseCachedPrimaryDefSourceDict = null;
+                GlobalTranslationDatabaseCachedSecondaryDefSourceDict = null;
+                GlobalTranslationDatabaseCachedPrimaryKeyedSourceDict = null;
+                GlobalTranslationDatabaseCachedSecondaryKeyedSourceDict = null;
             }
         }
 
@@ -1145,6 +1602,8 @@ namespace AutoTranslator_Core
 
             GlobalPrimaryDefDict.Clear(); GlobalSecondaryDefDict.Clear();
             GlobalPrimaryKeyedDict.Clear(); GlobalSecondaryKeyedDict.Clear();
+            GlobalPrimaryDefSourceDict.Clear(); GlobalSecondaryDefSourceDict.Clear();
+            GlobalPrimaryKeyedSourceDict.Clear(); GlobalSecondaryKeyedSourceDict.Clear();
 
             string cacheKey = BuildGlobalTranslationDatabaseCacheKey(mods, settings.TargetLang);
             int cacheGeneration;
@@ -1162,6 +1621,10 @@ namespace AutoTranslator_Core
                     GlobalSecondaryDefDict = new Dictionary<string, string>(GlobalTranslationDatabaseCachedSecondaryDefDict, StringComparer.OrdinalIgnoreCase);
                     GlobalPrimaryKeyedDict = new Dictionary<string, string>(GlobalTranslationDatabaseCachedPrimaryKeyedDict, StringComparer.OrdinalIgnoreCase);
                     GlobalSecondaryKeyedDict = new Dictionary<string, string>(GlobalTranslationDatabaseCachedSecondaryKeyedDict, StringComparer.OrdinalIgnoreCase);
+                    GlobalPrimaryDefSourceDict = CloneProvenanceDict(GlobalTranslationDatabaseCachedPrimaryDefSourceDict);
+                    GlobalSecondaryDefSourceDict = CloneProvenanceDict(GlobalTranslationDatabaseCachedSecondaryDefSourceDict);
+                    GlobalPrimaryKeyedSourceDict = CloneProvenanceDict(GlobalTranslationDatabaseCachedPrimaryKeyedSourceDict);
+                    GlobalSecondaryKeyedSourceDict = CloneProvenanceDict(GlobalTranslationDatabaseCachedSecondaryKeyedSourceDict);
                     settings.SubProgress = 1f;
                     settings.SubTaskName = "ATC_SubTask_DictDone".Translate();
                     AutoTranslatorSettings.AddLog("??" + AutoTranslatorAPI.TranslateText("ATC_Log_InitDone", GlobalPrimaryDefDict.Count));
@@ -1172,13 +1635,22 @@ namespace AutoTranslator_Core
             string targetFolder = GetFolderNameByLanguage(settings.TargetLang);
             string otherFolder = GetSecondaryFolderNameByLanguage(settings.TargetLang);
 
-            Action<string, Dictionary<string, string>, TargetLanguage?> loadKeyed = (languageDir, dict, lang) => {
+            Action<string, Dictionary<string, string>, Dictionary<string, TranslationProvenanceEntry>, TargetLanguage?, TranslationProvenanceEntry> loadKeyed = (languageDir, dict, sourceDict, lang, sourceInfo) => {
                 if (string.IsNullOrEmpty(languageDir) || dict == null || !Directory.Exists(languageDir)) return;
-                var keyed = LoadXmlFilesToDict(Path.Combine(languageDir, "Keyed"), lang);
-                foreach (var kv in keyed) dict[kv.Key] = kv.Value;
+                string keyedDir = Path.Combine(languageDir, "Keyed");
+                if (!Directory.Exists(keyedDir)) return;
+                foreach (var file in GetXmlFilesCached(keyedDir, SearchOption.AllDirectories))
+                {
+                    var d = LoadXmlFileToDict(file, lang);
+                    foreach (var kv in d)
+                    {
+                        dict[kv.Key] = kv.Value;
+                        if (sourceDict != null) sourceDict[kv.Key] = CloneProvenance(sourceInfo, kv.Value);
+                    }
+                }
             };
 
-            Action<string, Dictionary<string, string>, TargetLanguage?> loadDef = (path, dict, lang) => {
+            Action<string, Dictionary<string, string>, Dictionary<string, TranslationProvenanceEntry>, TargetLanguage?, TranslationProvenanceEntry> loadDef = (path, dict, sourceDict, lang, sourceInfo) => {
                 if (!Directory.Exists(path)) return;
                 foreach (var typeDir in Directory.GetDirectories(path))
                 {
@@ -1186,21 +1658,32 @@ namespace AutoTranslator_Core
                     foreach (var file in GetXmlFilesCached(typeDir, SearchOption.AllDirectories))
                     {
                         var d = LoadXmlFileToDict(file, lang);
-                        foreach (var kv in d) dict[$"{defType}/{kv.Key}"] = kv.Value;
+                        foreach (var kv in d)
+                        {
+                            string globalKey = $"{defType}/{kv.Key}";
+                            dict[globalKey] = kv.Value;
+                            if (sourceDict != null) sourceDict[globalKey] = CloneProvenance(sourceInfo, kv.Value);
+                        }
                     }
                 }
                 foreach (var file in GetXmlFilesCached(path, SearchOption.TopDirectoryOnly))
                 {
                     var d = LoadXmlFileToDict(file, lang);
-                    foreach (var kv in d) dict[$"General/{kv.Key}"] = kv.Value;
+                    foreach (var kv in d)
+                    {
+                        string globalKey = $"General/{kv.Key}";
+                        dict[globalKey] = kv.Value;
+                        if (sourceDict != null) sourceDict[globalKey] = CloneProvenance(sourceInfo, kv.Value);
+                    }
                 }
             };
 
             string localPackLangRoot = Path.Combine(GetLocalPackPath(), "Languages");
+            TranslationProvenanceEntry localPackSource = CreateProvenance(ProvenanceKindLocalPackExisting, "aitranslation.pack", "", localPackLangRoot, targetFolder, "");
             foreach (string targetLangDir in ResolveLanguageFolders(localPackLangRoot, targetFolder))
             {
-                loadKeyed(targetLangDir, GlobalPrimaryKeyedDict, settings.TargetLang);
-                loadDef(Path.Combine(targetLangDir, "DefInjected"), GlobalPrimaryDefDict, settings.TargetLang);
+                loadKeyed(targetLangDir, GlobalPrimaryKeyedDict, GlobalPrimaryKeyedSourceDict, settings.TargetLang, localPackSource);
+                loadDef(Path.Combine(targetLangDir, "DefInjected"), GlobalPrimaryDefDict, GlobalPrimaryDefSourceDict, settings.TargetLang, localPackSource);
             }
 
             if (!string.IsNullOrEmpty(otherFolder))
@@ -1208,8 +1691,8 @@ namespace AutoTranslator_Core
                 TargetLanguage secLang = settings.TargetLang == TargetLanguage.Traditional ? TargetLanguage.Simplified : TargetLanguage.Traditional;
                 foreach (string secondaryLangDir in ResolveLanguageFolders(localPackLangRoot, otherFolder))
                 {
-                    loadKeyed(secondaryLangDir, GlobalSecondaryKeyedDict, secLang);
-                    loadDef(Path.Combine(secondaryLangDir, "DefInjected"), GlobalSecondaryDefDict, secLang);
+                    loadKeyed(secondaryLangDir, GlobalSecondaryKeyedDict, GlobalSecondaryKeyedSourceDict, secLang, localPackSource);
+                    loadDef(Path.Combine(secondaryLangDir, "DefInjected"), GlobalSecondaryDefDict, GlobalSecondaryDefSourceDict, secLang, localPackSource);
                 }
             }
 
@@ -1223,7 +1706,16 @@ namespace AutoTranslator_Core
                 settings.SubProgress = modCount > 0 ? (float)i / modCount : 1f;
                 settings.SubTaskName = AutoTranslatorAPI.TranslateText("ATC_SubTask_BuildingDict", mod.Name);
 
-                var langRoots = IsTranslationPatchMod(mod)
+                bool isTranslationPatch = IsTranslationPatchMod(mod);
+                TranslationProvenanceEntry modSource = CreateProvenance(
+                    isTranslationPatch ? ProvenanceKindExternalPatch : ProvenanceKindModNativeTarget,
+                    mod.PackageId,
+                    mod.Name,
+                    mod.RootDir != null ? mod.RootDir.FullName : "",
+                    targetFolder,
+                    "");
+
+                var langRoots = isTranslationPatch
                     ? GetAllTranslationPatchLangPaths(mod)
                     : GetAllEffectiveLangPaths(mod);
 
@@ -1231,7 +1723,7 @@ namespace AutoTranslator_Core
                 {
                     foreach (string targetLangDir in ResolveLanguageFolders(langRoot, targetFolder))
                     {
-                        loadKeyed(targetLangDir, GlobalPrimaryKeyedDict, settings.TargetLang);
+                        loadKeyed(targetLangDir, GlobalPrimaryKeyedDict, GlobalPrimaryKeyedSourceDict, settings.TargetLang, modSource);
                     }
 
                     if (!string.IsNullOrEmpty(otherFolder))
@@ -1239,14 +1731,14 @@ namespace AutoTranslator_Core
                         TargetLanguage secLang = settings.TargetLang == TargetLanguage.Traditional ? TargetLanguage.Simplified : TargetLanguage.Traditional;
                         foreach (string secondaryLangDir in ResolveLanguageFolders(langRoot, otherFolder))
                         {
-                            loadKeyed(secondaryLangDir, GlobalSecondaryKeyedDict, secLang);
+                            loadKeyed(secondaryLangDir, GlobalSecondaryKeyedDict, GlobalSecondaryKeyedSourceDict, secLang, modSource);
                         }
                     }
 
 
                     foreach (string targetLangDir in ResolveLanguageFolders(langRoot, targetFolder))
                     {
-                        loadDef(Path.Combine(targetLangDir, "DefInjected"), GlobalPrimaryDefDict, settings.TargetLang);
+                        loadDef(Path.Combine(targetLangDir, "DefInjected"), GlobalPrimaryDefDict, GlobalPrimaryDefSourceDict, settings.TargetLang, modSource);
                     }
 
                     if (!string.IsNullOrEmpty(otherFolder))
@@ -1254,7 +1746,7 @@ namespace AutoTranslator_Core
                         TargetLanguage secLang = settings.TargetLang == TargetLanguage.Traditional ? TargetLanguage.Simplified : TargetLanguage.Traditional;
                         foreach (string secondaryLangDir in ResolveLanguageFolders(langRoot, otherFolder))
                         {
-                            loadDef(Path.Combine(secondaryLangDir, "DefInjected"), GlobalSecondaryDefDict, secLang);
+                            loadDef(Path.Combine(secondaryLangDir, "DefInjected"), GlobalSecondaryDefDict, GlobalSecondaryDefSourceDict, secLang, modSource);
                         }
                     }
                 }
@@ -1272,8 +1764,26 @@ namespace AutoTranslator_Core
                     GlobalTranslationDatabaseCachedSecondaryDefDict = new Dictionary<string, string>(GlobalSecondaryDefDict, StringComparer.OrdinalIgnoreCase);
                     GlobalTranslationDatabaseCachedPrimaryKeyedDict = new Dictionary<string, string>(GlobalPrimaryKeyedDict, StringComparer.OrdinalIgnoreCase);
                     GlobalTranslationDatabaseCachedSecondaryKeyedDict = new Dictionary<string, string>(GlobalSecondaryKeyedDict, StringComparer.OrdinalIgnoreCase);
+                    GlobalTranslationDatabaseCachedPrimaryDefSourceDict = CloneProvenanceDict(GlobalPrimaryDefSourceDict);
+                    GlobalTranslationDatabaseCachedSecondaryDefSourceDict = CloneProvenanceDict(GlobalSecondaryDefSourceDict);
+                    GlobalTranslationDatabaseCachedPrimaryKeyedSourceDict = CloneProvenanceDict(GlobalPrimaryKeyedSourceDict);
+                    GlobalTranslationDatabaseCachedSecondaryKeyedSourceDict = CloneProvenanceDict(GlobalSecondaryKeyedSourceDict);
                 }
             }
+        }
+
+        private static Dictionary<string, TranslationProvenanceEntry> CloneProvenanceDict(Dictionary<string, TranslationProvenanceEntry> source)
+        {
+            Dictionary<string, TranslationProvenanceEntry> clone =
+                new Dictionary<string, TranslationProvenanceEntry>(StringComparer.OrdinalIgnoreCase);
+            if (source == null) return clone;
+
+            foreach (KeyValuePair<string, TranslationProvenanceEntry> pair in source)
+            {
+                clone[pair.Key] = CloneProvenance(pair.Value);
+            }
+
+            return clone;
         }
 
         private static string BuildGlobalTranslationDatabaseCacheKey(List<ModMetaData> mods, TargetLanguage targetLang)

@@ -41,9 +41,27 @@ namespace AutoTranslator_Core
             string sDir = _sourceDir; string finalLog = _updateLogText;
 
             System.Threading.Tasks.Task.Run(async () => {
+                string preparedSourceDir = sDir;
                 try
                 {
                     if (!Directory.Exists(sDir)) return;
+                    AutoTranslatorScanner.TranslationUploadProvenanceSummary provenanceSummary;
+                    if (!AutoTranslatorScanner.TryPrepareUploadSourceFolder(sDir, pkgId, mLang, uType, out preparedSourceDir, out provenanceSummary))
+                    {
+                        ATC_Dispatcher.RunOnMainThread(() => {
+                            if (AutoTranslatorScanner.IsAiUploadBlockedByProvenance(provenanceSummary))
+                            {
+                                AutoTranslatorSettings.AddLog("⚠️ " + AutoTranslatorScanner.FormatAiUploadNoCleanLog(mName, provenanceSummary));
+                                PromptPureAiRebuildForUpload();
+                            }
+                            else
+                            {
+                                Messages.Message("ATC_Msg_UploadFailedNoFiles".Translate(), MessageTypeDefOf.RejectInput, false);
+                            }
+                        });
+                        return;
+                    }
+
                     string stagingDir = Path.Combine(Path.GetTempPath(), "ATC_Upload_Pre_" + pkgId);
                     if (Directory.Exists(stagingDir)) Directory.Delete(stagingDir, true);
                     Directory.CreateDirectory(stagingDir);
@@ -51,16 +69,17 @@ namespace AutoTranslator_Core
                     int fileCount = 0;
                     string id1 = pkgId.ToLower();
                     string id2 = pkgId.Replace(".", "_").ToLower();
-                    bool isWorkspace = sDir.Contains("Upload_Workspace");
+                    bool isWorkspace = preparedSourceDir.Contains("Upload_Workspace") ||
+                                       !string.Equals(preparedSourceDir, sDir, StringComparison.OrdinalIgnoreCase);
 
-                    foreach (string file in AutoTranslatorScanner.GetXmlFilesForTranslationCache(sDir, SearchOption.AllDirectories))
+                    foreach (string file in AutoTranslatorScanner.GetXmlFilesForTranslationCache(preparedSourceDir, SearchOption.AllDirectories))
                     {
                         string fileName = Path.GetFileName(file).ToLower();
                         bool isValid = isWorkspace || fileName.StartsWith(id1 + "_") || fileName.StartsWith(id1 + ".") || fileName.StartsWith(id2 + "_") || fileName.StartsWith(id2 + ".");
 
                         if (isValid)
                         {
-                            string relPath = file.Substring(sDir.Length).TrimStart('\\', '/');
+                            string relPath = file.Substring(preparedSourceDir.Length).TrimStart('\\', '/');
                             string destPath = Path.Combine(stagingDir, relPath);
                             Directory.CreateDirectory(Path.GetDirectoryName(destPath));
                             File.Copy(file, destPath, true);
@@ -87,7 +106,11 @@ namespace AutoTranslator_Core
                     File.Delete(tempZipFile);
 
                     string targetModVersion = "Unknown"; DateTime translationDate = DateTime.UtcNow; bool isSmartMerged = false; int mergedAiCount = 0;
-                    string metaPath = Path.Combine(AutoTranslatorScanner.GetLocalPackPath(), "Languages", mLang, $"{id2}_ATC_Meta.json");
+                    string metaPath = Path.Combine(preparedSourceDir, $"{id2}_ATC_Meta.json");
+                    if (!File.Exists(metaPath))
+                    {
+                        metaPath = Path.Combine(AutoTranslatorScanner.GetLocalPackPath(), "Languages", mLang, $"{id2}_ATC_Meta.json");
+                    }
                     if (File.Exists(metaPath))
                     {
                         try
@@ -111,6 +134,9 @@ namespace AutoTranslator_Core
                         UploaderID = uploaderId,
                         Author = uNick,
                         TranslationType = uType,
+                        TranslationSourceKind = AutoTranslatorCloudClient.GetCloudTranslationSourceKind(uType),
+                        SourceKind = AutoTranslatorCloudClient.GetCloudTranslationSourceKind(uType),
+                        TranslationSourceSchemaVersion = 1,
                         FileBase64 = base64File,
                         AdminToken = token,
                         TargetModVersion = targetModVersion,
@@ -178,6 +204,10 @@ namespace AutoTranslator_Core
                 catch (Exception ex)
                 {
                     Verse.Log.Error($"[ATC Cloud Preview] Thread Fail: {ex.Message}");
+                }
+                finally
+                {
+                    AutoTranslatorScanner.DeletePreparedUploadSourceFolder(sDir, preparedSourceDir);
                 }
             });
         }

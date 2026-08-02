@@ -15,14 +15,42 @@ namespace AutoTranslator_Core
     // EN: This class manages the main workflow and state for AutoTranslatorCloudClient.
     public static partial class AutoTranslatorCloudClient
     {
+        internal sealed class UploadTranslationResult
+        {
+            public bool Success;
+            public AutoTranslatorScanner.TranslationUploadProvenanceSummary ProvenanceSummary;
+        }
 
         // 這個方法負責上傳 翻譯Async 到雲端。
         // EN: This method uploads translation async.
         public static async Task<bool> UploadTranslationAsync(string packageId, string language, string modName, string author, string translationType, string sourceFolder, string adminToken, string updateLog = "")
         {
+            UploadTranslationResult result = await UploadTranslationWithDetailsAsync(packageId, language, modName, author, translationType, sourceFolder, adminToken, updateLog);
+            return result != null && result.Success;
+        }
+
+        internal static async Task<UploadTranslationResult> UploadTranslationWithDetailsAsync(
+            string packageId,
+            string language,
+            string modName,
+            string author,
+            string translationType,
+            string sourceFolder,
+            string adminToken,
+            string updateLog = "")
+        {
+            string preparedSourceFolder = sourceFolder;
+            UploadTranslationResult result = new UploadTranslationResult();
             try
             {
-                if (!System.IO.Directory.Exists(sourceFolder)) return false;
+                if (!System.IO.Directory.Exists(sourceFolder)) return result;
+                AutoTranslatorScanner.TranslationUploadProvenanceSummary provenanceSummary;
+                if (!AutoTranslatorScanner.TryPrepareUploadSourceFolder(sourceFolder, packageId, language, translationType, out preparedSourceFolder, out provenanceSummary))
+                {
+                    result.ProvenanceSummary = provenanceSummary;
+                    return result;
+                }
+                result.ProvenanceSummary = provenanceSummary;
 
                 string stagingDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "ATC_Upload_" + packageId);
                 if (System.IO.Directory.Exists(stagingDir)) System.IO.Directory.Delete(stagingDir, true);
@@ -31,10 +59,12 @@ namespace AutoTranslator_Core
                 string id1 = packageId.ToLower();
                 string id2 = packageId.Replace(".", "_").ToLower();
                 int fileCount = 0;
-                bool isWorkspace = sourceFolder.Contains("Upload_Workspace");
+                bool isWorkspace = preparedSourceFolder.Contains("Upload_Workspace") ||
+                                   !string.Equals(preparedSourceFolder, sourceFolder, StringComparison.OrdinalIgnoreCase);
 
-                foreach (string file in AutoTranslatorScanner.GetXmlFilesForTranslationCache(sourceFolder, System.IO.SearchOption.AllDirectories))
+                foreach (string file in AutoTranslatorScanner.GetXmlFilesForTranslationCache(preparedSourceFolder, System.IO.SearchOption.AllDirectories))
                 {
+                    if (AutoTranslatorScanner.IsWorkbenchManualExportPath(file)) continue;
                     string fileName = System.IO.Path.GetFileName(file).ToLower();
                     bool shouldPack = isWorkspace;
 
@@ -49,7 +79,7 @@ namespace AutoTranslator_Core
 
                     if (shouldPack)
                     {
-                        string relPath = file.Substring(sourceFolder.Length).TrimStart('\\', '/');
+                        string relPath = file.Substring(preparedSourceFolder.Length).TrimStart('\\', '/');
                         string justFileName = System.IO.Path.GetFileName(file).ToLower();
                         if (!justFileName.StartsWith(id1 + "_") && !justFileName.StartsWith(id1 + ".") &&
                             !justFileName.StartsWith(id2 + "_") && !justFileName.StartsWith(id2 + "."))
@@ -69,7 +99,7 @@ namespace AutoTranslator_Core
                 if (fileCount == 0)
                 {
                     System.IO.Directory.Delete(stagingDir, true);
-                    return false;
+                    return result;
                 }
 
                 string tempZipFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{packageId}_{language}_upload.zip");
@@ -80,7 +110,7 @@ namespace AutoTranslator_Core
                 string base64File = Convert.ToBase64String(zipBytes);
                 System.IO.File.Delete(tempZipFile);
 
-                string metaPath = System.IO.Path.Combine(stagingDir, $"{id2}_ATC_Meta.json");
+                string metaPath = System.IO.Path.Combine(preparedSourceFolder, $"{id2}_ATC_Meta.json");
                 string targetModVersion = "Unknown";
                 DateTime translationDate = DateTime.UtcNow;
                 bool isSmartMerged = false;
@@ -128,6 +158,9 @@ namespace AutoTranslator_Core
                     UploaderID = UnityEngine.SystemInfo.deviceUniqueIdentifier,
                     Author = author,
                     TranslationType = translationType,
+                    TranslationSourceKind = GetCloudTranslationSourceKind(translationType),
+                    SourceKind = GetCloudTranslationSourceKind(translationType),
+                    TranslationSourceSchemaVersion = 1,
                     FileBase64 = base64File,
                     AdminToken = adminToken,
                     TargetModVersion = targetModVersion,
@@ -182,25 +215,41 @@ namespace AutoTranslator_Core
                         });
 
                         bool success = await WaitForCloudTask(tcs.Task, 130, "cloud upload");
-                        if (success) return true;
+                        if (success)
+                        {
+                            result.Success = true;
+                            return result;
+                        }
                     }
                     catch (Exception ex)
                     {
                         if (attempt == maxRetries)
                         {
-                            LogCloudTranslatedError("ATC_Cloud_UploadFailed", ex.Message); return false;
+                            LogCloudTranslatedError("ATC_Cloud_UploadFailed", ex.Message); return result;
                         }
                     }
                     int delay = (int)Math.Pow(2, attempt + 1) * 1000 + new System.Random().Next(100, 500);
                     await Task.Delay(delay);
                 }
 
-                return false;
+                return result;
             }
             catch (Exception ex)
             {
-                LogCloudTranslatedError("ATC_Cloud_UploadFailed", ex.Message); return false;
+                LogCloudTranslatedError("ATC_Cloud_UploadFailed", ex.Message); return result;
             }
+            finally
+            {
+                AutoTranslatorScanner.DeletePreparedUploadSourceFolder(sourceFolder, preparedSourceFolder);
+            }
+        }
+
+        internal static string GetCloudTranslationSourceKind(string translationType)
+        {
+            if (string.Equals(translationType, "AI_Auto", StringComparison.OrdinalIgnoreCase)) return AutoTranslatorScanner.ProvenanceKindAI;
+            if (string.Equals(translationType, "Manual", StringComparison.OrdinalIgnoreCase)) return AutoTranslatorScanner.ProvenanceKindManualEdit;
+            if (string.Equals(translationType, "Official_Group", StringComparison.OrdinalIgnoreCase)) return AutoTranslatorScanner.ProvenanceKindModNativeTarget;
+            return AutoTranslatorScanner.ProvenanceKindUnknownLegacy;
         }
 
     }

@@ -22,6 +22,7 @@ namespace AutoTranslator_Core
             // EN: This class manages the main workflow and state for WorkbenchItem.
             public class WorkbenchItem
             {
+                public string Category;
                 // 這個欄位保存 Key 的執行狀態或快取資料。
                 // EN: This field stores key runtime state or cached data.
                 public string Key;
@@ -32,9 +33,13 @@ namespace AutoTranslator_Core
                 // EN: This field stores translated text runtime state or cached data.
                 public string TranslatedText;
                 public string OriginalTranslatedText;
+                public bool OriginalTranslatedTextIsReadOnlyReference;
+                public string SavedTranslatedText;
+                public bool SavedTranslatedTextIsReadOnlyReference;
                 // 這個欄位保存 IsModified 的執行狀態或快取資料。
                 // EN: This field stores is modified runtime state or cached data.
                 public bool IsModified;
+                public bool IsTranslatingOriginal;
             }
 
             // 這個欄位保存 editing模組 的執行狀態或快取資料。
@@ -44,6 +49,7 @@ namespace AutoTranslator_Core
             // EN: This field stores is loading runtime state or cached data.
             private static bool _isLoading = false;
             private static bool _isSavingModifications = false;
+            private static bool _isManualXmlBusy = false;
             // 這個欄位保存 mod搜尋Text 的執行狀態或快取資料。
             // EN: This field stores mod search text runtime state or cached data.
             private static string _modSearchText = "";
@@ -51,6 +57,7 @@ namespace AutoTranslator_Core
             // 這個欄位保存 showOnlyTranslated 的執行狀態或快取資料。
             // EN: This field stores show only translated runtime state or cached data.
             private static bool _showOnlyTranslated = false;
+            private static bool _showOnlyUntranslated = false;
             // 這個欄位保存 modListScroll 的執行狀態或快取資料。
             // EN: This field stores mod list scroll runtime state or cached data.
             private static UnityEngine.Vector2 _modListScroll = UnityEngine.Vector2.zero;
@@ -73,6 +80,7 @@ namespace AutoTranslator_Core
             // 這個欄位保存 cached模組選取ShowTranslatedOnly 的執行狀態或快取資料。
             // EN: This field stores cached mod selection show translated only runtime state or cached data.
             private static bool _cachedModSelectionShowTranslatedOnly = false;
+            private static bool _cachedModSelectionShowUntranslatedOnly = false;
             // 這個欄位保存 cached模組選取翻譯Names 的執行狀態或快取資料。
             // EN: This field stores cached mod selection translate names runtime state or cached data.
             private static bool _cachedModSelectionTranslateNames = false;
@@ -89,6 +97,7 @@ namespace AutoTranslator_Core
             private static int _lastStablePackageHashGeneration = -1;
 
             private static Dictionary<string, List<WorkbenchItem>> _categorizedData = new Dictionary<string, List<WorkbenchItem>>();
+            private const string AllWorkbenchCategoriesView = "__ATC_ALL_CATEGORIES__";
             // 這個欄位保存 selectedCategory 的執行狀態或快取資料。
             // EN: This field stores selected category runtime state or cached data.
             private static string _selectedCategory = "";
@@ -103,6 +112,13 @@ namespace AutoTranslator_Core
             private static UnityEngine.Vector2 _itemScroll = UnityEngine.Vector2.zero;
             private const float WorkbenchCategoryRowHeight = 35f;
             private const float WorkbenchItemRowHeight = 100f;
+
+            internal enum WorkbenchBatchReplaceScope
+            {
+                VisibleResults,
+                CurrentCategory,
+                AllCategories
+            }
 
             // 這個欄位保存 translatedPackageIds 的執行狀態或快取資料。
             // EN: This field stores translated package ids runtime state or cached data.
@@ -131,6 +147,8 @@ namespace AutoTranslator_Core
             private static int _cachedVisibleSourceCount = -1;
             private static int _categorizedDataVersion = 0;
             private static int _cachedVisibleDataVersion = -1;
+            private static List<WorkbenchItem> _cachedAllCategoryItems = null;
+            private static int _cachedAllCategoryItemsDataVersion = -1;
             private static WorkbenchFocusRequest _pendingWorkbenchFocus = null;
             private static WorkbenchFocusRequest _activeWorkbenchFocus = null;
             private static string _retainedEditedCategory = "";
@@ -157,6 +175,7 @@ namespace AutoTranslator_Core
                 // 這個欄位保存 TranslatedText 的執行狀態或快取資料。
                 // EN: This field stores translated text runtime state or cached data.
                 public string TranslatedText;
+                public bool OriginalTranslatedTextIsReadOnlyReference;
                 public string SearchText;
             }
 
@@ -180,6 +199,7 @@ namespace AutoTranslator_Core
             private class GlobalSearchFileWorkItem
             {
                 public string FilePath;
+                public AutoTranslatorScanner.OfficialTarTranslationFile TarFile;
                 public Verse.ModMetaData Mod;
                 public string Category;
             }
@@ -216,7 +236,12 @@ namespace AutoTranslator_Core
             private class WorkbenchSaveItemSnapshot
             {
                 public string Key;
+                public string OriginalText;
                 public string TranslatedText;
+                public string OriginalTranslatedText;
+                public bool OriginalTranslatedTextIsReadOnlyReference;
+                public string SavedTranslatedText;
+                public bool SavedTranslatedTextIsReadOnlyReference;
                 public bool IsModified;
             }
 

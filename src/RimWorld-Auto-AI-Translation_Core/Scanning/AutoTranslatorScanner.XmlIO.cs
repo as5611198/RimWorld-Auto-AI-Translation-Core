@@ -20,6 +20,7 @@ namespace AutoTranslator_Core
     // EN: This class manages the main workflow and state for AutoTranslatorScanner.
     public static partial class AutoTranslatorScanner
     {
+        private static readonly object TranslationXmlCommitLock = new object();
 
 
         // 這個方法負責讀取 XmlFilesToDict 資料。
@@ -66,13 +67,12 @@ namespace AutoTranslator_Core
         // EN: This method saves XML.
         public static void SaveXml(string path, Dictionary<string, string> data)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(path));
             XmlDocument d = new XmlDocument();
             XmlDeclaration dec = d.CreateXmlDeclaration("1.0", "utf-8", null);
             d.AppendChild(dec);
             XmlElement r = d.CreateElement("LanguageData");
 
-            foreach (var p in data)
+            foreach (var p in data ?? new Dictionary<string, string>())
             {
 
                 if (Regex.IsMatch(p.Value ?? "", @"^[\s\u200B\u200C\u200D\uFEFF\u00A0\x00-\x1F]*$"))
@@ -102,8 +102,87 @@ namespace AutoTranslator_Core
             }
 
             d.AppendChild(r);
-            d.Save(path);
+            SaveLanguageXmlDocumentAtomic(path, d);
             NotifyTranslationFileChanged(path);
+        }
+
+        private static void SaveLanguageXmlDocumentAtomic(string path, XmlDocument document)
+        {
+            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Translation XML path is empty.", nameof(path));
+            if (document?.DocumentElement == null ||
+                !document.DocumentElement.Name.Equals("LanguageData", StringComparison.Ordinal))
+            {
+                throw new InvalidDataException("Translation XML must contain a LanguageData root element.");
+            }
+
+            string fullPath = Path.GetFullPath(path);
+            string directory = Path.GetDirectoryName(fullPath);
+            if (string.IsNullOrWhiteSpace(directory))
+                throw new InvalidDataException("Translation XML path has no parent directory.");
+
+            Directory.CreateDirectory(directory);
+            string tempPath = Path.Combine(
+                directory,
+                "." + Path.GetFileName(fullPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+
+            try
+            {
+                using (var stream = new FileStream(
+                           tempPath,
+                           FileMode.CreateNew,
+                           FileAccess.Write,
+                           FileShare.None,
+                           4096,
+                           FileOptions.WriteThrough))
+                {
+                    document.Save(stream);
+                    stream.Flush(true);
+                }
+
+                lock (TranslationXmlCommitLock)
+                {
+                    if (File.Exists(fullPath))
+                    {
+                        try
+                        {
+                            File.Replace(tempPath, fullPath, null, true);
+                        }
+                        catch (PlatformNotSupportedException)
+                        {
+                            ReplaceLanguageXmlWithRollback(tempPath, fullPath);
+                        }
+                        catch (NotSupportedException)
+                        {
+                            ReplaceLanguageXmlWithRollback(tempPath, fullPath);
+                        }
+                    }
+                    else
+                    {
+                        File.Move(tempPath, fullPath);
+                    }
+                }
+            }
+            finally
+            {
+                if (File.Exists(tempPath)) File.Delete(tempPath);
+            }
+        }
+
+        private static void ReplaceLanguageXmlWithRollback(string tempPath, string destinationPath)
+        {
+            string backupPath = destinationPath + ".atc-save-backup-" + Guid.NewGuid().ToString("N");
+            File.Move(destinationPath, backupPath);
+            try
+            {
+                File.Move(tempPath, destinationPath);
+                File.Delete(backupPath);
+            }
+            catch
+            {
+                if (File.Exists(destinationPath)) File.Delete(destinationPath);
+                if (File.Exists(backupPath)) File.Move(backupPath, destinationPath);
+                throw;
+            }
         }
         // 這個方法負責取得 Short路徑 資料。
         // EN: This method gets short path.

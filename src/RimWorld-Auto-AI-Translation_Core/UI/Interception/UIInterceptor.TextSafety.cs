@@ -143,7 +143,7 @@ namespace AutoTranslator_Core
             }
             else
             {
-                shouldIntercept = !ShouldSkipUITranslationText(context.TranslationText);
+                shouldIntercept = !ShouldSkipUITranslationSourceText(context.TranslationText);
             }
 
             RememberTextDecision(decisionKey, shouldIntercept);
@@ -255,7 +255,7 @@ namespace AutoTranslator_Core
         private static bool ShouldLoadCachedText(string text)
         {
             UITranslationTextContext context = BuildTextContext(text);
-            return !ShouldSkipUITranslationText(context.TranslationText);
+            return !ShouldSkipUITranslationSourceText(context.TranslationText);
         }
 
         // 這個方法負責取得 翻譯LookupText 資料。
@@ -300,14 +300,15 @@ namespace AutoTranslator_Core
         // EN: This method cleans and normalizes UI translation result.
         private static string SanitizeUITranslationResult(string original, string translated)
         {
-            if (string.IsNullOrWhiteSpace(translated)) return null;
+            if (!HasRenderableUICharacters(translated)) return null;
 
             string cleaned = GetTranslationLookupText(translated).Trim().Trim('\u200B');
             cleaned = TryExtractWrappedText(cleaned) ?? cleaned;
             cleaned = cleaned.Trim();
 
-            if (string.IsNullOrWhiteSpace(cleaned)) return null;
+            if (!HasRenderableUICharacters(cleaned)) return null;
             if (LanguageDetector.LooksLikePlaceholderTranslation(cleaned, AutoTranslatorMod.Settings.TargetLang)) return null;
+            if (!HasDynamicNumberTemplate(original) && HasDynamicNumberTemplate(cleaned)) return null;
             if (HasDynamicNumberTemplate(original) && HasDynamicNumberTemplateLoss(original, cleaned)) return null;
             if (LooksLikeStructuredData(cleaned))
             {
@@ -316,7 +317,14 @@ namespace AutoTranslator_Core
                 cleaned = unwrapped.Trim();
             }
 
-            return LanguageDetector.NormalizeChineseVariant(cleaned, AutoTranslatorMod.Settings.TargetLang);
+            string normalized = LanguageDetector.NormalizeChineseVariant(cleaned, AutoTranslatorMod.Settings.TargetLang);
+            return HasRenderableUICharacters(normalized) ? normalized : null;
+        }
+
+        private static bool HasRenderableUICharacters(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return false;
+            return text.Any(char.IsLetterOrDigit);
         }
 
         private static bool HasDynamicNumberTemplate(string text)
@@ -330,6 +338,65 @@ namespace AutoTranslator_Core
             if (originalCount == 0) return false;
             int translatedCount = DynamicNumberPlaceholderRegex.Matches(translated ?? "").Count;
             return translatedCount < originalCount;
+        }
+
+        private static bool ShouldSkipUITranslationSourceText(string text)
+        {
+            if (ShouldSkipUITranslationText(text)) return true;
+
+            string sample = GetLanguageDetectionSample(text);
+            if (string.IsNullOrWhiteSpace(sample)) return true;
+            if (!LetterRegex.IsMatch(sample)) return true;
+            if (LooksLikeTargetLanguageSourceSample(sample)) return true;
+
+            return false;
+        }
+
+        private static string GetLanguageDetectionSample(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+
+            string sample = DynamicNumberPlaceholderRegex.Replace(text, " ");
+            sample = LanguageDetectionNumericMarkerRegex.Replace(sample, " ");
+            sample = DynamicNumberRegex.Replace(sample, " ");
+            sample = LanguageDetectionNumericMarkerRegex.Replace(sample, " ");
+            sample = DynamicNumberRegex.Replace(sample, " ");
+            sample = System.Text.RegularExpressions.Regex.Replace(sample, @"\s+", " ");
+            return sample.Trim();
+        }
+
+        private static bool LooksLikeTargetLanguageSourceSample(string sample)
+        {
+            if (string.IsNullOrWhiteSpace(sample)) return false;
+            if (LanguageDetector.LooksLikeTargetLanguage(sample, AutoTranslatorMod.Settings.TargetLang)) return true;
+
+            bool hasEnglish = EnglishRegex.IsMatch(sample);
+            bool hasCyrillic = CyrillicRegex.IsMatch(sample);
+            bool hasKana = KanaRegex.IsMatch(sample);
+            bool hasHangul = HangulRegex.IsMatch(sample);
+            bool hasCJK = CJKRegex.IsMatch(sample);
+
+            switch (AutoTranslatorMod.Settings.TargetLang)
+            {
+                case TargetLanguage.Traditional:
+                    return hasCJK
+                        && !hasEnglish
+                        && !hasCyrillic
+                        && !hasKana
+                        && !hasHangul
+                        && !LanguageDetector.LooksLikeSimplified(sample);
+
+                case TargetLanguage.Simplified:
+                    return hasCJK
+                        && !hasEnglish
+                        && !hasCyrillic
+                        && !hasKana
+                        && !hasHangul
+                        && !LanguageDetector.LooksLikeTraditional(sample);
+
+                default:
+                    return false;
+            }
         }
 
         // 這個方法負責嘗試執行 清理UIReplacementText 並回報是否成功。

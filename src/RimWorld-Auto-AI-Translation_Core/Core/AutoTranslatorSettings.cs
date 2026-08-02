@@ -112,6 +112,7 @@ namespace AutoTranslator_Core
         // 這個欄位保存 翻譯工作台模組Names 的執行狀態或快取資料。
         // EN: This field stores translate workbench mod names runtime state or cached data.
         public bool TranslateWorkbenchModNames = false;
+        public bool ShowWorldMainButton = true;
 
         // 這個欄位保存 TotalCharCount 的執行狀態或快取資料。
         // EN: This field stores total char count runtime state or cached data.
@@ -180,9 +181,12 @@ namespace AutoTranslator_Core
 
         // 這個欄位保存 自動ClearOldOnUpdate 的執行狀態或快取資料。
         // EN: This field stores auto clear old on update runtime state or cached data.
-        public bool AutoClearOldOnUpdate = true;
+        public bool AutoClearOldOnUpdate = false;
         public Dictionary<string, long> ModLastVerifiedTimes = new Dictionary<string, long>();
         public Dictionary<string, string> ModLastVerifiedFingerprints = new Dictionary<string, string>();
+        public List<string> TranslationBlacklist = new List<string>();
+        public List<string> CloudDownloadBlacklist = new List<string>();
+        private static readonly object PackageBlacklistLock = new object();
 
         // 這個欄位保存 Filtered模組Count 的執行狀態或快取資料。
         // EN: This field stores filtered mods count runtime state or cached data.
@@ -233,6 +237,68 @@ namespace AutoTranslator_Core
         {
             if (!DateTime.TryParse(EulaAcceptedTimestamp, out DateTime accepted)) return 0;
             return 30 - (int)(DateTime.Now - accepted).TotalDays;
+        }
+
+        public bool IsTranslationBlacklisted(string packageId)
+        {
+            return ContainsPackageId(TranslationBlacklist, packageId);
+        }
+
+        public bool IsCloudDownloadBlacklisted(string packageId)
+        {
+            return ContainsPackageId(CloudDownloadBlacklist, packageId);
+        }
+
+        public void SetTranslationBlacklisted(string packageId, bool blocked)
+        {
+            SetPackageIdBlocked(TranslationBlacklist, packageId, blocked);
+        }
+
+        public void SetCloudDownloadBlacklisted(string packageId, bool blocked)
+        {
+            SetPackageIdBlocked(CloudDownloadBlacklist, packageId, blocked);
+        }
+
+        public void ClearPackageBlacklists()
+        {
+            lock (PackageBlacklistLock)
+            {
+                TranslationBlacklist.Clear();
+                CloudDownloadBlacklist.Clear();
+            }
+        }
+
+        private static bool ContainsPackageId(List<string> packageIds, string packageId)
+        {
+            if (packageIds == null || string.IsNullOrWhiteSpace(packageId)) return false;
+            lock (PackageBlacklistLock)
+            {
+                return packageIds.Any(id => string.Equals(id, packageId, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+
+        private static void SetPackageIdBlocked(List<string> packageIds, string packageId, bool blocked)
+        {
+            if (packageIds == null || string.IsNullOrWhiteSpace(packageId)) return;
+            string normalized = packageId.Trim().ToLowerInvariant();
+            lock (PackageBlacklistLock)
+            {
+                packageIds.RemoveAll(id => string.Equals(id, normalized, StringComparison.OrdinalIgnoreCase));
+                if (blocked) packageIds.Add(normalized);
+            }
+        }
+
+        private static void NormalizePackageIdList(ref List<string> packageIds)
+        {
+            lock (PackageBlacklistLock)
+            {
+                packageIds = (packageIds ?? new List<string>())
+                    .Where(id => !string.IsNullOrWhiteSpace(id))
+                    .Select(id => id.Trim().ToLowerInvariant())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(id => id, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
         }
 
         // 這個方法負責處理 AddLog 相關流程。
@@ -330,16 +396,21 @@ namespace AutoTranslator_Core
             Scribe_Values.Look(ref EnableUINewTranslation, "EnableUINewTranslation", true);
             Scribe_Values.Look(ref EnableUIErrorLogInterception, "EnableUIErrorLogInterception", false);
             Scribe_Values.Look(ref TranslateWorkbenchModNames, "TranslateWorkbenchModNames", false);
+            Scribe_Values.Look(ref ShowWorldMainButton, "ShowWorldMainButton", true);
             Scribe_Values.Look(ref MaxThreads, "MaxThreads", 3);
             Scribe_Values.Look(ref ShowOriginalUI, "ShowOriginalUI", false);
             Scribe_Collections.Look(ref ApiConfigs, "ApiConfigs", LookMode.Deep);
             Scribe_Values.Look(ref TotalCharCount, "TotalCharCount", 0L);
 
-            Scribe_Values.Look(ref AutoClearOldOnUpdate, "AutoClearOldOnUpdate", true);
+            Scribe_Values.Look(ref AutoClearOldOnUpdate, "AutoClearOldOnUpdate", false);
             Scribe_Collections.Look(ref ModLastVerifiedTimes, "ModLastVerifiedTimes", LookMode.Value, LookMode.Value);
             if (ModLastVerifiedTimes == null) ModLastVerifiedTimes = new Dictionary<string, long>();
             Scribe_Collections.Look(ref ModLastVerifiedFingerprints, "ModLastVerifiedFingerprints", LookMode.Value, LookMode.Value);
             if (ModLastVerifiedFingerprints == null) ModLastVerifiedFingerprints = new Dictionary<string, string>();
+            Scribe_Collections.Look(ref TranslationBlacklist, "TranslationBlacklist", LookMode.Value);
+            Scribe_Collections.Look(ref CloudDownloadBlacklist, "CloudDownloadBlacklist", LookMode.Value);
+            NormalizePackageIdList(ref TranslationBlacklist);
+            NormalizePackageIdList(ref CloudDownloadBlacklist);
 
             Scribe_Values.Look(ref TimeoutSeconds, "TimeoutSeconds", 60);
 

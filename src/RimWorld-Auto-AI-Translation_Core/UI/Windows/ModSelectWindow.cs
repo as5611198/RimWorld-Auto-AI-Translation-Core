@@ -68,7 +68,10 @@ namespace AutoTranslator_Core
             {
                 foreach (var mod in preSelectedMods)
                 {
-                    selectedMods.Add(mod);
+                    if (!AutoTranslatorScanner.IsOfficialBaseGameOrDlcPackage(mod.PackageId))
+                    {
+                        selectedMods.Add(mod);
+                    }
                 }
             }
         }
@@ -124,7 +127,8 @@ namespace AutoTranslator_Core
             }
 
             IEnumerable<ModMetaData> mods = validMods
-                .Where(m => !AutoTranslatorScanner.IsTranslationPatchMod(m));
+                .Where(m => !AutoTranslatorScanner.IsTranslationPatchMod(m) &&
+                            !AutoTranslatorMod.Settings.IsTranslationBlacklisted(m.PackageId));
 
             if (!string.IsNullOrEmpty(searchText))
             {
@@ -147,7 +151,10 @@ namespace AutoTranslator_Core
         private void DrawSelectionButtons(Rect inRect, List<ModMetaData> displayMods)
         {
             Rect btnRow = new Rect(0, 85f, inRect.width, 30f);
-            bool isAllSelected = displayMods.Count > 0 && displayMods.All(m => selectedMods.Contains(m));
+            List<ModMetaData> defaultSelectableMods = displayMods
+                .Where(m => !AutoTranslatorScanner.IsOfficialBaseGameOrDlcPackage(m.PackageId))
+                .ToList();
+            bool isAllSelected = defaultSelectableMods.Count > 0 && defaultSelectableMods.All(m => selectedMods.Contains(m));
             string btnLabel = isAllSelected ? "ATC_DeselectAll".Translate().ToString() : "ATC_SelectAll".Translate().ToString();
 
             if (Widgets.ButtonText(new Rect(btnRow.x, btnRow.y, 120f, btnRow.height), btnLabel))
@@ -158,7 +165,7 @@ namespace AutoTranslator_Core
                 }
                 else
                 {
-                    foreach (var mod in displayMods) selectedMods.Add(mod);
+                    foreach (var mod in defaultSelectableMods) selectedMods.Add(mod);
                 }
             }
 
@@ -169,7 +176,10 @@ namespace AutoTranslator_Core
                 var rand = new System.Random();
                 foreach (var mod in displayMods)
                 {
-                    if (rand.NextDouble() > 0.5) selectedMods.Add(mod);
+                    if (!AutoTranslatorScanner.IsOfficialBaseGameOrDlcPackage(mod.PackageId) && rand.NextDouble() > 0.5)
+                    {
+                        selectedMods.Add(mod);
+                    }
                 }
             }
             GUI.color = Color.white;
@@ -256,7 +266,7 @@ namespace AutoTranslator_Core
                 {
                     AutoTranslatorSettings.ClearLog();
                     AutoTranslatorSettings.ResetPipelineCancellation();
-                    AutoTranslatorScanner.StartMultiScan(selectedMods.ToList());
+                    AutoTranslatorScanner.StartMultiScan(selectedMods.ToList(), includeOfficialGamePackages: true);
                     Close();
                 }
             }

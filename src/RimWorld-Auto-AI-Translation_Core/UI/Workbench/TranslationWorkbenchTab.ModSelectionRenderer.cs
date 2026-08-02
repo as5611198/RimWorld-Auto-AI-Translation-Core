@@ -35,9 +35,27 @@ namespace AutoTranslator_Core
                 GUI.color = Color.white;
             }
 
-            Rect filterRect = new Rect(leftOutRect.x + 5f, leftOutRect.y + 40f, leftOutRect.width - 10f, 24f);
-            Widgets.CheckboxLabeled(filterRect, "ATC_Workbench_ShowTranslatedOnly".Translate(), ref _showOnlyTranslated);
-            Widgets.DrawLineHorizontal(leftOutRect.x, leftOutRect.y + 70f, leftOutRect.width);
+            Rect translatedFilterRect = new Rect(leftOutRect.x + 5f, leftOutRect.y + 40f, leftOutRect.width - 10f, 24f);
+            bool oldShowTranslated = _showOnlyTranslated;
+            Widgets.CheckboxLabeled(translatedFilterRect, "ATC_Workbench_ShowTranslatedOnly".Translate(), ref _showOnlyTranslated);
+            if (_showOnlyTranslated != oldShowTranslated && _showOnlyTranslated)
+            {
+                _showOnlyUntranslated = false;
+                _cachedModSelectionList = null;
+                _modListScroll = Vector2.zero;
+            }
+
+            Rect untranslatedFilterRect = new Rect(leftOutRect.x + 5f, leftOutRect.y + 64f, leftOutRect.width - 10f, 24f);
+            bool oldShowUntranslated = _showOnlyUntranslated;
+            Widgets.CheckboxLabeled(untranslatedFilterRect, "ATC_Workbench_ShowUntranslatedOnly".Translate(), ref _showOnlyUntranslated);
+            if (_showOnlyUntranslated != oldShowUntranslated && _showOnlyUntranslated)
+            {
+                _showOnlyTranslated = false;
+                _cachedModSelectionList = null;
+                _modListScroll = Vector2.zero;
+            }
+
+            Widgets.DrawLineHorizontal(leftOutRect.x, leftOutRect.y + 94f, leftOutRect.width);
 
             DrawModList(leftOutRect);
             DrawGlobalSearchPanel(rightOutRect);
@@ -50,11 +68,11 @@ namespace AutoTranslator_Core
             HashSet<string> translatedPackageIds = GetTranslatedPackageIdsSafe();
             List<ModMetaData> displayMods = GetModSelectionDisplayMods(translatedPackageIds);
             bool showModListProgress = AutoTranslatorMod.IsValidModsCacheRefreshing && displayMods.Count == 0;
-            float listTop = showModListProgress ? 142f : 75f;
+            float listTop = showModListProgress ? 166f : 99f;
 
             if (showModListProgress)
             {
-                DrawModListLoadingProgress(new Rect(leftOutRect.x, leftOutRect.y + 75f, leftOutRect.width, 62f));
+                DrawModListLoadingProgress(new Rect(leftOutRect.x, leftOutRect.y + 99f, leftOutRect.width, 62f));
             }
 
             Rect listOutRect = new Rect(leftOutRect.x, leftOutRect.y + listTop, leftOutRect.width, leftOutRect.height - listTop);
@@ -352,6 +370,7 @@ namespace AutoTranslator_Core
             if (_cachedModSelectionList != null &&
                 _cachedModSelectionSearch == searchText &&
                 _cachedModSelectionShowTranslatedOnly == _showOnlyTranslated &&
+                _cachedModSelectionShowUntranslatedOnly == _showOnlyUntranslated &&
                 _cachedModSelectionTranslateNames == translateNames &&
                 _cachedModSelectionValidCount == validMods.Count &&
                 _cachedModSelectionValidVersion == AutoTranslatorMod.ValidModsCacheVersion &&
@@ -367,6 +386,10 @@ namespace AutoTranslator_Core
             {
                 allMods = allMods.Where(m => translatedPackageIds.Contains(m.PackageId ?? ""));
             }
+            else if (_showOnlyUntranslated)
+            {
+                allMods = allMods.Where(m => !translatedPackageIds.Contains(m.PackageId ?? ""));
+            }
 
             if (!string.IsNullOrEmpty(searchText))
             {
@@ -380,6 +403,7 @@ namespace AutoTranslator_Core
             _cachedModSelectionList = allMods.ToList();
             _cachedModSelectionSearch = searchText;
             _cachedModSelectionShowTranslatedOnly = _showOnlyTranslated;
+            _cachedModSelectionShowUntranslatedOnly = _showOnlyUntranslated;
             _cachedModSelectionTranslateNames = translateNames;
             _cachedModSelectionValidCount = validMods.Count;
             _cachedModSelectionValidVersion = AutoTranslatorMod.ValidModsCacheVersion;

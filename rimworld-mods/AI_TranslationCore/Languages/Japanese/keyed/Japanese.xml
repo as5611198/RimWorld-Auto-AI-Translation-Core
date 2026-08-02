@@ -129,7 +129,7 @@
   <ATC_DeleteModTrans_Title>翻訳ファイル焼却炉 (翻訳を削除するモジュールにチェック)</ATC_DeleteModTrans_Title>
   <ATC_ConfirmDelete_Btn>{0} 個のモジュールの翻訳ファイルを削除する (復元不可！)</ATC_ConfirmDelete_Btn>
   <ATC_Log_DeleteTransSuccess>🗑️ [ATC System] {0} 個のモジュールの翻訳ファイルを正常に削除しました (計 {1} 個のファイルをクリーンアップ)！</ATC_Log_DeleteTransSuccess>
-  <ATC_Message_DeleteTransSuccess>{0} 個の翻訳ファイルを削除しました！変更を適用するにはゲームの再起動をお勧めします。</ATC_Message_DeleteTransSuccess>
+  <ATC_Message_DeleteTransSuccess>{0} 個の翻訳ファイルを削除し、ゲーム内の原文または内蔵翻訳を復元しました。</ATC_Message_DeleteTransSuccess>
   <ATC_Message_DeleteTransError>⚠️ 翻訳ファイルの削除中にエラーが発生しました: {0}</ATC_Message_DeleteTransError>
   <ATC_InputOrSelectModel>モデルを入力または選択...</ATC_InputOrSelectModel>
   <ATC_Msg_NoModelListManualInput>現在モデルリストが取得できていません。モデル名を直接手動で入力してください！</ATC_Msg_NoModelListManualInput>
@@ -247,7 +247,8 @@
   <ATC_Export_Success_CloseBtn>閉じる</ATC_Export_Success_CloseBtn>
   <ATC_Log_CooldownTriggered>⏱️ [Cooldown] 第 {0} 回目の出力、{1} 秒のクールダウンを適用します。</ATC_Log_CooldownTriggered>
   <ATC_Log_DailyLimitReached>🛑 [Limit] 本日の出力上限（100回）に達しました。</ATC_Log_DailyLimitReached>
-  <ATC_AutoClearOldOnUpdate>正確性の保証：更新されたモジュールを翻訳する前に、古い翻訳を強制削除する (残存エラーを防ぐため推奨)</ATC_AutoClearOldOnUpdate>
+  <ATC_ShowWorldMainButton>ゲーム内のメインボタンバーにAI翻訳ショートカットを表示</ATC_ShowWorldMainButton>
+  <ATC_AutoClearOldOnUpdate>更新されたMODを再翻訳する前に古い翻訳ファイルを削除（完全な再翻訳が必要になる場合があります。既定ではオフ）</ATC_AutoClearOldOnUpdate>
   <ATC_AutoTranslateOnUpdate>完全自動スケジュール：ゲーム起動時にモジュールの更新を検知した場合、バックグラウンドで自動的に翻訳ラインを起動する (デフォルトはオフ)</ATC_AutoTranslateOnUpdate>
   <ATC_SmartUpdateBtn>インテリジェント補完翻訳 ({0} 個の更新待機を発見)</ATC_SmartUpdateBtn>
   <ATC_ModUpdateStatusBtn>インテリジェント補完翻訳 ({0} 個のモジュール更新または未翻訳を発見)</ATC_ModUpdateStatusBtn>
@@ -393,6 +394,24 @@
   <ATC_Log_BatchUploadItemFailed>Batch upload skipped "{0}": {1}</ATC_Log_BatchUploadItemFailed>
   <ATC_Log_BatchUploadWorkerFailed>Batch upload worker failed: {0}</ATC_Log_BatchUploadWorkerFailed>
   <ATC_Log_BatchUploadFailedList>Batch upload failed or skipped {0} mod(s): {1}</ATC_Log_BatchUploadFailedList>
+  <ATC_Log_BatchAiRebuildCandidates>一括 AI アップロードで、アップロード前に純粋 AI 版の再生成が必要な MOD が {0} 件見つかりました。</ATC_Log_BatchAiRebuildCandidates>
+  <ATC_Title_BatchAiRebuildCandidates>純粋 AI 版の再生成が必要 ({0})</ATC_Title_BatchAiRebuildCandidates>
+  <ATC_Msg_BatchAiRebuildCandidates>以下の MOD には直接共有できる純粋 AI 項目がありません。元テキストから再翻訳する MOD を 1 つ選んでください。ATC は選択した MOD だけをアップロード作業フォルダーに再生成し、ローカル翻訳パックは上書きしません。</ATC_Msg_BatchAiRebuildCandidates>
+  <ATC_Log_AiUploadFiltered>AI アップロードで「{0}」をフィルターしました：純粋な AI 翻訳 {1} 件を保持し、{2} 件をスキップしました（外部翻訳パッチ {3}、手動編集 {4}、旧版未タグ {5}、その他 {6}）。</ATC_Log_AiUploadFiltered>
+  <ATC_Log_AiUploadNoCleanEntries>AI アップロードで「{0}」をスキップしました：共有可能な純粋 AI 翻訳がありません。{1} 件をスキップしました（外部翻訳パッチ {2}、手動編集 {3}、旧版未タグ {4}、その他 {5}）。</ATC_Log_AiUploadNoCleanEntries>
+  <ATC_Msg_AiUploadNoCleanEntries>「{0}」の AI アップロードをスキップしました：共有可能な純粋 AI 翻訳がありません。プレイヤー校正や翻訳パッチの場合は、Manual または翻訳チームとしてアップロードしてください。</ATC_Msg_AiUploadNoCleanEntries>
+  <ATC_Msg_AiUploadNoCleanEntriesWithRebuild>「{0}」の AI アップロードをスキップしました：共有可能な純粋 AI 翻訳がありません。\n\nプレイヤー校正や翻訳パッチの場合は、Manual または翻訳チームとしてアップロードしてください。\n\nATC は元の MOD テキストから純粋な AI 翻訳を再生成できます。結果はアップロード作業フォルダーに保存され、現在のローカル翻訳パックは上書きされません。</ATC_Msg_AiUploadNoCleanEntriesWithRebuild>
+  <ATC_Title_PureAiRebuildForUpload>純粋 AI アップロード版を再生成</ATC_Title_PureAiRebuildForUpload>
+  <ATC_Btn_PureAiRebuildForUpload>元テキストから再翻訳</ATC_Btn_PureAiRebuildForUpload>
+  <ATC_Msg_PureAiRebuildBusy>別のタスクが実行中です。完了後に純粋 AI アップロード版を再生成してください。</ATC_Msg_PureAiRebuildBusy>
+  <ATC_Task_PureAiRebuildForUpload>純粋 AI アップロード版を再生成中：{0}</ATC_Task_PureAiRebuildForUpload>
+  <ATC_Log_PureAiRebuildStart>元の MOD テキストから純粋 AI アップロード版を再生成します：{0}</ATC_Log_PureAiRebuildStart>
+  <ATC_Log_PureAiWorkspaceBackedUp>「{0}」のアップロード作業フォルダーをバックアップしてクリアしました。古い手動編集の混入を防ぎます。</ATC_Log_PureAiWorkspaceBackedUp>
+  <ATC_Log_PureAiRebuildDone>純粋 AI アップロード版が完了しました：{0}、AI 翻訳 {1} 件を追加。クラウドタブに戻って再度アップロードしてください。</ATC_Log_PureAiRebuildDone>
+  <ATC_Log_PureAiRebuildNoEntries>純粋 AI アップロード版でアップロード可能な項目は生成されませんでした：{0}。</ATC_Log_PureAiRebuildNoEntries>
+  <ATC_Log_PureAiRebuildBlockedPatchMod>「{0}」をスキップしました：翻訳パッチ MOD のように見えるため、AI アップロード版として再生成しません。</ATC_Log_PureAiRebuildBlockedPatchMod>
+  <ATC_Msg_PureAiRebuildDone>「{0}」の純粋 AI アップロード版が準備できました。クラウドタブに戻って再度アップロードしてください。</ATC_Msg_PureAiRebuildDone>
+  <ATC_Msg_PureAiRebuildNoEntries>「{0}」ではアップロード可能な純粋 AI 項目が生成されませんでした。</ATC_Msg_PureAiRebuildNoEntries>
   <ATC_Cloud_ShowMineOnly>Show My Uploads Only</ATC_Cloud_ShowMineOnly>
   <ATC_Cloud_MyUploadsCount>My uploads: {0}</ATC_Cloud_MyUploadsCount>
   <ATC_Cloud_NoMyUploads>No cloud translations uploaded from this device were found.</ATC_Cloud_NoMyUploads>
@@ -401,6 +420,7 @@
   <ATC_Cloud_Type_AI>🤖 AI 機械翻訳</ATC_Cloud_Type_AI>
   <ATC_Cloud_Type_Manual>✍️ 手動精翻</ATC_Cloud_Type_Manual>
   <ATC_Cloud_Status_Manual>🟢 プレイヤー精翻</ATC_Cloud_Status_Manual>
+  <ATC_Cloud_Status_LegacyAI>🟤 旧版アップロード、出所未記録</ATC_Cloud_Status_LegacyAI>
   <ATC_EmergencyResetTitle>究極の救急箱 (危険エリア)</ATC_EmergencyResetTitle>
   <ATC_Btn_FactoryReset>すべての翻訳キャッシュをワンクリック削除 (工場出荷状態に戻す)</ATC_Btn_FactoryReset>
   <ATC_Msg_ConfirmFactoryReset>警告：これによりローカルのすべてのAI翻訳キャッシュファイルが削除され、UIメモリがクリアされます。本当に実行しますか？（この操作は取り消せません）</ATC_Msg_ConfirmFactoryReset>
@@ -461,6 +481,8 @@
   <ATC_Type_Official>翻訳グループ精翻</ATC_Type_Official>
   <ATC_Type_Manual>プレイヤー精翻</ATC_Type_Manual>
   <ATC_Type_AI>AI 機械翻訳</ATC_Type_AI>
+  <ATC_Type_LegacyAI>旧版AI機械翻訳</ATC_Type_LegacyAI>
+  <ATC_Cloud_LegacyAiTooltip>この翻訳は旧版クライアントからアップロードされたため、出所が記録されていません。AI出力、プレイヤー編集、外部翻訳ソースが含まれる可能性があります。</ATC_Cloud_LegacyAiTooltip>
   <ATC_UploadPreview_NoTranslation>アップロード可能な翻訳ファイルがありません！\n(先に AI スキャン翻訳を実行するか、自作の翻訳を Upload_Workspace に入れてください)</ATC_UploadPreview_NoTranslation>
   <ATC_Msg_UploadFailedNoFiles>アップロード失敗：対応する翻訳ファイルが見つかりません！</ATC_Msg_UploadFailedNoFiles>
   <ATC_Log_CleanedGhostTwins>[System] ゴースト翻訳パッチの双子の残存ファイルを {0} 個自動的に成仏させました！</ATC_Log_CleanedGhostTwins>
@@ -485,6 +507,7 @@
   <ATC_Tab_Editor>グローバル編集</ATC_Tab_Editor>
   <ATC_Workbench_SearchMod>モジュール名またはIDを検索...</ATC_Workbench_SearchMod>
   <ATC_Workbench_ShowTranslatedOnly>翻訳済みのモジュールのみ表示</ATC_Workbench_ShowTranslatedOnly>
+  <ATC_Workbench_ShowUntranslatedOnly>未翻訳のモジュールのみ表示</ATC_Workbench_ShowUntranslatedOnly>
   <ATC_Workbench_SelectModHint>左側で編集するモジュールを選択してください</ATC_Workbench_SelectModHint>
   <ATC_Workbench_BackToList>モジュールリストに戻る</ATC_Workbench_BackToList>
   <ATC_Cloud_SearchHint>モジュール名またはIDを検索...</ATC_Cloud_SearchHint>
@@ -503,6 +526,31 @@
   <ATC_Workbench_NoLongerMatchesSearch>編集済み、元の検索条件には一致しません</ATC_Workbench_NoLongerMatchesSearch>
   <ATC_Workbench_RevertItem>元に戻す</ATC_Workbench_RevertItem>
   <ATC_Workbench_ItemReverted>この項目を元に戻しました。</ATC_Workbench_ItemReverted>
+  <ATC_Workbench_CopyOriginal>原文コピー</ATC_Workbench_CopyOriginal>
+  <ATC_Workbench_CopyOriginalTip>この行の原文をクリップボードにコピーします。</ATC_Workbench_CopyOriginalTip>
+  <ATC_Workbench_OriginalCopied>原文をコピーしました。</ATC_Workbench_OriginalCopied>
+  <ATC_Workbench_TranslateOriginal>原文翻訳</ATC_Workbench_TranslateOriginal>
+  <ATC_Workbench_TranslateOriginalBusy>翻訳中</ATC_Workbench_TranslateOriginalBusy>
+  <ATC_Workbench_TranslateOriginalTip>この行の原文だけを翻訳し、右側の欄に入力します。適用するには保存してください。</ATC_Workbench_TranslateOriginalTip>
+  <ATC_Workbench_TranslateOriginalStarted>この行を翻訳中...</ATC_Workbench_TranslateOriginalStarted>
+  <ATC_Workbench_TranslateOriginalDone>単条AI翻訳を入力しました。まだ保存されていません。</ATC_Workbench_TranslateOriginalDone>
+  <ATC_Workbench_TranslateOriginalFailed>単条翻訳に失敗しました。APIを確認するか、後でもう一度お試しください。</ATC_Workbench_TranslateOriginalFailed>
+  <ATC_Workbench_TranslateOriginalBusyGlobal>翻訳タスクが実行中です。完了後に単条翻訳を実行してください。</ATC_Workbench_TranslateOriginalBusyGlobal>
+  <ATC_Workbench_AllCategories>すべてのカテゴリ ({0})</ATC_Workbench_AllCategories>
+  <ATC_Workbench_BatchReplaceBtn>一括置換</ATC_Workbench_BatchReplaceBtn>
+  <ATC_Workbench_BatchReplaceTip>複数の翻訳をまとめて検索・置換します。</ATC_Workbench_BatchReplaceTip>
+  <ATC_Workbench_BatchReplaceTitle>一括検索と置換</ATC_Workbench_BatchReplaceTitle>
+  <ATC_Workbench_BatchFindLabel>検索文字</ATC_Workbench_BatchFindLabel>
+  <ATC_Workbench_BatchReplaceLabel>置換後</ATC_Workbench_BatchReplaceLabel>
+  <ATC_Workbench_BatchScopeLabel>対象範囲</ATC_Workbench_BatchScopeLabel>
+  <ATC_Workbench_BatchCaseSensitive>大文字と小文字を区別</ATC_Workbench_BatchCaseSensitive>
+  <ATC_Workbench_BatchMatchCount>{0} 件を変更します</ATC_Workbench_BatchMatchCount>
+  <ATC_Workbench_BatchApplyBtn>置換を適用</ATC_Workbench_BatchApplyBtn>
+  <ATC_Workbench_BatchScopeVisible>表示中の結果</ATC_Workbench_BatchScopeVisible>
+  <ATC_Workbench_BatchScopeCategory>現在のカテゴリ</ATC_Workbench_BatchScopeCategory>
+  <ATC_Workbench_BatchScopeAll>すべてのカテゴリ</ATC_Workbench_BatchScopeAll>
+  <ATC_Workbench_BatchConfirm>{0} 件を一括変更しますか？保存前なら変更を元に戻せます。</ATC_Workbench_BatchConfirm>
+  <ATC_Workbench_BatchReplaceSuccess>{0} 件を変更しました。まだ保存されていません。</ATC_Workbench_BatchReplaceSuccess>
   <ATC_Workbench_SaveSynced>同期済み</ATC_Workbench_SaveSynced>
   <ATC_Workbench_UnsavedChanges>未保存の変更があります。</ATC_Workbench_UnsavedChanges>
   <ATC_Workbench_Saving>保存中...</ATC_Workbench_Saving>
@@ -519,4 +567,47 @@
   <ATC_ModStatus_Filtered>フィルター済み</ATC_ModStatus_Filtered>
   <ATC_Msg_CloudUploadPatchModBlocked>&#x30A2;&#x30C3;&#x30D7;&#x30ED;&#x30FC;&#x30C9;&#x3092;&#x963B;&#x6B62;&#x3057;&#x307E;&#x3057;&#x305F;&#xFF1A;{0} &#x306F;&#x30ED;&#x30FC;&#x30AB;&#x30E9;&#x30A4;&#x30BA;&#x307E;&#x305F;&#x306F;&#x7FFB;&#x8A33;&#x30D1;&#x30C3;&#x30C1;&#x30E2;&#x30C3;&#x30C9;&#x3068;&#x5224;&#x5B9A;&#x3055;&#x308C;&#x307E;&#x3057;&#x305F;&#x3002;&#x30AF;&#x30E9;&#x30A6;&#x30C9;&#x5171;&#x6709;&#x306F;&#x5143;&#x306E;&#x30E2;&#x30C3;&#x30C9;&#x7528;&#x306E;&#x6CE8;&#x5165;&#x5F0F;&#x7FFB;&#x8A33;&#x306E;&#x307F;&#x53D7;&#x3051;&#x4ED8;&#x3051;&#x307E;&#x3059;&#x3002;</ATC_Msg_CloudUploadPatchModBlocked>
   <ATC_Msg_CloudBatchPatchModsSkipped>{0} &#x500B;&#x306E;&#x30ED;&#x30FC;&#x30AB;&#x30E9;&#x30A4;&#x30BA;&#x307E;&#x305F;&#x306F;&#x7FFB;&#x8A33;&#x30D1;&#x30C3;&#x30C1;&#x30E2;&#x30C3;&#x30C9;&#x3092;&#x30B9;&#x30AD;&#x30C3;&#x30D7;&#x3057;&#x307E;&#x3057;&#x305F;&#x3002;&#x30AF;&#x30E9;&#x30A6;&#x30C9;&#x5171;&#x6709;&#x306B;&#x306F;&#x30A2;&#x30C3;&#x30D7;&#x30ED;&#x30FC;&#x30C9;&#x3055;&#x308C;&#x307E;&#x305B;&#x3093;&#x3002;</ATC_Msg_CloudBatchPatchModsSkipped>
+  <ATC_Corrections_Button>Entries</ATC_Corrections_Button>
+  <ATC_Corrections_ButtonTip>View approved single-entry translation corrections. Apply or remove them one by one.</ATC_Corrections_ButtonTip>
+  <ATC_Corrections_StatusCount>Single-entry fixes: {0}</ATC_Corrections_StatusCount>
+  <ATC_Corrections_StatusOfficial>Official text: single-entry fixes available</ATC_Corrections_StatusOfficial>
+  <ATC_Corrections_StatusChecking>Checking single-entry fixes...</ATC_Corrections_StatusChecking>
+  <ATC_Corrections_Title>Single-Entry Corrections - {0}</ATC_Corrections_Title>
+  <ATC_Corrections_Loading>Loading approved corrections...</ATC_Corrections_Loading>
+  <ATC_Corrections_LoadFailed>Failed to load corrections: {0}</ATC_Corrections_LoadFailed>
+  <ATC_Corrections_Empty>No approved single-entry corrections for this package and language yet.</ATC_Corrections_Empty>
+  <ATC_Corrections_UnknownContributor>Unknown contributor</ATC_Corrections_UnknownContributor>
+  <ATC_Corrections_Byline>By {0} / {1}</ATC_Corrections_Byline>
+  <ATC_Corrections_ApplyBtn>Apply This Entry</ATC_Corrections_ApplyBtn>
+  <ATC_Corrections_RemoveBtn>Remove This Entry</ATC_Corrections_RemoveBtn>
+  <ATC_Corrections_SourceBtn>View Original</ATC_Corrections_SourceBtn>
+  <ATC_Corrections_Applied>Applied locally</ATC_Corrections_Applied>
+  <ATC_Corrections_NotApplied>Not applied</ATC_Corrections_NotApplied>
+  <ATC_Corrections_ApplySuccess>Single-entry correction applied locally.</ATC_Corrections_ApplySuccess>
+  <ATC_Corrections_ApplyFailed>Could not apply this correction.</ATC_Corrections_ApplyFailed>
+  <ATC_Corrections_RemoveSuccess>Single-entry correction removed locally.</ATC_Corrections_RemoveSuccess>
+  <ATC_Corrections_RemoveFailed>This correction was not applied locally.</ATC_Corrections_RemoveFailed>
+  <ATC_Corrections_RefreshBtn>Refresh</ATC_Corrections_RefreshBtn>
+  <ATC_Workbench_ExportOriginalXml>原文 XML を出力</ATC_Workbench_ExportOriginalXml>
+  <ATC_Workbench_ExportOriginalXmlTip>選択中のカテゴリにある原文を編集可能な XML として出力します。</ATC_Workbench_ExportOriginalXmlTip>
+  <ATC_Workbench_ImportEditedXml>編集済み XML を読込</ATC_Workbench_ImportEditedXml>
+  <ATC_Workbench_ImportEditedXmlTip>編集した XML を未保存の変更として読み込みます。確認後、保存して適用してください。</ATC_Workbench_ImportEditedXmlTip>
+  <ATC_Workbench_OpenWorkspace>作業フォルダを開く</ATC_Workbench_OpenWorkspace>
+  <ATC_Workbench_OpenWorkspaceTip>Upload_Workspace 内にあるこの Mod のルートフォルダを開きます。</ATC_Workbench_OpenWorkspaceTip>
+  <ATC_Workbench_ManualXmlWorking>手動翻訳 XML を処理しています...</ATC_Workbench_ManualXmlWorking>
+  <ATC_Workbench_ManualXmlExported>原文 {0} 件を出力しました。</ATC_Workbench_ManualXmlExported>
+  <ATC_Workbench_ManualXmlImported>変更 {0} 件を読み込みました。まだ保存されていません。</ATC_Workbench_ManualXmlImported>
+  <ATC_Workbench_ManualXmlNoEntries>選択中のカテゴリに出力できる原文がありません。</ATC_Workbench_ManualXmlNoEntries>
+  <ATC_Workbench_ManualXmlNoChanges>編集済み XML に適用できる変更がありません。</ATC_Workbench_ManualXmlNoChanges>
+  <ATC_Workbench_ManualXmlImportFailed>編集済み XML を読み込めませんでした。</ATC_Workbench_ManualXmlImportFailed>
+  <ATC_Blacklist_Open>ブラックリスト管理（翻訳 {0} / DL {1}）</ATC_Blacklist_Open>
+  <ATC_Blacklist_OpenTip>AI 翻訳またはクラウド一括ダウンロードから除外する Mod を選択します。</ATC_Blacklist_OpenTip>
+  <ATC_Blacklist_Title>翻訳とクラウドダウンロードのブラックリスト</ATC_Blacklist_Title>
+  <ATC_Blacklist_TranslationColumn>翻訳を除外</ATC_Blacklist_TranslationColumn>
+  <ATC_Blacklist_DownloadColumn>DL を除外</ATC_Blacklist_DownloadColumn>
+  <ATC_Blacklist_ClearAll>全ブラックリストを解除</ATC_Blacklist_ClearAll>
+  <ATC_Blacklist_TranslationSkipped>{0} は翻訳ブラックリストにあるため除外されました。</ATC_Blacklist_TranslationSkipped>
+  <ATC_Blacklist_DownloadSkipped>ブラックリスト対象のクラウドダウンロードを除外しました: {0}</ATC_Blacklist_DownloadSkipped>
+  <ATC_Blacklist_DownloadBlockedStatus>クラウドダウンロード除外中</ATC_Blacklist_DownloadBlockedStatus>
+  <ATC_Cloud_Btn_BatchBestTip>有効な導入済み Mod のうち、クラウドに対応翻訳があるものだけをダウンロードします。</ATC_Cloud_Btn_BatchBestTip>
 </LanguageData>
