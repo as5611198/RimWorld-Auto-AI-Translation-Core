@@ -101,6 +101,42 @@
   <ATC_MultiSelect_Title>选择要翻译的模组 (可多选)</ATC_MultiSelect_Title>
   <ATC_MultiSelect_Search>在此输入模组名称来搜寻...</ATC_MultiSelect_Search>
   <ATC_MultiSelect_Start>开始翻译已勾选的 {0} 个模组</ATC_MultiSelect_Start>
+  <ATC_PolicyShadowRun_Button>Agent 分类试跑（{0}）</ATC_PolicyShadowRun_Button>
+  <ATC_PolicyShadowRun_Task>正在执行 Agent 分类试跑...</ATC_PolicyShadowRun_Task>
+  <ATC_PolicyShadowRun_Start>开始分析已选择的 {0} 个模组；不会写入或注入翻译。</ATC_PolicyShadowRun_Start>
+  <ATC_PolicyShadowRun_Title>Agent 分类试跑结果</ATC_PolicyShadowRun_Title>
+  <ATC_PolicyShadowRun_Summary>模组：{0}\n候选文本：{1}\n允许：{2}\n拒绝：{3}\n模糊项：{4}\n群组：{5}\n预估请求：{6}\n预估输入 Token：{7}\n预估输出 Token：{8}\n预估 Token 总计：{9}\n实际 AI/API 调用／消耗 Token：0／0\n耗时：{10}\n报告：{11}\n翻译写入／运行时注入：0／0</ATC_PolicyShadowRun_Summary>
+  <ATC_PolicyAgent_Enable>启用 AI Policy Agent 判断模糊文本（默认关闭）</ATC_PolicyAgent_Enable>
+  <ATC_PolicyAgent_EnableTooltip>启用后会在翻译前判断模糊文本。DeepL 无法执行分类，请配置 AI 对话服务；判断失败时会保留原文。</ATC_PolicyAgent_EnableTooltip>
+  <ATC_PolicyAgent_MaxCallsPerRun>本次翻译任务的 Policy Agent 调用软性门槛：{0}</ATC_PolicyAgent_MaxCallsPerRun>
+  <ATC_PolicyAgent_MaxEstimatedTokensPerRun>本次翻译任务的预估 Token 软性门槛：{0}</ATC_PolicyAgent_MaxEstimatedTokensPerRun>
+  <ATC_PolicyAgent_MaxCallsPerMod>每个模组的 Policy Agent 调用软性门槛：{0}</ATC_PolicyAgent_MaxCallsPerMod>
+  <ATC_PolicyAgent_RetryNotice>每个请求最多重试 {0} 次；每次重试都会计入调用和预估 Token 软性门槛。</ATC_PolicyAgent_RetryNotice>
+  <ATC_PolicyAgent_ClearCache>清除 Policy Agent 判断缓存</ATC_PolicyAgent_ClearCache>
+  <ATC_PolicyAgent_CacheCleared>已清除 Policy Agent 判断缓存。</ATC_PolicyAgent_CacheCleared>
+  <ATC_PolicyAgent_CacheClearFailed>无法清除 Policy Agent 判断缓存。</ATC_PolicyAgent_CacheClearFailed>
+  <ATC_PolicyAgent_NoProvider>没有可用的 AI Policy Agent 服务。DeepL 无法分类文本；模糊文本将保留原文。</ATC_PolicyAgent_NoProvider>
+  <ATC_PolicyAgent_BudgetExhausted>Policy Agent 已在软性门槛停止；其余模糊文本将保留原文。</ATC_PolicyAgent_BudgetExhausted>
+  <ATC_PolicyAgent_BudgetPrompt_Title>Policy Agent 软性门槛确认</ATC_PolicyAgent_BudgetPrompt_Title>
+  <ATC_PolicyAgent_BudgetPrompt_Message>下一次 Policy Agent 请求将超过软性门槛。\n模组：{0}\n本次任务调用：{1} -&gt; {2}（门槛 {3}）；当前模组：{4} -&gt; {5}（门槛 {6}）\n预估 Token：{7} -&gt; {8}（门槛 {9}）{10}\n当前已发现、尚待处理的模糊群组：约 {11}\n请求类型：{12}\n选择继续后，本次任务不再询问；供应商额度与计费仍然有效。</ATC_PolicyAgent_BudgetPrompt_Message>
+  <ATC_PolicyAgent_BudgetPrompt_ReportedTokens>供应商当前已回报 Token（可能不完整）：{0}</ATC_PolicyAgent_BudgetPrompt_ReportedTokens>
+  <ATC_PolicyAgent_BudgetPrompt_RequestNew>新请求</ATC_PolicyAgent_BudgetPrompt_RequestNew>
+  <ATC_PolicyAgent_BudgetPrompt_RequestRetry>重试</ATC_PolicyAgent_BudgetPrompt_RequestRetry>
+  <ATC_PolicyAgent_BudgetPrompt_Continue>继续使用 Agent</ATC_PolicyAgent_BudgetPrompt_Continue>
+  <ATC_PolicyAgent_BudgetPrompt_LocalOnly>停用 Agent，继续翻译</ATC_PolicyAgent_BudgetPrompt_LocalOnly>
+  <ATC_PolicyAgent_BudgetPrompt_Cancel>取消本次翻译</ATC_PolicyAgent_BudgetPrompt_Cancel>
+  <ATC_PolicyAgent_BudgetPrompt_Waiting>等待 Policy Agent 软性门槛选择</ATC_PolicyAgent_BudgetPrompt_Waiting>
+  <ATC_PolicyAgent_BudgetPrompt_Notice>达到软性门槛时会暂停并询问；选择继续后，本次任务不再询问或应用内部软性门槛，但供应商额度与计费仍然有效。</ATC_PolicyAgent_BudgetPrompt_Notice>
+  <ATC_PolicyAgent_EmergencyLimitReached>Policy Agent 已达到技术安全护栏（{0} 次调用或 {1} 预估 Token）；本次任务后续将停用 Agent。</ATC_PolicyAgent_EmergencyLimitReached>
+  <ATC_PolicyAgent_LocalOnlySelected>已选择停用本次任务后续的 Policy Agent；模糊新文本将保留原文。</ATC_PolicyAgent_LocalOnlySelected>
+  <ATC_PolicyAgent_BatchSummary>Policy [{0}]：本地允许 {1}、本地拒绝 {2}、Agent 允许 {3}、保留原文 {4}。</ATC_PolicyAgent_BatchSummary>
+  <ATC_PolicyAgent_RunSummary>Policy Agent 摘要：调用 {0}、预估 Token {1}、缓存命中 {2}、本地允许 {3}、本地拒绝 {4}、Agent 允许 {5}、Agent 拒绝 {6}、待复查 {7}、未解决 {8}。</ATC_PolicyAgent_RunSummary>
+  <ATC_PolicyAgent_ActualTokenSummary>Policy Agent 供应商报告的实际 Token：{0}。</ATC_PolicyAgent_ActualTokenSummary>
+  <ATC_HardcodedUi_EnablePrototype>启用已批准的硬编码 UI 原型（仅测试模组）</ATC_HardcodedUi_EnablePrototype>
+  <ATC_HardcodedUi_EnablePrototypeTooltip>只使用人工批准的测试模组 manifest。运行期间不会扫描或修改第三方 DLL，默认关闭。</ATC_HardcodedUi_EnablePrototypeTooltip>
+  <ATC_HardcodedUi_Status>定向 UI 原型：{0}</ATC_HardcodedUi_Status>
+  <ATC_HardcodedUi_ReloadManifest>重新加载已批准的 UI manifest</ATC_HardcodedUi_ReloadManifest>
+  <ATC_HardcodedUi_Conflict>启用全局 UI 拦截时，定向原型会暂停。</ATC_HardcodedUi_Conflict>
   <ATC_SubTask_AnalyzingDict>正在分析本机汉化文本...</ATC_SubTask_AnalyzingDict>
   <ATC_SubTask_BuildingDict>建构字典中: {0}</ATC_SubTask_BuildingDict>
   <ATC_SubTask_DictDone>字典建置完成！</ATC_SubTask_DictDone>
@@ -639,4 +675,51 @@
   <ATC_Blacklist_DownloadSkipped>已跳过黑名单模组的云端下载：{0}</ATC_Blacklist_DownloadSkipped>
   <ATC_Blacklist_DownloadBlockedStatus>已禁止云端下载</ATC_Blacklist_DownloadBlockedStatus>
   <ATC_Cloud_Btn_BatchBestTip>只下载已启用且云端确实有对应翻译的模组；云端没有的模组会自动跳过。</ATC_Cloud_Btn_BatchBestTip>
+  <ATC_Unresolved_Title>未解决的翻译（{0}）</ATC_Unresolved_Title>
+  <ATC_Unresolved_TitleShort>未解决的翻译</ATC_Unresolved_TitleShort>
+  <ATC_Unresolved_Summary>这些词条未能安全完成翻译；可以重新发送给 AI、保留原文，或逐条手动编辑。</ATC_Unresolved_Summary>
+  <ATC_Unresolved_Search>搜索 Key、原文、原因或来源文件...</ATC_Unresolved_Search>
+  <ATC_Unresolved_Empty>目前没有未解决的翻译。</ATC_Unresolved_Empty>
+  <ATC_Unresolved_Mods>模组</ATC_Unresolved_Mods>
+  <ATC_Unresolved_Groups>类型 / 来源文件</ATC_Unresolved_Groups>
+  <ATC_Unresolved_Entries>词条（{0}）</ATC_Unresolved_Entries>
+  <ATC_Unresolved_All>全部</ATC_Unresolved_All>
+  <ATC_Unresolved_UnknownMod>未知模组</ATC_Unresolved_UnknownMod>
+  <ATC_Unresolved_UnknownSource>未知来源文件</ATC_Unresolved_UnknownSource>
+  <ATC_Unresolved_Attempts>已尝试：{0} 次</ATC_Unresolved_Attempts>
+  <ATC_Unresolved_Manual>手动编辑</ATC_Unresolved_Manual>
+  <ATC_Unresolved_SelectVisible>勾选当前项目</ATC_Unresolved_SelectVisible>
+  <ATC_Unresolved_ClearSelection>清除勾选</ATC_Unresolved_ClearSelection>
+  <ATC_Unresolved_Selected>已选：{0}</ATC_Unresolved_Selected>
+  <ATC_Unresolved_KeepOriginal>保留原文 / 忽略</ATC_Unresolved_KeepOriginal>
+  <ATC_Unresolved_RetryAI>重新发送给 AI</ATC_Unresolved_RetryAI>
+  <ATC_Unresolved_NoSelection>请先勾选至少一个词条。</ATC_Unresolved_NoSelection>
+  <ATC_Unresolved_Running>请等待当前翻译任务完成。</ATC_Unresolved_Running>
+  <ATC_Unresolved_ConfirmIgnore>要让选中的 {0} 个词条保留原文，并在来源未变化时不再发送给 AI 吗？</ATC_Unresolved_ConfirmIgnore>
+  <ATC_Unresolved_ConfirmButton>保留原文</ATC_Unresolved_ConfirmButton>
+  <ATC_Unresolved_IgnoreDone>已让 {0} 个词条保留原文。</ATC_Unresolved_IgnoreDone>
+  <ATC_Unresolved_ModNotFound>找不到已安装的模组：{0}</ATC_Unresolved_ModNotFound>
+  <ATC_Unresolved_RetryDone>AI 重试已解决 {0} / {1} 个词条。</ATC_Unresolved_RetryDone>
+  <ATC_Unresolved_WrongLanguage>这个词条属于 {0} 目标语言；请先切换回该目标语言再处理。</ATC_Unresolved_WrongLanguage>
+  <ATC_Unresolved_SourceChanged>{0} 的来源文本已变化或消失；请先重新扫描该模组。</ATC_Unresolved_SourceChanged>
+  <ATC_Unresolved_IgnoreSaveFailed>无法保存保留原文的决定；此词条仍会保留在待处理列表。</ATC_Unresolved_IgnoreSaveFailed>
+  <ATC_Unresolved_ReasonApi>API 请求失败</ATC_Unresolved_ReasonApi>
+  <ATC_Unresolved_ReasonMalformed>AI 返回格式不合法</ATC_Unresolved_ReasonMalformed>
+  <ATC_Unresolved_ReasonEmpty>AI 返回空白内容</ATC_Unresolved_ReasonEmpty>
+  <ATC_Unresolved_ReasonEnglish>结果仍残留英文</ATC_Unresolved_ReasonEnglish>
+  <ATC_Unresolved_ReasonVariant>简繁体版本不符</ATC_Unresolved_ReasonVariant>
+  <ATC_Unresolved_ReasonWrongLanguage>结果使用了错误的目标语言</ATC_Unresolved_ReasonWrongLanguage>
+  <ATC_Unresolved_ReasonToken>受保护符号不一致</ATC_Unresolved_ReasonToken>
+  <ATC_Unresolved_ReasonFormat>格式参数不一致</ATC_Unresolved_ReasonFormat>
+  <ATC_Unresolved_ReasonTitleTag>标题标签不一致</ATC_Unresolved_ReasonTitleTag>
+  <ATC_Unresolved_ReasonSave>无法保存翻译文件</ATC_Unresolved_ReasonSave>
+  <ATC_Unresolved_ReasonSource>无法处理来源 XML</ATC_Unresolved_ReasonSource>
+  <ATC_Unresolved_ReasonPolicyReview>Policy Agent 要求人工复核</ATC_Unresolved_ReasonPolicyReview>
+  <ATC_Unresolved_ReasonPolicyAgentFailure>Policy Agent 判断失败</ATC_Unresolved_ReasonPolicyAgentFailure>
+  <ATC_Unresolved_ReasonUnknown>翻译结果未通过验证</ATC_Unresolved_ReasonUnknown>
+  <ATC_PolicyAgent_ApiTitle>Policy Agent 专用 API 设置</ATC_PolicyAgent_ApiTitle>
+  <ATC_PolicyAgent_ApiNotice>在此设置独立的供应商、Key、Base URL 和模型；Policy Agent 不会使用翻译 API 列表。</ATC_PolicyAgent_ApiNotice>
+  <ATC_PolicyAgent_ApiEnabled>启用这组 Agent 专用 API 设置</ATC_PolicyAgent_ApiEnabled>
+  <ATC_PolicyAgent_ApiReady>Agent 专用 API 已准备完成。</ATC_PolicyAgent_ApiReady>
+  <ATC_PolicyAgent_ApiIncomplete>Agent 专用 API 尚未完整设置；Policy Agent 不会使用翻译 API Key。</ATC_PolicyAgent_ApiIncomplete>
 </LanguageData>

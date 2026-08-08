@@ -100,6 +100,41 @@
   <ATC_MultiSelect_Title>翻訳するモジュールを選択 (複数選択可)</ATC_MultiSelect_Title>
   <ATC_MultiSelect_Search>ここにモジュール名を入力して検索...</ATC_MultiSelect_Search>
   <ATC_MultiSelect_Start>チェックされた {0} 個のモジュールの翻訳を開始</ATC_MultiSelect_Start>
+  <ATC_PolicyShadowRun_Button>Agent分類ドライラン（{0}）</ATC_PolicyShadowRun_Button>
+  <ATC_PolicyShadowRun_Task>Agent分類ドライランを実行中...</ATC_PolicyShadowRun_Task>
+  <ATC_PolicyShadowRun_Start>選択した {0} 個のモジュールでAgent分類ドライランを開始します。翻訳の書き込みや実行時注入は行いません。</ATC_PolicyShadowRun_Start>
+  <ATC_PolicyShadowRun_Title>Agent分類ドライラン結果</ATC_PolicyShadowRun_Title>
+  <ATC_PolicyShadowRun_Summary>モジュール：{0}\n候補テキスト：{1}\n許可：{2}\n拒否：{3}\n曖昧：{4}\nグループ：{5}\n推定リクエスト数：{6}\n推定入力トークン：{7}\n推定出力トークン：{8}\n推定合計トークン：{9}\n実際のAI/API呼び出し／消費トークン：0／0\n所要時間：{10}\nレポート：{11}\n翻訳書き込み／実行時注入：0／0</ATC_PolicyShadowRun_Summary>
+  <ATC_PolicyAgent_Enable>曖昧なテキストの AI Policy Agent 判定を有効化（既定ではオフ）</ATC_PolicyAgent_Enable>
+  <ATC_PolicyAgent_EnableTooltip>有効にすると、曖昧なテキストを翻訳前に分類します。DeepL は分類に対応していないため、AIチャットプロバイダーを設定してください。失敗時は原文を保持します。</ATC_PolicyAgent_EnableTooltip>
+  <ATC_PolicyAgent_MaxCallsPerRun>翻訳タスクごとの Policy Agent 呼び出しソフトしきい値：{0}</ATC_PolicyAgent_MaxCallsPerRun>
+  <ATC_PolicyAgent_MaxEstimatedTokensPerRun>翻訳タスクごとの推定トークンのソフトしきい値：{0}</ATC_PolicyAgent_MaxEstimatedTokensPerRun>
+  <ATC_PolicyAgent_MaxCallsPerMod>MOD ごとの Policy Agent 呼び出しソフトしきい値：{0}</ATC_PolicyAgent_MaxCallsPerMod>
+  <ATC_PolicyAgent_RetryNotice>リクエストごとの再試行回数：{0}。再試行も呼び出し回数と推定トークンのソフトしきい値に加算されます。</ATC_PolicyAgent_RetryNotice>
+  <ATC_PolicyAgent_ClearCache>Policy Agent 判定キャッシュを消去</ATC_PolicyAgent_ClearCache>
+  <ATC_PolicyAgent_CacheCleared>Policy Agent 判定キャッシュを消去しました。</ATC_PolicyAgent_CacheCleared>
+  <ATC_PolicyAgent_CacheClearFailed>Policy Agent 判定キャッシュを消去できませんでした。</ATC_PolicyAgent_CacheClearFailed>
+  <ATC_PolicyAgent_NoProvider>対応する AI Policy Agent プロバイダーがありません。DeepL は分類できないため、曖昧なテキストは原文のまま保持されます。</ATC_PolicyAgent_NoProvider>
+  <ATC_PolicyAgent_BudgetExhausted>Policy Agent はソフトしきい値で停止しました。残りの曖昧なテキストは原文のまま保持されます。</ATC_PolicyAgent_BudgetExhausted>
+  <ATC_PolicyAgent_BudgetPrompt_Title>Policy Agent ソフトしきい値の確認</ATC_PolicyAgent_BudgetPrompt_Title>
+  <ATC_PolicyAgent_BudgetPrompt_Message>次の Policy Agent リクエストはソフトしきい値を超えます。\nMod: {0}\nタスクの呼び出し: {1} -&gt; {2}（しきい値 {3}）、現在の Mod: {4} -&gt; {5}（しきい値 {6}）\n推定トークン: {7} -&gt; {8}（しきい値 {9}）{10}\n現在検出済みで未処理の曖昧グループ: 約 {11}\nリクエスト種別: {12}\n続行すると、このタスクでは再確認しません。プロバイダーの割り当てと課金は引き続き適用されます。</ATC_PolicyAgent_BudgetPrompt_Message>
+  <ATC_PolicyAgent_BudgetPrompt_ReportedTokens>プロバイダーが現在までに報告したトークン（不完全な場合があります）：{0}</ATC_PolicyAgent_BudgetPrompt_ReportedTokens>
+  <ATC_PolicyAgent_BudgetPrompt_RequestNew>新規リクエスト</ATC_PolicyAgent_BudgetPrompt_RequestNew>
+  <ATC_PolicyAgent_BudgetPrompt_RequestRetry>再試行</ATC_PolicyAgent_BudgetPrompt_RequestRetry>
+  <ATC_PolicyAgent_BudgetPrompt_Continue>Agent を続ける</ATC_PolicyAgent_BudgetPrompt_Continue>
+  <ATC_PolicyAgent_BudgetPrompt_LocalOnly>Agent を停止して続ける</ATC_PolicyAgent_BudgetPrompt_LocalOnly>
+  <ATC_PolicyAgent_BudgetPrompt_Cancel>翻訳をキャンセル</ATC_PolicyAgent_BudgetPrompt_Cancel>
+  <ATC_PolicyAgent_BudgetPrompt_Waiting>Policy Agent のソフトしきい値選択を待機中</ATC_PolicyAgent_BudgetPrompt_Waiting>
+  <ATC_PolicyAgent_BudgetPrompt_Notice>ソフトしきい値で翻訳を一時停止して確認します。続行すると、このタスクでは内部しきい値と再確認を解除しますが、プロバイダーの割り当てと課金は引き続き適用されます。</ATC_PolicyAgent_BudgetPrompt_Notice>
+  <ATC_PolicyAgent_EmergencyLimitReached>Policy Agent が技術的な安全上限（{0} 回の呼び出し、または推定 {1} トークン）に達したため、このタスクの残りでは Agent を停止します。</ATC_PolicyAgent_EmergencyLimitReached>
+  <ATC_PolicyAgent_LocalOnlySelected>このタスクの残りでは Policy Agent を停止しました。新しい曖昧なテキストは原文のまま保持されます。</ATC_PolicyAgent_LocalOnlySelected>
+  <ATC_PolicyAgent_BatchSummary>Policy [{0}]：ローカル許可 {1}、ローカル拒否 {2}、Agent許可 {3}、原文保持 {4}。</ATC_PolicyAgent_BatchSummary>
+  <ATC_PolicyAgent_RunSummary>Policy Agent概要：呼び出し {0}、推定トークン {1}、キャッシュヒット {2}、ローカル許可 {3}、ローカル拒否 {4}、Agent許可 {5}、Agent拒否 {6}、要確認 {7}、未解決 {8}。</ATC_PolicyAgent_RunSummary>
+  <ATC_HardcodedUi_EnablePrototype>承認済みハードコード UI プロトタイプを有効化（フィクスチャのみ）</ATC_HardcodedUi_EnablePrototype>
+  <ATC_HardcodedUi_EnablePrototypeTooltip>手動承認したフィクスチャ manifest の定向パッチだけを使用します。実行中に第三者 DLL を読み取り・変更せず、既定ではオフです。</ATC_HardcodedUi_EnablePrototypeTooltip>
+  <ATC_HardcodedUi_Status>定向 UI プロトタイプ：{0}</ATC_HardcodedUi_Status>
+  <ATC_HardcodedUi_ReloadManifest>承認済み UI manifest を再読み込み</ATC_HardcodedUi_ReloadManifest>
+  <ATC_HardcodedUi_Conflict>グローバル UI インターセプターが有効な間、定向プロトタイプは停止します。</ATC_HardcodedUi_Conflict>
   <ATC_SubTask_AnalyzingDict>ローカルの翻訳テキストを分析中...</ATC_SubTask_AnalyzingDict>
   <ATC_SubTask_BuildingDict>辞書を構築中: {0}</ATC_SubTask_BuildingDict>
   <ATC_SubTask_DictDone>辞書の構築が完了しました！</ATC_SubTask_DictDone>
@@ -610,4 +645,9 @@
   <ATC_Blacklist_DownloadSkipped>ブラックリスト対象のクラウドダウンロードを除外しました: {0}</ATC_Blacklist_DownloadSkipped>
   <ATC_Blacklist_DownloadBlockedStatus>クラウドダウンロード除外中</ATC_Blacklist_DownloadBlockedStatus>
   <ATC_Cloud_Btn_BatchBestTip>有効な導入済み Mod のうち、クラウドに対応翻訳があるものだけをダウンロードします。</ATC_Cloud_Btn_BatchBestTip>
+  <ATC_PolicyAgent_ApiTitle>Dedicated Policy Agent API</ATC_PolicyAgent_ApiTitle>
+  <ATC_PolicyAgent_ApiNotice>Use a separate provider, key, base URL, and model here. The Policy Agent never uses the translation API list.</ATC_PolicyAgent_ApiNotice>
+  <ATC_PolicyAgent_ApiEnabled>Enable this dedicated Agent API configuration</ATC_PolicyAgent_ApiEnabled>
+  <ATC_PolicyAgent_ApiReady>Dedicated Agent API is ready.</ATC_PolicyAgent_ApiReady>
+  <ATC_PolicyAgent_ApiIncomplete>Dedicated Agent API is incomplete; the Policy Agent will not use translation API keys.</ATC_PolicyAgent_ApiIncomplete>
 </LanguageData>

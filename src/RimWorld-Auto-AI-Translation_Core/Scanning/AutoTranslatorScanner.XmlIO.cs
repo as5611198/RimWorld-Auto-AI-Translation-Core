@@ -20,9 +20,6 @@ namespace AutoTranslator_Core
     // EN: This class manages the main workflow and state for AutoTranslatorScanner.
     public static partial class AutoTranslatorScanner
     {
-        private static readonly object TranslationXmlCommitLock = new object();
-
-
         // 這個方法負責讀取 XmlFilesToDict 資料。
         // EN: This method loads XML files to dict.
         public static Dictionary<string, string> LoadXmlFilesToDict(string path, TargetLanguage? expectedLang = null)
@@ -53,10 +50,27 @@ namespace AutoTranslator_Core
                 dict.Remove(key);
             }
 
-            if (ShouldCheckFakeLanguageForFile(filePath, expectedLang) &&
-                LanguageDetector.IsFakeLanguage(dict, expectedLang.Value))
+            bool shouldCheckLanguage = ShouldCheckFakeLanguageForFile(filePath, expectedLang);
+            if (shouldCheckLanguage && IsGeneratedTranslationOutputFile(filePath))
             {
-                AutoTranslatorSettings.AddLog($"🕵️ [System] " + "ATC_Log_FakeLanguageDetected".Translate(Path.GetFileName(filePath)).ToString());
+                foreach (string key in dict.Keys.ToList())
+                {
+                    if (TranslationResultLanguagePolicy.TryNormalizePersistedGeneratedValue(
+                            dict[key],
+                            expectedLang.Value,
+                            out string normalized))
+                    {
+                        dict[key] = normalized;
+                    }
+                    else
+                    {
+                        dict.Remove(key);
+                    }
+                }
+            }
+            else if (shouldCheckLanguage && LanguageDetector.IsFakeLanguage(dict, expectedLang.Value))
+            {
+                AutoTranslatorSettings.AddLog($"🕵️ [System] " + AutoTranslatorAPI.TranslateText("ATC_Log_FakeLanguageDetected", Path.GetFileName(filePath)));
                 return new Dictionary<string, string>();
             }
 
@@ -82,7 +96,7 @@ namespace AutoTranslator_Core
                 if (string.IsNullOrWhiteSpace(p.Key) || !ValidXmlNameRegex.IsMatch(p.Key))
                 {
                     AddValidationStat(s => s.XmlKeySkipped++);
-                    AutoTranslatorSettings.AddErrorLog("⚠️ " + "ATC_LogError_InvalidXmlKey".Translate(p.Key ?? "<null>"));
+                    AutoTranslatorSettings.AddErrorLog("⚠️ " + AutoTranslatorAPI.TranslateText("ATC_LogError_InvalidXmlKey", p.Key ?? "<null>"));
                     continue;
                 }
 
@@ -96,7 +110,7 @@ namespace AutoTranslator_Core
                 {
 
                     AddValidationStat(s => s.XmlKeySkipped++);
-                    AutoTranslatorSettings.AddErrorLog("⚠️ " + "ATC_LogError_InvalidXmlKey".Translate($"{p.Key} ({ex.Message})"));
+                    AutoTranslatorSettings.AddErrorLog("⚠️ " + AutoTranslatorAPI.TranslateText("ATC_LogError_InvalidXmlKey", $"{p.Key} ({ex.Message})"));
                     continue;
                 }
             }
@@ -108,81 +122,13 @@ namespace AutoTranslator_Core
 
         private static void SaveLanguageXmlDocumentAtomic(string path, XmlDocument document)
         {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Translation XML path is empty.", nameof(path));
             if (document?.DocumentElement == null ||
                 !document.DocumentElement.Name.Equals("LanguageData", StringComparison.Ordinal))
             {
                 throw new InvalidDataException("Translation XML must contain a LanguageData root element.");
             }
 
-            string fullPath = Path.GetFullPath(path);
-            string directory = Path.GetDirectoryName(fullPath);
-            if (string.IsNullOrWhiteSpace(directory))
-                throw new InvalidDataException("Translation XML path has no parent directory.");
-
-            Directory.CreateDirectory(directory);
-            string tempPath = Path.Combine(
-                directory,
-                "." + Path.GetFileName(fullPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
-
-            try
-            {
-                using (var stream = new FileStream(
-                           tempPath,
-                           FileMode.CreateNew,
-                           FileAccess.Write,
-                           FileShare.None,
-                           4096,
-                           FileOptions.WriteThrough))
-                {
-                    document.Save(stream);
-                    stream.Flush(true);
-                }
-
-                lock (TranslationXmlCommitLock)
-                {
-                    if (File.Exists(fullPath))
-                    {
-                        try
-                        {
-                            File.Replace(tempPath, fullPath, null, true);
-                        }
-                        catch (PlatformNotSupportedException)
-                        {
-                            ReplaceLanguageXmlWithRollback(tempPath, fullPath);
-                        }
-                        catch (NotSupportedException)
-                        {
-                            ReplaceLanguageXmlWithRollback(tempPath, fullPath);
-                        }
-                    }
-                    else
-                    {
-                        File.Move(tempPath, fullPath);
-                    }
-                }
-            }
-            finally
-            {
-                if (File.Exists(tempPath)) File.Delete(tempPath);
-            }
-        }
-
-        private static void ReplaceLanguageXmlWithRollback(string tempPath, string destinationPath)
-        {
-            string backupPath = destinationPath + ".atc-save-backup-" + Guid.NewGuid().ToString("N");
-            File.Move(destinationPath, backupPath);
-            try
-            {
-                File.Move(tempPath, destinationPath);
-                File.Delete(backupPath);
-            }
-            catch
-            {
-                if (File.Exists(destinationPath)) File.Delete(destinationPath);
-                if (File.Exists(backupPath)) File.Move(backupPath, destinationPath);
-                throw;
-            }
+            TranslationXmlAtomicFileStore.Save(path, stream => document.Save(stream));
         }
         // 這個方法負責取得 Short路徑 資料。
         // EN: This method gets short path.
@@ -217,6 +163,15 @@ namespace AutoTranslator_Core
             }
 
             return false;
+        }
+
+        private static bool IsGeneratedTranslationOutputFile(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath)) return false;
+
+            string fileName = Path.GetFileNameWithoutExtension(filePath) ?? string.Empty;
+            return fileName.EndsWith("_AutoTranslated", StringComparison.OrdinalIgnoreCase) ||
+                   fileName.Equals("AutoTranslated_Defs", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

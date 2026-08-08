@@ -39,6 +39,21 @@ namespace AutoTranslator_Core
                 new Dictionary<string, TranslationProvenanceEntry>(StringComparer.OrdinalIgnoreCase);
         }
 
+        // Provenance files can contain thousands of entries. Keep one parsed index per file
+        // and reload it only when the file stamp changes; loading it once per key turns large
+        // DefInjected passes into minutes of repeated JSON parsing and allocation.
+        private sealed class ProvenanceIndexCacheEntry
+        {
+            public long LastWriteUtcTicks;
+            public long Length;
+            public Dictionary<string, TranslationProvenanceEntry> Entries;
+        }
+
+        private static readonly object ProvenanceIndexCacheGate = new object();
+        private static readonly Dictionary<string, ProvenanceIndexCacheEntry> ProvenanceIndexCache =
+            new Dictionary<string, ProvenanceIndexCacheEntry>(StringComparer.OrdinalIgnoreCase);
+        private const int MaximumProvenanceIndexCacheEntries = 64;
+
         internal sealed class TranslationUploadProvenanceSummary
         {
             public int IncludedEntries;
@@ -108,7 +123,7 @@ namespace AutoTranslator_Core
             return CreateProvenance(ProvenanceKindUnknownLegacy, packageId, "", translationFile, "", value);
         }
 
-        internal static void SaveProvenanceForFile(
+        internal static bool SaveProvenanceForFile(
             string languageRoot,
             string packageId,
             string translationFile,
@@ -120,14 +135,14 @@ namespace AutoTranslator_Core
                 string.IsNullOrWhiteSpace(translationFile) ||
                 savedData == null)
             {
-                return;
+                return false;
             }
 
             try
             {
                 Dictionary<string, TranslationProvenanceEntry> index = LoadProvenanceIndex(languageRoot, packageId);
                 string relativePath = GetRelativeTranslationPath(languageRoot, translationFile);
-                if (string.IsNullOrEmpty(relativePath)) return;
+                if (string.IsNullOrEmpty(relativePath)) return false;
 
                 string prefix = relativePath + "|";
                 HashSet<string> savedKeys = new HashSet<string>(savedData.Keys.Where(k => !string.IsNullOrWhiteSpace(k)), StringComparer.OrdinalIgnoreCase);
@@ -162,10 +177,12 @@ namespace AutoTranslator_Core
                 }
 
                 SaveProvenanceIndex(languageRoot, packageId, index);
+                return true;
             }
             catch (Exception ex)
             {
                 Verse.Log.Warning($"[AutoTranslationCore] Failed to save provenance for {translationFile}: {ex.Message}");
+                return false;
             }
         }
 
@@ -347,15 +364,34 @@ namespace AutoTranslator_Core
             string path = GetProvenancePath(languageRoot, packageId);
             if (string.IsNullOrEmpty(path) || !File.Exists(path)) return empty;
 
+            GetProvenanceFileStamp(path, out long lastWriteUtcTicks, out long length);
+            lock (ProvenanceIndexCacheGate)
+            {
+                if (ProvenanceIndexCache.TryGetValue(path, out ProvenanceIndexCacheEntry cached) &&
+                    cached != null &&
+                    cached.LastWriteUtcTicks == lastWriteUtcTicks &&
+                    cached.Length == length &&
+                    cached.Entries != null)
+                {
+                    return cached.Entries;
+                }
+            }
+
             try
             {
                 TranslationProvenanceFile data = JsonConvert.DeserializeObject<TranslationProvenanceFile>(File.ReadAllText(path));
-                return data != null && data.Entries != null
+                Dictionary<string, TranslationProvenanceEntry> entries = data != null && data.Entries != null
                     ? new Dictionary<string, TranslationProvenanceEntry>(data.Entries, StringComparer.OrdinalIgnoreCase)
                     : empty;
+                CacheProvenanceIndex(path, lastWriteUtcTicks, length, entries);
+                return entries;
             }
             catch
             {
+                lock (ProvenanceIndexCacheGate)
+                {
+                    ProvenanceIndexCache.Remove(path);
+                }
                 return empty;
             }
         }
@@ -373,7 +409,56 @@ namespace AutoTranslator_Core
                 LanguageFolder = Path.GetFileName(languageRoot ?? "") ?? "",
                 Entries = entries ?? new Dictionary<string, TranslationProvenanceEntry>(StringComparer.OrdinalIgnoreCase)
             };
-            File.WriteAllText(path, JsonConvert.SerializeObject(data, Formatting.Indented));
+            byte[] json = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(data, Formatting.Indented));
+            TranslationXmlAtomicFileStore.Save(path, stream => stream.Write(json, 0, json.Length));
+            GetProvenanceFileStamp(path, out long lastWriteUtcTicks, out long length);
+            CacheProvenanceIndex(
+                path,
+                lastWriteUtcTicks,
+                length,
+                entries ?? new Dictionary<string, TranslationProvenanceEntry>(StringComparer.OrdinalIgnoreCase));
+        }
+
+        private static void CacheProvenanceIndex(
+            string path,
+            long lastWriteUtcTicks,
+            long length,
+            Dictionary<string, TranslationProvenanceEntry> entries)
+        {
+            if (string.IsNullOrEmpty(path) || entries == null) return;
+            lock (ProvenanceIndexCacheGate)
+            {
+                if (!ProvenanceIndexCache.ContainsKey(path) &&
+                    ProvenanceIndexCache.Count >= MaximumProvenanceIndexCacheEntries)
+                {
+                    string evictedPath = ProvenanceIndexCache.Keys.FirstOrDefault();
+                    if (!string.IsNullOrEmpty(evictedPath)) ProvenanceIndexCache.Remove(evictedPath);
+                }
+
+                ProvenanceIndexCache[path] = new ProvenanceIndexCacheEntry
+                {
+                    LastWriteUtcTicks = lastWriteUtcTicks,
+                    Length = length,
+                    Entries = entries
+                };
+            }
+        }
+
+        private static void GetProvenanceFileStamp(string path, out long lastWriteUtcTicks, out long length)
+        {
+            lastWriteUtcTicks = 0L;
+            length = -1L;
+            try
+            {
+                FileInfo info = new FileInfo(path);
+                if (!info.Exists) return;
+                lastWriteUtcTicks = info.LastWriteTimeUtc.Ticks;
+                length = info.Length;
+            }
+            catch
+            {
+                // A failed stamp lookup simply disables the cache hit for this call.
+            }
         }
 
         private static string GetProvenancePath(string languageRoot, string packageId)

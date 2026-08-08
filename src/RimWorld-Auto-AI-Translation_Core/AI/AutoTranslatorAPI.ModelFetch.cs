@@ -39,11 +39,23 @@ namespace AutoTranslator_Core
         // EN: This method handles maintain model fetch state.
         public static void MaintainModelFetchState()
         {
-            if (AutoTranslatorMod.Settings?.ApiConfigs == null) return;
+            if (AutoTranslatorMod.Settings == null) return;
 
-            for (int i = 0; i < AutoTranslatorMod.Settings.ApiConfigs.Count; i++)
+            List<ApiKeyConfig> translationConfigs = AutoTranslatorMod.Settings.ApiConfigs;
+            if (translationConfigs != null)
             {
-                MaintainModelFetchState(AutoTranslatorMod.Settings.ApiConfigs[i]);
+                for (int i = 0; i < translationConfigs.Count; i++)
+                {
+                    MaintainModelFetchState(translationConfigs[i]);
+                }
+            }
+
+            // The policy Agent has its own key/model and therefore its own fetch state.
+            ApiKeyConfig policyAgentConfig = AutoTranslatorMod.Settings.PolicyAgentApiConfig;
+            if (policyAgentConfig != null &&
+                (translationConfigs == null || !translationConfigs.Contains(policyAgentConfig)))
+            {
+                MaintainModelFetchState(policyAgentConfig);
             }
         }
 
@@ -78,10 +90,19 @@ namespace AutoTranslator_Core
 
             string fetchFingerprint = GetModelFetchFingerprint(config);
             return fetchFingerprint != config.lastFetchedKey &&
-                   CleanInput(config.Key).Length > 10 &&
+                   HasModelFetchCredential(config) &&
                    (string.IsNullOrEmpty(config.PendingFetchFingerprint) ||
                     config.PendingFetchFingerprint != fetchFingerprint ||
                     CanAutoRetryModelFetch(config, fetchFingerprint));
+        }
+
+        private static bool HasModelFetchCredential(ApiKeyConfig config)
+        {
+            if (config == null) return false;
+            if (CleanInput(config.Key).Length > 10) return true;
+
+            return config.Provider == TranslatorProvider.Custom_OpenAI &&
+                   !string.IsNullOrWhiteSpace(config.CustomBaseUrl);
         }
 
         // 這個方法負責處理 自動取得For設定 相關流程。
@@ -144,7 +165,7 @@ namespace AutoTranslator_Core
                 {
                     string apiKey = CleanInput(config.Key);
                     string baseUrl = GetBaseUrl(config);
-                    bool isGoogleRaw = (config.Provider == TranslatorProvider.Google && string.IsNullOrEmpty(config.CustomBaseUrl));
+                    bool isGoogleRaw = config.Provider == TranslatorProvider.Google;
                     string url = BuildModelsUrl(config, baseUrl, apiKey, isGoogleRaw);
 
                     int maxRetries = 2;
@@ -215,7 +236,7 @@ namespace AutoTranslator_Core
                         var dispatchTask = await Task.WhenAny(dispatchStarted.Task, Task.Delay(ModelFetchDispatchTimeoutMs));
                         if (dispatchTask != dispatchStarted.Task)
                         {
-                            Verse.Log.Warning($"[AutoTranslationCore] Fetch Models dispatch timed out before UnityWebRequest started [{config.Provider}] URL: {url}");
+                            Verse.Log.Warning($"[AutoTranslationCore] Fetch Models dispatch timed out before UnityWebRequest started [{config.Provider}] URL: {SanitizeUrlForLog(url)}");
                             AutoTranslatorSettings.AddErrorLog(TranslateText("ATC_Error_FetchModelsDispatchTimeout", config.Provider.ToString()));
                             ScheduleModelFetchRetry(config, fetchGeneration);
                             break;
@@ -347,6 +368,13 @@ namespace AutoTranslator_Core
 
         // 這個方法負責處理 Decode回應Body 相關流程。
         // EN: This method handles decode response body.
+        private static string SanitizeUrlForLog(string url)
+        {
+            if (string.IsNullOrEmpty(url)) return "";
+            int queryStart = url.IndexOf('?');
+            return queryStart >= 0 ? url.Substring(0, queryStart) : url;
+        }
+
         private static string DecodeResponseBody(byte[] rawData)
         {
             if (rawData == null || rawData.Length == 0) return "";

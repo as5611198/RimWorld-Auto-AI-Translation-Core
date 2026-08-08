@@ -24,7 +24,7 @@ namespace AutoTranslator_Core
         // EN: This method starts single scan.
         public static void StartSingleScan(ModMetaData targetMod)
         {
-            if (targetMod == null) return;
+            if (targetMod == null || string.IsNullOrWhiteSpace(targetMod.PackageId)) return;
             if (AutoTranslatorMod.Settings != null && AutoTranslatorMod.Settings.IsTranslationBlacklisted(targetMod.PackageId))
             {
                 Messages.Message("ATC_Blacklist_TranslationSkipped".Translate(targetMod.Name), MessageTypeDefOf.NeutralEvent, false);
@@ -33,6 +33,7 @@ namespace AutoTranslator_Core
 
             AutoTranslatorMod.Settings.SessionCharCount = 0;
             ResetValidationStats();
+            TranslationUnresolvedManager.BeginRun();
 
             AutoTranslatorSettings.IsRunning = true;
 
@@ -42,19 +43,34 @@ namespace AutoTranslator_Core
             AutoTranslatorSettings.AddLog("🚀 " + AutoTranslatorAPI.TranslateText("ATC_Log_StartSingleMod", targetMod.Name));
 
 
-            var activeMods = ModLister.AllInstalledMods.Where(m => m.Active && !BlacklistedModules.Contains(m.PackageId.ToLower())).ToList();
+            var activeMods = ModLister.AllInstalledMods.Where(m =>
+                m != null &&
+                !string.IsNullOrWhiteSpace(m.PackageId) &&
+                m.Active &&
+                !BlacklistedModules.Contains(m.PackageId.ToLowerInvariant())).ToList();
 
 
             Task.Run(async () =>
             {
+                long policyAgentRunId = 0L;
                 try
                 {
+                    policyAgentRunId = BeginTranslationPolicyAgentRun();
                     EnsurePackInitialized(runFullMaintenance: false);
                     if (AutoTranslatorSettings.IsCancellationRequested) return;
+                    TranslationUnresolvedManager.BeginPackageScan(
+                        targetMod.PackageId,
+                        settings.TargetLang.ToString());
 
                     if (ShouldSkipTranslationPatchMod(targetMod))
                     {
-                        ModUpdateDetector.MarkModAsTranslated(targetMod.PackageId, targetMod.RootDir.FullName, false);
+                        ModUpdateDetector.MarkModAsTranslated(
+                            targetMod.PackageId,
+                            GetModRootPath(targetMod),
+                            false);
+                        TranslationUnresolvedManager.CompletePackageScan(
+                            targetMod.PackageId,
+                            settings.TargetLang.ToString());
                         settings.CurrentTaskName = "ATC_TaskDone".Translate();
                         settings.CurrentProgress = 1f;
                         ModUpdateDetector.ClearStatusCache();
@@ -70,7 +86,6 @@ namespace AutoTranslator_Core
                     {
                         AutoTranslatorSettings.AddErrorLog("❌ " + "ATC_LogError_ApiDeadAbort".Translate());
                         settings.CurrentTaskName = "ATC_TaskFailed".Translate();
-                        AutoTranslatorSettings.IsRunning = false;
                         return;
                     }
 
@@ -122,13 +137,31 @@ namespace AutoTranslator_Core
                         }
                     }
 
+                    if (AutoTranslatorSettings.IsSkipCurrentRequested)
+                    {
+                        TranslationUnresolvedManager.AbortPackageScan(
+                            targetMod.PackageId,
+                            settings.TargetLang.ToString());
+                        AutoTranslatorSettings.IsSkipCurrentRequested = false;
+                        return;
+                    }
+
                     if (!AutoTranslatorSettings.IsCancellationRequested)
                     {
                         settings.CurrentTaskName = "ATC_TaskDone".Translate();
 
-                        if (!skippedNoSource)
+                        TranslationUnresolvedManager.CompletePackageScan(
+                            targetMod.PackageId,
+                            settings.TargetLang.ToString());
+                        bool hasPending = TranslationUnresolvedManager.HasPendingForPackage(
+                            targetMod.PackageId,
+                            settings.TargetLang.ToString());
+                        if (!skippedNoSource && !hasPending)
                         {
-                            ModUpdateDetector.MarkModAsTranslated(targetMod.PackageId, targetMod.RootDir.FullName, false);
+                            ModUpdateDetector.MarkModAsTranslated(
+                                targetMod.PackageId,
+                                GetModRootPath(targetMod),
+                                false);
                         }
                         settings.CurrentProgress = 1f;
                         AutoTranslatorSettings.AddLog("✨ " + "ATC_Log_SingleModDone".Translate());
@@ -141,16 +174,23 @@ namespace AutoTranslator_Core
                         AutoTranslatorSettings.ShowFinishPopup = true;
                         ModUpdateDetector.ClearStatusCache();
                         TranslationWorkbenchTab.RequestRefresh();
+                        TranslationUnresolvedManager.CompleteRun();
                     }
                 }
                 catch (Exception e)
                 {
-                    AutoTranslatorSettings.AddLog("❌ " + AutoTranslatorAPI.TranslateText("ATC_Log_TaskError", e.Message));
-                    Log.Error($"[AutoTranslationCore] Single translation task interrupted: {e.Message}");
+                    HandlePackageScanException(targetMod, e);
+                    TryRunPipelineCleanup("set single-scan failure state", () =>
+                    {
+                        settings.CurrentTaskName = "ATC_TaskFailed".Translate();
+                        AutoTranslatorSettings.ShowFinishPopup = true;
+                    });
                 }
                 finally
                 {
-                    ClearGlobalTranslationDatabase();
+                    TryRunPipelineCleanup("save single-scan progress", () => TranslationUnresolvedManager.SaveRunProgress());
+                    TryRunPipelineCleanup("end single-scan policy-agent run", () => EndTranslationPolicyAgentRun(policyAgentRunId));
+                    TryRunPipelineCleanup("clear single-scan translation database", () => ClearGlobalTranslationDatabase());
                     AutoTranslatorSettings.IsRunning = false;
                 }
             });
@@ -162,6 +202,7 @@ namespace AutoTranslator_Core
 
             AutoTranslatorMod.Settings.SessionCharCount = 0;
             ResetValidationStats();
+            TranslationUnresolvedManager.BeginRun();
             AutoTranslatorSettings.ResetPipelineCancellation();
             AutoTranslatorSettings.IsRunning = true;
             AutoTranslatorSettings.ActiveTab = 0;
@@ -177,13 +218,21 @@ namespace AutoTranslator_Core
             Task.Run(async () =>
             {
                 int aiTranslatedCount = 0;
+                long policyAgentRunId = 0L;
                 try
                 {
+                    policyAgentRunId = BeginTranslationPolicyAgentRun();
                     EnsurePackInitialized(runFullMaintenance: false);
                     if (AutoTranslatorSettings.IsCancellationRequested) return;
+                    TranslationUnresolvedManager.BeginPackageScan(
+                        targetMod.PackageId,
+                        settings.TargetLang.ToString());
 
                     if (ShouldSkipTranslationPatchMod(targetMod))
                     {
+                        TranslationUnresolvedManager.AbortPackageScan(
+                            targetMod.PackageId,
+                            settings.TargetLang.ToString());
                         AutoTranslatorSettings.AddErrorLog("❌ " + AutoTranslatorAPI.TranslateText("ATC_Log_PureAiRebuildBlockedPatchMod", targetMod.Name));
                         settings.CurrentTaskName = "ATC_TaskFailed".Translate();
                         return;
@@ -235,6 +284,15 @@ namespace AutoTranslator_Core
                         }
                     }
 
+                    if (AutoTranslatorSettings.IsSkipCurrentRequested)
+                    {
+                        TranslationUnresolvedManager.AbortPackageScan(
+                            targetMod.PackageId,
+                            settings.TargetLang.ToString());
+                        AutoTranslatorSettings.IsSkipCurrentRequested = false;
+                        return;
+                    }
+
                     if (!AutoTranslatorSettings.IsCancellationRequested)
                     {
                         if (aiTranslatedCount > 0)
@@ -251,30 +309,48 @@ namespace AutoTranslator_Core
                                 Messages.Message("ATC_Msg_PureAiRebuildNoEntries".Translate(targetMod.Name), MessageTypeDefOf.RejectInput, false));
                         }
 
+                        TranslationUnresolvedManager.CompletePackageScan(
+                            targetMod.PackageId,
+                            settings.TargetLang.ToString());
+
                         settings.CurrentTaskName = "ATC_TaskDone".Translate();
                         settings.CurrentProgress = 1f;
                         settings.SubTaskName = "";
                         settings.SubProgress = 1f;
                         LogValidationSummary();
+                        if (TranslationUnresolvedManager.HasPending)
+                        {
+                            AutoTranslatorSettings.ShowFinishPopup = true;
+                        }
                         ModUpdateDetector.ClearStatusCache();
                         TranslationWorkbenchTab.RequestRefresh();
+                        TranslationUnresolvedManager.CompleteRun();
                     }
                 }
                 catch (Exception e)
                 {
-                    AutoTranslatorSettings.AddLog("❌ " + AutoTranslatorAPI.TranslateText("ATC_Log_TaskError", e.Message));
-                    Log.Error($"[AutoTranslationCore] Pure AI rebuild task interrupted: {e.Message}");
+                    HandlePackageScanException(targetMod, e);
+                    TryRunPipelineCleanup("set pure-AI failure state", () =>
+                    {
+                        settings.CurrentTaskName = "ATC_TaskFailed".Translate();
+                        AutoTranslatorSettings.ShowFinishPopup = true;
+                    });
                 }
                 finally
                 {
-                    AutoTranslatorSettings.IsRunning = false;
+                    TryRunPipelineCleanup("save pure-AI progress", () => TranslationUnresolvedManager.SaveRunProgress());
+                    TryRunPipelineCleanup("end pure-AI policy-agent run", () => EndTranslationPolicyAgentRun(policyAgentRunId));
                     if (AutoTranslatorSettings.IsCancellationRequested)
                     {
-                        settings.CurrentTaskName = "";
-                        settings.CurrentProgress = 0f;
-                        settings.SubTaskName = "";
-                        settings.SubProgress = 0f;
+                        TryRunPipelineCleanup("reset pure-AI cancellation state", () =>
+                        {
+                            settings.CurrentTaskName = "";
+                            settings.CurrentProgress = 0f;
+                            settings.SubTaskName = "";
+                            settings.SubProgress = 0f;
+                        });
                     }
+                    AutoTranslatorSettings.IsRunning = false;
                 }
             });
         }
@@ -357,12 +433,15 @@ namespace AutoTranslator_Core
         {
             AutoTranslatorMod.Settings.SessionCharCount = 0;
             ResetValidationStats();
+            TranslationUnresolvedManager.BeginRun();
             AutoTranslatorSettings.IsRunning = true;
 
             var settings = AutoTranslatorMod.Settings;
 
             var mods = ModLister.AllInstalledMods.Where(m =>
-                            !BlacklistedModules.Contains(m.PackageId.ToLower()) &&
+                            m != null &&
+                            !string.IsNullOrWhiteSpace(m.PackageId) &&
+                            !BlacklistedModules.Contains(m.PackageId.ToLowerInvariant()) &&
                             !settings.IsTranslationBlacklisted(m.PackageId) &&
                             !IsOfficialBaseGameOrDlcPackage(m.PackageId) &&
                             (!settings.OnlyScanActiveMods || m.Active)).ToList();
@@ -371,8 +450,11 @@ namespace AutoTranslator_Core
 
             Task.Run(async () =>
             {
+                long policyAgentRunId = 0L;
+                bool runHadPackageFailures = false;
                 try
                 {
+                    policyAgentRunId = BeginTranslationPolicyAgentRun();
                     EnsurePackInitialized(runFullMaintenance: false);
                     if (AutoTranslatorSettings.IsCancellationRequested) return;
 
@@ -385,7 +467,6 @@ namespace AutoTranslator_Core
                     {
                         AutoTranslatorSettings.AddErrorLog("❌ " + "ATC_LogError_ApiDeadAbort".Translate());
                         settings.CurrentTaskName = "ATC_TaskFailed".Translate();
-                        AutoTranslatorSettings.IsRunning = false;
                         return;
                     }
 
@@ -402,6 +483,8 @@ namespace AutoTranslator_Core
                     int current = 0;
                     foreach (var mod in mods)
                     {
+                        try
+                        {
 
 
                         if (IsTranslationPatchMod(mod))
@@ -411,7 +494,10 @@ namespace AutoTranslator_Core
 
                         if (ShouldSkipTranslationPatchMod(mod))
                         {
-                            ModUpdateDetector.MarkModAsTranslated(mod.PackageId, mod.RootDir.FullName, false);
+                            ModUpdateDetector.MarkModAsTranslated(
+                                mod.PackageId,
+                                GetModRootPath(mod),
+                                false);
                             continue;
                         }
 
@@ -422,6 +508,10 @@ namespace AutoTranslator_Core
                             AutoTranslatorSettings.IsSkipCurrentRequested = false;
                             continue;
                         }
+
+                        TranslationUnresolvedManager.BeginPackageScan(
+                            mod.PackageId,
+                            settings.TargetLang.ToString());
 
                         current++;
                         settings.CurrentProgress = (float)current / total;
@@ -441,6 +531,9 @@ namespace AutoTranslator_Core
                         if (langRoots.Count == 0 && defsRoots.Count == 0)
                         {
                             AutoTranslatorSettings.AddLog("⏭️ " + "ATC_Log_SkipMod".Translate());
+                            TranslationUnresolvedManager.CompletePackageScan(
+                                mod.PackageId,
+                                settings.TargetLang.ToString());
                             continue;
                         }
 
@@ -454,7 +547,14 @@ namespace AutoTranslator_Core
                         }
 
                         if (AutoTranslatorSettings.IsCancellationRequested) break;
-                        if (AutoTranslatorSettings.IsSkipCurrentRequested) { AutoTranslatorSettings.IsSkipCurrentRequested = false; continue; }
+                        if (AutoTranslatorSettings.IsSkipCurrentRequested)
+                        {
+                            TranslationUnresolvedManager.AbortPackageScan(
+                                mod.PackageId,
+                                settings.TargetLang.ToString());
+                            AutoTranslatorSettings.IsSkipCurrentRequested = false;
+                            continue;
+                        }
 
                         if (defsRoots.Count > 0 || langRoots.Count > 0)
                         {
@@ -465,7 +565,19 @@ namespace AutoTranslator_Core
 
                         if (!AutoTranslatorSettings.IsSkipCurrentRequested && !AutoTranslatorSettings.IsCancellationRequested)
                         {
-                            ModUpdateDetector.MarkModAsTranslated(mod.PackageId, mod.RootDir.FullName, false);
+                            TranslationUnresolvedManager.CompletePackageScan(
+                                mod.PackageId,
+                                settings.TargetLang.ToString());
+                            bool hasPending = TranslationUnresolvedManager.HasPendingForPackage(
+                                mod.PackageId,
+                                settings.TargetLang.ToString());
+                            if (!hasPending)
+                            {
+                                ModUpdateDetector.MarkModAsTranslated(
+                                    mod.PackageId,
+                                    GetModRootPath(mod),
+                                    false);
+                            }
 
 
                             if (aiTranslatedCount > 0)
@@ -476,8 +588,18 @@ namespace AutoTranslator_Core
 
                         if (AutoTranslatorSettings.IsSkipCurrentRequested)
                         {
+                            TranslationUnresolvedManager.AbortPackageScan(
+                                mod.PackageId,
+                                settings.TargetLang.ToString());
                             AutoTranslatorSettings.AddLog("⏭️ " + AutoTranslatorAPI.TranslateText("ATC_Log_SkippedMod", mod.Name));
                             AutoTranslatorSettings.IsSkipCurrentRequested = false;
+                        }
+                        }
+                        catch (Exception packageException)
+                        {
+                            runHadPackageFailures = true;
+                            HandlePackageScanException(mod, packageException);
+                            if (AutoTranslatorSettings.IsCancellationRequested) break;
                         }
                     }
 
@@ -495,24 +617,39 @@ namespace AutoTranslator_Core
                         AutoTranslatorSettings.ShowFinishPopup = true;
                         ModUpdateDetector.ClearStatusCache();
                         TranslationWorkbenchTab.RequestRefresh();
+                        if (!runHadPackageFailures)
+                        {
+                            TranslationUnresolvedManager.CompleteRun();
+                        }
                     }
                 }
                 catch (Exception e)
                 {
-                    AutoTranslatorSettings.AddLog(AutoTranslatorAPI.TranslateText("ATC_Log_TaskError", e.Message));
-                    AutoTranslatorSettings.AddLog($"[CRITICAL ERROR] {e.Message}");
+                    TryAddLocalizedTaskError(e);
+                    TryAddPipelineLog($"[CRITICAL ERROR] {e}");
+                    TryLogPipelineError($"[AutoTranslationCore] Full translation run interrupted:\n{e}");
+                    TryRunPipelineCleanup("set full-scan failure state", () =>
+                    {
+                        settings.CurrentTaskName = "ATC_TaskFailed".Translate();
+                        AutoTranslatorSettings.ShowFinishPopup = true;
+                    });
                 }
                 finally
                 {
-                    ClearGlobalTranslationDatabase();
-                    AutoTranslatorSettings.IsRunning = false;
+                    TryRunPipelineCleanup("save full-scan progress", () => TranslationUnresolvedManager.SaveRunProgress());
+                    TryRunPipelineCleanup("end full-scan policy-agent run", () => EndTranslationPolicyAgentRun(policyAgentRunId));
+                    TryRunPipelineCleanup("clear full-scan translation database", () => ClearGlobalTranslationDatabase());
                     if (AutoTranslatorSettings.IsCancellationRequested)
                     {
-                        settings.CurrentTaskName = "";
-                        settings.CurrentProgress = 0f;
-                        settings.SubTaskName = "";
-                        settings.SubProgress = 0f;
+                        TryRunPipelineCleanup("reset full-scan cancellation state", () =>
+                        {
+                            settings.CurrentTaskName = "";
+                            settings.CurrentProgress = 0f;
+                            settings.SubTaskName = "";
+                            settings.SubProgress = 0f;
+                        });
                     }
+                    AutoTranslatorSettings.IsRunning = false;
                 }
             });
         }
@@ -524,6 +661,7 @@ namespace AutoTranslator_Core
         {
             targetMods = (targetMods ?? new List<ModMetaData>())
                 .Where(mod => mod != null &&
+                              !string.IsNullOrWhiteSpace(mod.PackageId) &&
                               (AutoTranslatorMod.Settings == null || !AutoTranslatorMod.Settings.IsTranslationBlacklisted(mod.PackageId)) &&
                               (includeOfficialGamePackages || !IsOfficialBaseGameOrDlcPackage(mod.PackageId)))
                 .ToList();
@@ -531,6 +669,7 @@ namespace AutoTranslator_Core
 
             AutoTranslatorMod.Settings.SessionCharCount = 0;
             ResetValidationStats();
+            TranslationUnresolvedManager.BeginRun();
             AutoTranslatorSettings.IsRunning = true;
 
 
@@ -538,12 +677,20 @@ namespace AutoTranslator_Core
             int total = targetMods.Count;
             AutoTranslatorSettings.AddLog("🚀 " + "ATC_Log_MultiScanStart".Translate(total));
 
-            var activeMods = ModLister.AllInstalledMods.Where(m => m.Active && !BlacklistedModules.Contains(m.PackageId.ToLower())).ToList();
+            var activeMods = ModLister.AllInstalledMods
+                .Where(m => m != null &&
+                            m.Active &&
+                            !string.IsNullOrWhiteSpace(m.PackageId) &&
+                            !BlacklistedModules.Contains(m.PackageId.ToLowerInvariant()))
+                .ToList();
 
             Task.Run(async () =>
             {
+                long policyAgentRunId = 0L;
+                bool runHadPackageFailures = false;
                 try
                 {
+                    policyAgentRunId = BeginTranslationPolicyAgentRun();
                     EnsurePackInitialized(runFullMaintenance: false);
                     if (AutoTranslatorSettings.IsCancellationRequested) return;
 
@@ -556,7 +703,6 @@ namespace AutoTranslator_Core
                     {
                         AutoTranslatorSettings.AddErrorLog("❌ " + "ATC_LogError_ApiDeadAbort".Translate());
                         settings.CurrentTaskName = "ATC_TaskFailed".Translate();
-                        AutoTranslatorSettings.IsRunning = false;
                         return;
                     }
 
@@ -572,9 +718,14 @@ namespace AutoTranslator_Core
                     int current = 0;
                     foreach (var mod in targetMods)
                     {
+                        try
+                        {
                         if (ShouldSkipTranslationPatchMod(mod))
                         {
-                            ModUpdateDetector.MarkModAsTranslated(mod.PackageId, mod.RootDir.FullName, false);
+                            ModUpdateDetector.MarkModAsTranslated(
+                                mod.PackageId,
+                                GetModRootPath(mod),
+                                false);
                             continue;
                         }
 
@@ -585,6 +736,10 @@ namespace AutoTranslator_Core
                             AutoTranslatorSettings.IsSkipCurrentRequested = false;
                             continue;
                         }
+
+                        TranslationUnresolvedManager.BeginPackageScan(
+                            mod.PackageId,
+                            settings.TargetLang.ToString());
 
                         current++;
                         settings.CurrentProgress = (float)current / total;
@@ -604,6 +759,9 @@ namespace AutoTranslator_Core
                         if (langRoots.Count == 0 && defsRoots.Count == 0)
                         {
                             AutoTranslatorSettings.AddLog("⏭️ " + "ATC_Log_SkipMod".Translate());
+                            TranslationUnresolvedManager.CompletePackageScan(
+                                mod.PackageId,
+                                settings.TargetLang.ToString());
                             continue;
                         }
 
@@ -617,7 +775,14 @@ namespace AutoTranslator_Core
                         }
 
                         if (AutoTranslatorSettings.IsCancellationRequested) break;
-                        if (AutoTranslatorSettings.IsSkipCurrentRequested) { AutoTranslatorSettings.IsSkipCurrentRequested = false; continue; }
+                        if (AutoTranslatorSettings.IsSkipCurrentRequested)
+                        {
+                            TranslationUnresolvedManager.AbortPackageScan(
+                                mod.PackageId,
+                                settings.TargetLang.ToString());
+                            AutoTranslatorSettings.IsSkipCurrentRequested = false;
+                            continue;
+                        }
 
                         if (defsRoots.Count > 0 || langRoots.Count > 0)
                         {
@@ -628,14 +793,36 @@ namespace AutoTranslator_Core
 
                         if (!AutoTranslatorSettings.IsSkipCurrentRequested && !AutoTranslatorSettings.IsCancellationRequested)
                         {
-                            ModUpdateDetector.MarkModAsTranslated(mod.PackageId, mod.RootDir.FullName, false);
+                            TranslationUnresolvedManager.CompletePackageScan(
+                                mod.PackageId,
+                                settings.TargetLang.ToString());
+                            bool hasPending = TranslationUnresolvedManager.HasPendingForPackage(
+                                mod.PackageId,
+                                settings.TargetLang.ToString());
+                            if (!hasPending)
+                            {
+                                ModUpdateDetector.MarkModAsTranslated(
+                                    mod.PackageId,
+                                    GetModRootPath(mod),
+                                    false);
+                            }
                         }
 
 
                         if (AutoTranslatorSettings.IsSkipCurrentRequested)
                         {
+                            TranslationUnresolvedManager.AbortPackageScan(
+                                mod.PackageId,
+                                settings.TargetLang.ToString());
                             AutoTranslatorSettings.AddLog("⏭️ " + AutoTranslatorAPI.TranslateText("ATC_Log_SkippedMod", mod.Name));
                             AutoTranslatorSettings.IsSkipCurrentRequested = false;
+                        }
+                        }
+                        catch (Exception packageException)
+                        {
+                            runHadPackageFailures = true;
+                            HandlePackageScanException(mod, packageException);
+                            if (AutoTranslatorSettings.IsCancellationRequested) break;
                         }
                     }
 
@@ -652,26 +839,249 @@ namespace AutoTranslator_Core
                         AutoTranslatorSettings.ShowFinishPopup = true;
                         ModUpdateDetector.ClearStatusCache();
                         TranslationWorkbenchTab.RequestRefresh();
+                        if (!runHadPackageFailures)
+                        {
+                            TranslationUnresolvedManager.CompleteRun();
+                        }
                     }
                 }
                 catch (Exception e)
                 {
-                    AutoTranslatorSettings.AddLog(AutoTranslatorAPI.TranslateText("ATC_Log_TaskError", e.Message));
-                    AutoTranslatorSettings.AddLog($"[CRITICAL ERROR] {e.Message}");
+                    TryAddLocalizedTaskError(e);
+                    TryAddPipelineLog($"[CRITICAL ERROR] {e}");
+                    TryLogPipelineError($"[AutoTranslationCore] Multi-mod translation run interrupted:\n{e}");
+                    TryRunPipelineCleanup("set multi-scan failure state", () =>
+                    {
+                        settings.CurrentTaskName = "ATC_TaskFailed".Translate();
+                        AutoTranslatorSettings.ShowFinishPopup = true;
+                    });
                 }
                 finally
                 {
-                    ClearGlobalTranslationDatabase();
-                    AutoTranslatorSettings.IsRunning = false;
+                    TryRunPipelineCleanup("save multi-scan progress", () => TranslationUnresolvedManager.SaveRunProgress());
+                    TryRunPipelineCleanup("end multi-scan policy-agent run", () => EndTranslationPolicyAgentRun(policyAgentRunId));
+                    TryRunPipelineCleanup("clear multi-scan translation database", () => ClearGlobalTranslationDatabase());
                     if (AutoTranslatorSettings.IsCancellationRequested)
                     {
-                        settings.CurrentTaskName = "";
-                        settings.CurrentProgress = 0f;
-                        settings.SubTaskName = "";
-                        settings.SubProgress = 0f;
+                        TryRunPipelineCleanup("reset multi-scan cancellation state", () =>
+                        {
+                            settings.CurrentTaskName = "";
+                            settings.CurrentProgress = 0f;
+                            settings.SubTaskName = "";
+                            settings.SubProgress = 0f;
+                        });
                     }
+                    AutoTranslatorSettings.IsRunning = false;
                 }
             });
+        }
+
+        private static void TryRunPipelineCleanup(string operation, Action action)
+        {
+            if (action == null) return;
+            try
+            {
+                action();
+            }
+            catch (Exception exception)
+            {
+                string detail = exception.ToString();
+                try
+                {
+                    AutoTranslatorSettings.AddLog($"[CLEANUP ERROR] {operation}: {exception.Message}");
+                }
+                catch
+                {
+                }
+                TryLogPipelineError($"[AutoTranslationCore] Pipeline cleanup failed ({operation}):\n{detail}");
+            }
+        }
+
+        private static void HandlePackageScanException(ModMetaData mod, Exception exception)
+        {
+            try
+            {
+                string packageId = GetModPackageId(mod);
+                string modName = GetModName(mod, packageId);
+                string targetLanguage = GetTargetLanguageName();
+                string sourcePath = GetModRootPath(mod);
+                string detail = GetExceptionDetail(exception);
+
+                TryRunPipelineCleanup(
+                    "mark package scan incomplete",
+                    () => TranslationUnresolvedManager.MarkPackageScanIncomplete(packageId, targetLanguage));
+                TryRunPipelineCleanup(
+                    "record package failure",
+                    () => RecordPackageProcessingFailure(
+                        packageId,
+                        modName,
+                        targetLanguage,
+                        sourcePath,
+                        detail));
+                TryRunPipelineCleanup(
+                    "complete failed package scan",
+                    () => TranslationUnresolvedManager.CompletePackageScan(packageId, targetLanguage));
+
+                TryAddPipelineLog($"[PACKAGE ERROR] {modName}: {GetExceptionMessage(exception)}");
+                TryAddPipelineLog("[PACKAGE ERROR DETAIL] " + detail);
+                TryLogPipelineError(
+                    $"[AutoTranslationCore] Package translation failed for {modName} ({packageId}); continuing with the remaining queue.\n{detail}");
+            }
+            catch (Exception handlerException)
+            {
+                TryAddPipelineLog("[PACKAGE ERROR] Failure handling also failed: " +
+                    GetExceptionMessage(handlerException));
+                TryLogPipelineError(
+                    "[AutoTranslationCore] Package failure handler failed; the remaining queue will still continue.\n" +
+                    GetExceptionDetail(handlerException));
+            }
+        }
+
+        private static void RecordPackageProcessingFailure(
+            string packageId,
+            string modName,
+            string targetLanguage,
+            string sourcePath,
+            string detail)
+        {
+            TranslationUnresolvedManager.RecordFailure(new TranslationUnresolvedEntry
+            {
+                TargetLanguage = targetLanguage ?? string.Empty,
+                PackageId = packageId ?? string.Empty,
+                ModName = modName ?? string.Empty,
+                Bucket = "Package",
+                DefType = string.Empty,
+                Key = "__ATC_PACKAGE_FAILURE__",
+                SourceText = sourcePath ?? string.Empty,
+                SourceFile = sourcePath ?? string.Empty,
+                TargetFile = string.Empty,
+                Reason = TranslationUnresolvedReasons.SourceFailure,
+                Detail = detail ?? string.Empty,
+                Attempts = 1,
+                State = TranslationUnresolvedStates.Pending
+            });
+        }
+
+        private static string GetModRootPath(ModMetaData mod)
+        {
+            try
+            {
+                return mod != null && mod.RootDir != null
+                    ? mod.RootDir.FullName
+                    : string.Empty;
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private static string GetModPackageId(ModMetaData mod)
+        {
+            try
+            {
+                return mod != null ? mod.PackageId ?? string.Empty : string.Empty;
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private static string GetModName(ModMetaData mod, string fallback)
+        {
+            try
+            {
+                return mod != null && !string.IsNullOrWhiteSpace(mod.Name)
+                    ? mod.Name
+                    : fallback ?? string.Empty;
+            }
+            catch
+            {
+                return fallback ?? string.Empty;
+            }
+        }
+
+        private static string GetTargetLanguageName()
+        {
+            try
+            {
+                return AutoTranslatorMod.Settings != null
+                    ? AutoTranslatorMod.Settings.TargetLang.ToString()
+                    : string.Empty;
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private static string GetExceptionMessage(Exception exception)
+        {
+            try
+            {
+                return exception != null && !string.IsNullOrWhiteSpace(exception.Message)
+                    ? exception.Message
+                    : "Unhandled package translation failure.";
+            }
+            catch
+            {
+                return "Unhandled package translation failure.";
+            }
+        }
+
+        private static string GetExceptionDetail(Exception exception)
+        {
+            try
+            {
+                return exception != null
+                    ? exception.ToString()
+                    : "Unhandled package translation failure.";
+            }
+            catch
+            {
+                return GetExceptionMessage(exception);
+            }
+        }
+
+        private static void TryAddPipelineLog(string message)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(message)) AutoTranslatorSettings.AddLog(message);
+            }
+            catch (Exception exception)
+            {
+                TryLogPipelineError("[AutoTranslationCore] Pipeline log failed: " + exception);
+            }
+        }
+
+        private static void TryAddLocalizedTaskError(Exception exception)
+        {
+            try
+            {
+                TryAddPipelineLog(AutoTranslatorAPI.TranslateText(
+                    "ATC_Log_TaskError",
+                    exception != null ? exception.Message : string.Empty));
+            }
+            catch (Exception translationException)
+            {
+                TryAddPipelineLog("[ERROR] Translation task failed: " +
+                    (exception != null ? exception.Message : "unknown error"));
+                TryLogPipelineError(
+                    "[AutoTranslationCore] Could not localize task error: " + translationException);
+            }
+        }
+
+        private static void TryLogPipelineError(string message)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(message)) Log.Error(message);
+            }
+            catch
+            {
+            }
         }
 
         // 這個方法負責判斷 ShouldSkipNative目標翻譯 條件是否成立。

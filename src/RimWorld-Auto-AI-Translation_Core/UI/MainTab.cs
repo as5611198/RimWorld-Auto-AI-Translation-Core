@@ -62,8 +62,7 @@ namespace AutoTranslator_Core
 
             if (Widgets.ButtonText(singleModRect, multiBtnText))
             {
-                if (!HasValidConfig()) Messages.Message("ATC_EmptyConfigWarning".Translate().ToString(), MessageTypeDefOf.RejectInput, false);
-                else if (!AutoTranslatorSettings.IsRunning) Find.WindowStack.Add(new ModSelectWindow(updatedMods));
+                if (!AutoTranslatorSettings.IsRunning) Find.WindowStack.Add(new ModSelectWindow(updatedMods));
             }
 
             if (AutoTranslatorSettings.IsRunning)
@@ -151,6 +150,18 @@ namespace AutoTranslator_Core
                 Widgets.Label(statsRight, $"🛡️ " + "ATC_Stats_UIQueue".Translate(uiQueue) + $"\n📦 " + "ATC_Stats_UICache".Translate(uiCache));
             }
             l.Gap(15f);
+
+            int unresolvedCount = TranslationUnresolvedManager.Count;
+            if (!AutoTranslatorSettings.IsRunning && unresolvedCount > 0)
+            {
+                GUI.color = new Color(1f, 0.75f, 0.35f);
+                if (Widgets.ButtonText(l.GetRect(36f), "ATC_Unresolved_Title".Translate(unresolvedCount)))
+                {
+                    Find.WindowStack.Add(new Window_UnresolvedTranslations());
+                }
+                GUI.color = Color.white;
+                l.Gap(10f);
+            }
 
 
             if (!AutoTranslatorSettings.IsRunning && AutoTranslatorSettings.FilteredModsCount > 0)

@@ -100,6 +100,41 @@
   <ATC_MultiSelect_Title>Sélectionner les mods à traduire (plusieurs choix possibles)</ATC_MultiSelect_Title>
   <ATC_MultiSelect_Search>Saisissez le nom d'un mod à rechercher...</ATC_MultiSelect_Search>
   <ATC_MultiSelect_Start>Lancer la traduction des {0} mods sélectionnés</ATC_MultiSelect_Start>
+  <ATC_PolicyShadowRun_Button>Test de classification Agent ({0})</ATC_PolicyShadowRun_Button>
+  <ATC_PolicyShadowRun_Task>Test de classification Agent en cours...</ATC_PolicyShadowRun_Task>
+  <ATC_PolicyShadowRun_Start>Démarrage du test de classification Agent pour {0} mods sélectionnés ; aucune traduction ne sera écrite ou injectée.</ATC_PolicyShadowRun_Start>
+  <ATC_PolicyShadowRun_Title>Résultats du test de classification Agent</ATC_PolicyShadowRun_Title>
+  <ATC_PolicyShadowRun_Summary>Mods : {0}\nCandidats : {1}\nAutorisés : {2}\nRefusés : {3}\nAmbigus : {4}\nGroupes : {5}\nRequêtes estimées : {6}\nJetons d'entrée estimés : {7}\nJetons de sortie estimés : {8}\nTotal estimé des jetons : {9}\nAppels AI/API réels / jetons consommés : 0 / 0\nDurée : {10}\nRapport : {11}\nÉcritures de traduction / injections à l'exécution : 0 / 0</ATC_PolicyShadowRun_Summary>
+  <ATC_PolicyAgent_Enable>Activer l'Agent de stratégie IA pour les textes ambigus (désactivé par défaut)</ATC_PolicyAgent_Enable>
+  <ATC_PolicyAgent_EnableTooltip>Classe les textes ambigus avant traduction. DeepL ne peut pas effectuer cette classification ; configurez un fournisseur de chat IA. En cas d'échec, le texte original est conservé.</ATC_PolicyAgent_EnableTooltip>
+  <ATC_PolicyAgent_MaxCallsPerRun>Seuil souple des appels de l'Agent par tâche de traduction : {0}</ATC_PolicyAgent_MaxCallsPerRun>
+  <ATC_PolicyAgent_MaxEstimatedTokensPerRun>Seuil souple des jetons estimés par tâche de traduction : {0}</ATC_PolicyAgent_MaxEstimatedTokensPerRun>
+  <ATC_PolicyAgent_MaxCallsPerMod>Seuil souple des appels de l'Agent par mod : {0}</ATC_PolicyAgent_MaxCallsPerMod>
+  <ATC_PolicyAgent_RetryNotice>Nouvelles tentatives par requête : {0}. Chacune compte dans les seuils souples d'appels et de jetons estimés.</ATC_PolicyAgent_RetryNotice>
+  <ATC_PolicyAgent_ClearCache>Effacer le cache de décisions de l'Agent de stratégie</ATC_PolicyAgent_ClearCache>
+  <ATC_PolicyAgent_CacheCleared>Cache de décisions de l'Agent de stratégie effacé.</ATC_PolicyAgent_CacheCleared>
+  <ATC_PolicyAgent_CacheClearFailed>Impossible d'effacer le cache de décisions de l'Agent de stratégie.</ATC_PolicyAgent_CacheClearFailed>
+  <ATC_PolicyAgent_NoProvider>Aucun fournisseur d'Agent de stratégie IA compatible n'est prêt. DeepL ne peut pas classifier le texte ; les textes ambigus conserveront leur valeur d'origine.</ATC_PolicyAgent_NoProvider>
+  <ATC_PolicyAgent_BudgetExhausted>L'Agent s'est arrêté au seuil souple. Les textes ambigus restants conserveront leur valeur d'origine.</ATC_PolicyAgent_BudgetExhausted>
+  <ATC_PolicyAgent_BudgetPrompt_Title>Confirmation du seuil souple de l'Agent</ATC_PolicyAgent_BudgetPrompt_Title>
+  <ATC_PolicyAgent_BudgetPrompt_Message>La prochaine requête de l'Agent dépassera un seuil souple.\nMod : {0}\nAppels de la tâche : {1} -&gt; {2} (seuil {3}) ; mod actuel : {4} -&gt; {5} (seuil {6})\nJetons estimés : {7} -&gt; {8} (seuil {9}){10}\nGroupes ambigus déjà détectés et en attente : environ {11}\nType de requête : {12}\nContinuer supprime les prochaines confirmations pour cette tâche ; le quota et la facturation du fournisseur restent applicables.</ATC_PolicyAgent_BudgetPrompt_Message>
+  <ATC_PolicyAgent_BudgetPrompt_ReportedTokens>Jetons signalés jusqu'ici par le fournisseur (peut être incomplet) : {0}</ATC_PolicyAgent_BudgetPrompt_ReportedTokens>
+  <ATC_PolicyAgent_BudgetPrompt_RequestNew>nouvelle requête</ATC_PolicyAgent_BudgetPrompt_RequestNew>
+  <ATC_PolicyAgent_BudgetPrompt_RequestRetry>nouvelle tentative</ATC_PolicyAgent_BudgetPrompt_RequestRetry>
+  <ATC_PolicyAgent_BudgetPrompt_Continue>Continuer avec l'Agent</ATC_PolicyAgent_BudgetPrompt_Continue>
+  <ATC_PolicyAgent_BudgetPrompt_LocalOnly>Arrêter l'Agent et continuer</ATC_PolicyAgent_BudgetPrompt_LocalOnly>
+  <ATC_PolicyAgent_BudgetPrompt_Cancel>Annuler cette traduction</ATC_PolicyAgent_BudgetPrompt_Cancel>
+  <ATC_PolicyAgent_BudgetPrompt_Waiting>Attente du choix au seuil souple de l'Agent</ATC_PolicyAgent_BudgetPrompt_Waiting>
+  <ATC_PolicyAgent_BudgetPrompt_Notice>La traduction se met en pause à un seuil souple. Continuer retire les seuils internes et les confirmations pour cette tâche, mais le quota et la facturation du fournisseur restent applicables.</ATC_PolicyAgent_BudgetPrompt_Notice>
+  <ATC_PolicyAgent_EmergencyLimitReached>L'Agent a atteint la protection technique ({0} appels ou {1} jetons estimés) et sera désactivé pour le reste de cette tâche.</ATC_PolicyAgent_EmergencyLimitReached>
+  <ATC_PolicyAgent_LocalOnlySelected>L'Agent a été désactivé pour le reste de cette tâche ; les nouveaux textes ambigus conserveront leur valeur d'origine.</ATC_PolicyAgent_LocalOnlySelected>
+  <ATC_PolicyAgent_BatchSummary>Stratégie [{0}] : autorisés localement {1}, refusés localement {2}, autorisés par l'Agent {3}, originaux conservés {4}.</ATC_PolicyAgent_BatchSummary>
+  <ATC_PolicyAgent_RunSummary>Résumé de l'Agent : appels {0}, jetons estimés {1}, accès au cache {2}, autorisés localement {3}, refusés localement {4}, autorisés par l'Agent {5}, refusés par l'Agent {6}, à vérifier {7}, non résolus {8}.</ATC_PolicyAgent_RunSummary>
+  <ATC_HardcodedUi_EnablePrototype>Activer le prototype UI codé en dur approuvé (fixture uniquement)</ATC_HardcodedUi_EnablePrototype>
+  <ATC_HardcodedUi_EnablePrototypeTooltip>Utilise uniquement les patches d'un manifest fixture approuvé manuellement. Aucun DLL tiers n'est lu ou modifié pendant l'exécution ; désactivé par défaut.</ATC_HardcodedUi_EnablePrototypeTooltip>
+  <ATC_HardcodedUi_Status>Prototype UI ciblé : {0}</ATC_HardcodedUi_Status>
+  <ATC_HardcodedUi_ReloadManifest>Recharger le manifest UI approuvé</ATC_HardcodedUi_ReloadManifest>
+  <ATC_HardcodedUi_Conflict>Le prototype ciblé est suspendu lorsque l'interception UI globale est activée.</ATC_HardcodedUi_Conflict>
   <ATC_SubTask_AnalyzingDict>Analyse des textes de localisation locale...</ATC_SubTask_AnalyzingDict>
   <ATC_SubTask_BuildingDict>Construction du dictionnaire en cours : {0}</ATC_SubTask_BuildingDict>
   <ATC_SubTask_DictDone>Dictionnaire construit avec succès !</ATC_SubTask_DictDone>
@@ -587,4 +622,9 @@
   <ATC_Blacklist_DownloadSkipped>Téléchargement cloud ignoré pour le mod exclu : {0}</ATC_Blacklist_DownloadSkipped>
   <ATC_Blacklist_DownloadBlockedStatus>Téléchargement cloud bloqué</ATC_Blacklist_DownloadBlockedStatus>
   <ATC_Cloud_Btn_BatchBestTip>Télécharge uniquement les mods actifs disposant déjà d'une traduction cloud correspondante.</ATC_Cloud_Btn_BatchBestTip>
+  <ATC_PolicyAgent_ApiTitle>Dedicated Policy Agent API</ATC_PolicyAgent_ApiTitle>
+  <ATC_PolicyAgent_ApiNotice>Use a separate provider, key, base URL, and model here. The Policy Agent never uses the translation API list.</ATC_PolicyAgent_ApiNotice>
+  <ATC_PolicyAgent_ApiEnabled>Enable this dedicated Agent API configuration</ATC_PolicyAgent_ApiEnabled>
+  <ATC_PolicyAgent_ApiReady>Dedicated Agent API is ready.</ATC_PolicyAgent_ApiReady>
+  <ATC_PolicyAgent_ApiIncomplete>Dedicated Agent API is incomplete; the Policy Agent will not use translation API keys.</ATC_PolicyAgent_ApiIncomplete>
 </LanguageData>

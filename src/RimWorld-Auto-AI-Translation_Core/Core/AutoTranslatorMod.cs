@@ -277,6 +277,13 @@ namespace AutoTranslator_Core
             {
                 Settings.ApiConfigs = new List<ApiKeyConfig> { new ApiKeyConfig() };
             }
+            if (Settings.PolicyAgentApiConfig == null)
+            {
+                Settings.PolicyAgentApiConfig = new ApiKeyConfig
+                {
+                    Label = "Policy Agent"
+                };
+            }
 
             TryAutoSyncLanguageWithGame(resetCaches: false, log: false, writeSettings: true);
 
@@ -339,6 +346,11 @@ namespace AutoTranslator_Core
         {
             bool changed = Settings.TargetLang != targetLang;
 
+            if (changed)
+            {
+                UIInterceptor.PrepareForLanguageChange();
+            }
+
             Settings.TargetLang = targetLang;
             Settings.CloudTargetLang = targetLang;
             if (manualSelection) Settings.HasManualTargetLanguage = true;
@@ -357,6 +369,7 @@ namespace AutoTranslator_Core
         {
             ResetCloudFetchStateForLanguageChange();
             UIInterceptor.ReloadForLanguageChange();
+            TargetedHardcodedUi.HardcodedUiTargetedPatchManager.RequestReload();
             ModNameTranslationCache.Clear();
             ModUpdateDetector.ClearStatusCache();
             TranslationWorkbenchTab.RequestRefresh();
@@ -370,6 +383,11 @@ namespace AutoTranslator_Core
             if (Settings == null || Settings.HasManualTargetLanguage) return false;
             if (!TryGetTargetLanguageFromActiveGameLanguage(out TargetLanguage detectedLang, out string activeFolder)) return false;
             if (Settings.TargetLang == detectedLang && Settings.CloudTargetLang == detectedLang) return false;
+
+            if (resetCaches)
+            {
+                UIInterceptor.PrepareForLanguageChange();
+            }
 
             Settings.TargetLang = detectedLang;
             Settings.CloudTargetLang = detectedLang;
@@ -546,7 +564,14 @@ namespace AutoTranslator_Core
                 if (AutoTranslatorSettings.ShowFinishPopup)
                 {
                     AutoTranslatorSettings.ShowFinishPopup = false;
-                    Find.WindowStack.Add(new Dialog_MessageBox("ATC_FinishMessage_Text".Translate(), "ATC_FinishMessage_OK".Translate(), null, null, null, "ATC_FinishMessage_Title".Translate()));
+                    if (TranslationUnresolvedManager.HasPending)
+                    {
+                        Find.WindowStack.Add(new Window_UnresolvedTranslations());
+                    }
+                    else
+                    {
+                        Find.WindowStack.Add(new Dialog_MessageBox("ATC_FinishMessage_Text".Translate(), "ATC_FinishMessage_OK".Translate(), null, null, null, "ATC_FinishMessage_Title".Translate()));
+                    }
                 }
 
 

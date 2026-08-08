@@ -100,6 +100,41 @@
   <ATC_MultiSelect_Title>Выберите моды для перевода (можно несколько)</ATC_MultiSelect_Title>
   <ATC_MultiSelect_Search>Введите название мода для поиска...</ATC_MultiSelect_Search>
   <ATC_MultiSelect_Start>Начать перевод {0} выбранных модов</ATC_MultiSelect_Start>
+  <ATC_PolicyShadowRun_Button>Пробный запуск классификации Agent ({0})</ATC_PolicyShadowRun_Button>
+  <ATC_PolicyShadowRun_Task>Выполняется пробный запуск классификации Agent...</ATC_PolicyShadowRun_Task>
+  <ATC_PolicyShadowRun_Start>Запуск пробной классификации Agent для {0} выбранных модов; переводы не будут записаны или внедрены.</ATC_PolicyShadowRun_Start>
+  <ATC_PolicyShadowRun_Title>Результаты пробной классификации Agent</ATC_PolicyShadowRun_Title>
+  <ATC_PolicyShadowRun_Summary>Моды: {0}\nТексты-кандидаты: {1}\nРазрешено: {2}\nОтклонено: {3}\nНеоднозначно: {4}\nГруппы: {5}\nОценка запросов: {6}\nОценка входных токенов: {7}\nОценка выходных токенов: {8}\nОценка общего числа токенов: {9}\nФактические вызовы ИИ/API / израсходованные токены: 0 / 0\nВремя: {10}\nОтчёт: {11}\nЗаписи перевода / внедрения во время выполнения: 0 / 0</ATC_PolicyShadowRun_Summary>
+  <ATC_PolicyAgent_Enable>Включить ИИ-агент политики для неоднозначных текстов (по умолчанию выключен)</ATC_PolicyAgent_Enable>
+  <ATC_PolicyAgent_EnableTooltip>Классифицирует неоднозначные тексты перед переводом. DeepL не поддерживает классификацию; настройте поставщика ИИ-чата. При сбое сохраняется исходный текст.</ATC_PolicyAgent_EnableTooltip>
+  <ATC_PolicyAgent_MaxCallsPerRun>Мягкий порог вызовов агента на задачу перевода: {0}</ATC_PolicyAgent_MaxCallsPerRun>
+  <ATC_PolicyAgent_MaxEstimatedTokensPerRun>Мягкий порог оценки токенов на задачу перевода: {0}</ATC_PolicyAgent_MaxEstimatedTokensPerRun>
+  <ATC_PolicyAgent_MaxCallsPerMod>Мягкий порог вызовов агента на мод: {0}</ATC_PolicyAgent_MaxCallsPerMod>
+  <ATC_PolicyAgent_RetryNotice>Повторных попыток на запрос: {0}. Каждая попытка учитывается в мягких порогах вызовов и оценки токенов.</ATC_PolicyAgent_RetryNotice>
+  <ATC_PolicyAgent_ClearCache>Очистить кэш решений агента политики</ATC_PolicyAgent_ClearCache>
+  <ATC_PolicyAgent_CacheCleared>Кэш решений агента политики очищен.</ATC_PolicyAgent_CacheCleared>
+  <ATC_PolicyAgent_CacheClearFailed>Не удалось очистить кэш решений агента политики.</ATC_PolicyAgent_CacheClearFailed>
+  <ATC_PolicyAgent_NoProvider>Нет готового совместимого поставщика ИИ-агента политики. DeepL не классифицирует текст; неоднозначный текст останется без изменений.</ATC_PolicyAgent_NoProvider>
+  <ATC_PolicyAgent_BudgetExhausted>Агент политики остановлен на мягком пороге. Оставшийся неоднозначный текст останется без изменений.</ATC_PolicyAgent_BudgetExhausted>
+  <ATC_PolicyAgent_BudgetPrompt_Title>Подтверждение мягкого порога агента политики</ATC_PolicyAgent_BudgetPrompt_Title>
+  <ATC_PolicyAgent_BudgetPrompt_Message>Следующий запрос агента политики превысит мягкий порог.\nМод: {0}\nВызовы задачи: {1} -&gt; {2} (порог {3}); текущий мод: {4} -&gt; {5} (порог {6})\nОценка токенов: {7} -&gt; {8} (порог {9}){10}\nУже обнаружено и ожидает обработки неоднозначных групп: около {11}\nТип запроса: {12}\nПосле продолжения повторных запросов для этой задачи не будет; квота и тарификация поставщика остаются в силе.</ATC_PolicyAgent_BudgetPrompt_Message>
+  <ATC_PolicyAgent_BudgetPrompt_ReportedTokens>Токены, сообщённые поставщиком на данный момент (могут быть неполными): {0}</ATC_PolicyAgent_BudgetPrompt_ReportedTokens>
+  <ATC_PolicyAgent_BudgetPrompt_RequestNew>новый запрос</ATC_PolicyAgent_BudgetPrompt_RequestNew>
+  <ATC_PolicyAgent_BudgetPrompt_RequestRetry>повторная попытка</ATC_PolicyAgent_BudgetPrompt_RequestRetry>
+  <ATC_PolicyAgent_BudgetPrompt_Continue>Продолжить с Agent</ATC_PolicyAgent_BudgetPrompt_Continue>
+  <ATC_PolicyAgent_BudgetPrompt_LocalOnly>Остановить Agent и продолжить</ATC_PolicyAgent_BudgetPrompt_LocalOnly>
+  <ATC_PolicyAgent_BudgetPrompt_Cancel>Отменить перевод</ATC_PolicyAgent_BudgetPrompt_Cancel>
+  <ATC_PolicyAgent_BudgetPrompt_Waiting>Ожидание выбора на мягком пороге агента политики</ATC_PolicyAgent_BudgetPrompt_Waiting>
+  <ATC_PolicyAgent_BudgetPrompt_Notice>Перевод приостанавливается на мягком пороге. Продолжение снимает внутренние пороги и повторные запросы для этой задачи, но квота и тарификация поставщика остаются в силе.</ATC_PolicyAgent_BudgetPrompt_Notice>
+  <ATC_PolicyAgent_EmergencyLimitReached>Агент политики достиг технического предохранителя ({0} вызовов или {1} оценочных токенов) и отключён до конца этой задачи.</ATC_PolicyAgent_EmergencyLimitReached>
+  <ATC_PolicyAgent_LocalOnlySelected>Agent отключён до конца этой задачи; новый неоднозначный текст останется без изменений.</ATC_PolicyAgent_LocalOnlySelected>
+  <ATC_PolicyAgent_BatchSummary>Политика [{0}]: локально разрешено {1}, локально отклонено {2}, разрешено агентом {3}, сохранён оригинал {4}.</ATC_PolicyAgent_BatchSummary>
+  <ATC_PolicyAgent_RunSummary>Итог агента политики: вызовы {0}, оценка токенов {1}, попадания в кэш {2}, локально разрешено {3}, локально отклонено {4}, разрешено агентом {5}, отклонено агентом {6}, требует проверки {7}, не разрешено {8}.</ATC_PolicyAgent_RunSummary>
+  <ATC_HardcodedUi_EnablePrototype>Включить одобренный прототип жестко заданного UI (только fixture)</ATC_HardcodedUi_EnablePrototype>
+  <ATC_HardcodedUi_EnablePrototypeTooltip>Используются только вручную одобренные целевые патчи fixture manifest. DLL сторонних модов не сканируются и не изменяются; по умолчанию выключено.</ATC_HardcodedUi_EnablePrototypeTooltip>
+  <ATC_HardcodedUi_Status>Целевой прототип UI: {0}</ATC_HardcodedUi_Status>
+  <ATC_HardcodedUi_ReloadManifest>Перезагрузить одобренный UI manifest</ATC_HardcodedUi_ReloadManifest>
+  <ATC_HardcodedUi_Conflict>Целевой прототип приостановлен, пока включено глобальное перехватывание UI.</ATC_HardcodedUi_Conflict>
   <ATC_SubTask_AnalyzingDict>Анализ локальных текстов локализации...</ATC_SubTask_AnalyzingDict>
   <ATC_SubTask_BuildingDict>Сборка словаря: {0}</ATC_SubTask_BuildingDict>
   <ATC_SubTask_DictDone>Словарь успешно собран!</ATC_SubTask_DictDone>
@@ -587,4 +622,9 @@
   <ATC_Blacklist_DownloadSkipped>Облачная загрузка пропущена для заблокированного мода: {0}</ATC_Blacklist_DownloadSkipped>
   <ATC_Blacklist_DownloadBlockedStatus>Облачная загрузка заблокирована</ATC_Blacklist_DownloadBlockedStatus>
   <ATC_Cloud_Btn_BatchBestTip>Загружает только активные установленные моды, для которых уже есть подходящий перевод в облаке.</ATC_Cloud_Btn_BatchBestTip>
+  <ATC_PolicyAgent_ApiTitle>Dedicated Policy Agent API</ATC_PolicyAgent_ApiTitle>
+  <ATC_PolicyAgent_ApiNotice>Use a separate provider, key, base URL, and model here. The Policy Agent never uses the translation API list.</ATC_PolicyAgent_ApiNotice>
+  <ATC_PolicyAgent_ApiEnabled>Enable this dedicated Agent API configuration</ATC_PolicyAgent_ApiEnabled>
+  <ATC_PolicyAgent_ApiReady>Dedicated Agent API is ready.</ATC_PolicyAgent_ApiReady>
+  <ATC_PolicyAgent_ApiIncomplete>Dedicated Agent API is incomplete; the Policy Agent will not use translation API keys.</ATC_PolicyAgent_ApiIncomplete>
 </LanguageData>

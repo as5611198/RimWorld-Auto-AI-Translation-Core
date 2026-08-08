@@ -258,17 +258,42 @@ namespace AutoTranslator_Core
         // EN: This method draws start button.
         private void DrawStartButton(Rect inRect)
         {
-            Rect bottomBtnRect = new Rect(0, inRect.height - 40f, inRect.width, 40f);
-            GUI.color = selectedMods.Count > 0 ? new Color(0.6f, 0.9f, 0.6f) : Color.grey;
-            if (Widgets.ButtonText(bottomBtnRect, "ATC_MultiSelect_Start".Translate(selectedMods.Count)))
+            const float buttonGap = 10f;
+            Rect bottomRowRect = new Rect(0, inRect.height - 40f, inRect.width, 40f);
+            float buttonWidth = (bottomRowRect.width - buttonGap) / 2f;
+            Rect shadowRunRect = new Rect(bottomRowRect.x, bottomRowRect.y, buttonWidth, bottomRowRect.height);
+            Rect translationRect = new Rect(shadowRunRect.xMax + buttonGap, bottomRowRect.y, buttonWidth, bottomRowRect.height);
+            bool hasSelection = selectedMods.Count > 0;
+            bool isIdle = !AutoTranslatorSettings.IsRunning;
+            bool hasReadyApiConfig = AutoTranslatorAPI.HasAnyReadyConfig();
+            bool canStartShadowRun = hasSelection && isIdle && !isTranslatingModNames;
+            bool canStartTranslation = hasSelection && isIdle && hasReadyApiConfig;
+
+            GUI.color = canStartShadowRun ? new Color(0.55f, 0.8f, 1f) : Color.grey;
+            if (Widgets.ButtonText(shadowRunRect, "ATC_PolicyShadowRun_Button".Translate(selectedMods.Count)) && canStartShadowRun)
             {
-                if (selectedMods.Count > 0)
-                {
-                    AutoTranslatorSettings.ClearLog();
-                    AutoTranslatorSettings.ResetPipelineCancellation();
-                    AutoTranslatorScanner.StartMultiScan(selectedMods.ToList(), includeOfficialGamePackages: true);
-                    Close();
-                }
+                AutoTranslatorSettings.ResetPipelineCancellation();
+                AutoTranslatorScanner.StartTranslationPolicyShadowRun(selectedMods.ToList());
+                Close();
+            }
+
+            GUI.color = canStartTranslation ? new Color(0.6f, 0.9f, 0.6f) : Color.grey;
+            bool translationClicked = Widgets.ButtonText(
+                translationRect,
+                "ATC_MultiSelect_Start".Translate(selectedMods.Count));
+            if (translationClicked && hasSelection && isIdle && !hasReadyApiConfig)
+            {
+                Messages.Message(
+                    "ATC_EmptyConfigWarning".Translate().ToString(),
+                    MessageTypeDefOf.RejectInput,
+                    false);
+            }
+            else if (translationClicked && canStartTranslation)
+            {
+                AutoTranslatorSettings.ClearLog();
+                AutoTranslatorSettings.ResetPipelineCancellation();
+                AutoTranslatorScanner.StartMultiScan(selectedMods.ToList(), includeOfficialGamePackages: true);
+                Close();
             }
             GUI.color = Color.white;
         }

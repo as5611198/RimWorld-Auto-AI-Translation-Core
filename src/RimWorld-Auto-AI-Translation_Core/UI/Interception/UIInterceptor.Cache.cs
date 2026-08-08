@@ -47,6 +47,18 @@ namespace AutoTranslator_Core
                                 continue;
                             }
 
+                            // A small set of legacy keys contains both old
+                            // placeholders and formerly unrecognized units
+                            // before them, for example "(5MB) {num1}". Their
+                            // slot order cannot be migrated safely without the
+                            // original source/value pair, so let those labels
+                            // rebuild once instead of caching a wrong mapping.
+                            if (UIDynamicNumberTemplate.HasMixedPersistedTemplate(original))
+                            {
+                                droppedUnsafeEntries = true;
+                                continue;
+                            }
+
                             string cleanOriginal = GetTranslationLookupText(original);
                             string cleanStoredValue = GetTranslationLookupText(kvp.Value);
                             if (!ShouldLoadCachedText(original) || ShouldSkipUITranslationText(cleanStoredValue))
@@ -72,7 +84,7 @@ namespace AutoTranslator_Core
                                 droppedUnsafeEntries = true;
                             }
                         }
-                        if (droppedUnsafeEntries) _cacheDirty = true;
+                        if (droppedUnsafeEntries) MarkCacheDirty();
                     }
                     Log.Message("[AutoTranslationCore] 📦 " + "ATC_Log_UICacheLoaded".Translate(Cache.Count));
                 }
@@ -121,23 +133,28 @@ namespace AutoTranslator_Core
         // EN: This method saves cache.
         public static void SaveCache()
         {
-            try
+            lock (_cachePersistenceLock)
             {
-                var dictToSave = LoadExistingCacheFileForMerge(CacheFilePath, false);
-                RemoveCurrentLanguageEntries(dictToSave);
-                foreach (var kvp in Cache)
+                try
                 {
-                    dictToSave[kvp.Key] = kvp.Value;
-                }
+                    int saveVersion = System.Threading.Volatile.Read(ref _cacheChangeVersion);
+                    var dictToSave = LoadExistingCacheFileForMerge(CacheFilePath, false);
+                    RemoveCurrentLanguageEntries(dictToSave);
+                    foreach (var kvp in Cache)
+                    {
+                        dictToSave[kvp.Key] = kvp.Value;
+                    }
 
-                string json = JsonConvert.SerializeObject(dictToSave, Formatting.Indented);
-                WriteAllTextAtomic(CacheFilePath, json);
-                _cacheDirty = false;
-                System.Threading.Interlocked.Exchange(ref _lastCacheSaveTicks, DateTime.UtcNow.Ticks);
-            }
-            catch (Exception ex)
-            {
-                Log.Warning("[AutoTranslationCore] ⚠️ " + "ATC_LogError_UICacheSaveFailed".Translate(ex.Message));
+                    string json = JsonConvert.SerializeObject(dictToSave, Formatting.Indented);
+                    WriteAllTextAtomic(CacheFilePath, json);
+                    _cacheDirty = false;
+                    if (System.Threading.Volatile.Read(ref _cacheChangeVersion) != saveVersion) _cacheDirty = true;
+                    System.Threading.Interlocked.Exchange(ref _lastCacheSaveTicks, DateTime.UtcNow.Ticks);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning("[AutoTranslationCore] ⚠️ " + "ATC_LogError_UICacheSaveFailed".Translate(ex.Message));
+                }
             }
         }
 
@@ -145,32 +162,37 @@ namespace AutoTranslator_Core
         // EN: This method saves ignored cache.
         private static void SaveIgnoredCache()
         {
-            try
+            lock (_cachePersistenceLock)
             {
-                var merged = LoadExistingIgnoredCacheFileForMerge(IgnoredCacheFilePath);
-                RemoveCurrentLanguageEntries(merged);
-                foreach (string key in IgnoredCache.Keys)
+                try
                 {
-                    if (!string.IsNullOrWhiteSpace(key))
+                    int saveVersion = System.Threading.Volatile.Read(ref _ignoredCacheChangeVersion);
+                    var merged = LoadExistingIgnoredCacheFileForMerge(IgnoredCacheFilePath);
+                    RemoveCurrentLanguageEntries(merged);
+                    foreach (string key in IgnoredCache.Keys)
                     {
-                        merged[key] = true;
+                        if (!string.IsNullOrWhiteSpace(key))
+                        {
+                            merged[key] = true;
+                        }
                     }
+
+                    var keys = merged.Keys
+                        .Where(k => !string.IsNullOrWhiteSpace(k))
+                        .OrderBy(k => k, StringComparer.Ordinal)
+                        .Take(MaxIgnoredCacheSize)
+                        .ToList();
+
+                    string json = JsonConvert.SerializeObject(keys, Formatting.Indented);
+                    WriteAllTextAtomic(IgnoredCacheFilePath, json);
+                    _ignoredCacheDirty = false;
+                    if (System.Threading.Volatile.Read(ref _ignoredCacheChangeVersion) != saveVersion) _ignoredCacheDirty = true;
+                    System.Threading.Interlocked.Exchange(ref _lastCacheSaveTicks, DateTime.UtcNow.Ticks);
                 }
-
-                var keys = merged.Keys
-                    .Where(k => !string.IsNullOrWhiteSpace(k))
-                    .OrderBy(k => k, StringComparer.Ordinal)
-                    .Take(MaxIgnoredCacheSize)
-                    .ToList();
-
-                string json = JsonConvert.SerializeObject(keys, Formatting.Indented);
-                WriteAllTextAtomic(IgnoredCacheFilePath, json);
-                _ignoredCacheDirty = false;
-                System.Threading.Interlocked.Exchange(ref _lastCacheSaveTicks, DateTime.UtcNow.Ticks);
-            }
-            catch (Exception ex)
-            {
-                Log.Warning("[AutoTranslationCore] UI ignored cache save failed: " + ex.Message);
+                catch (Exception ex)
+                {
+                    Log.Warning("[AutoTranslationCore] UI ignored cache save failed: " + ex.Message);
+                }
             }
         }
 
@@ -311,14 +333,17 @@ namespace AutoTranslator_Core
         // EN: This method handles flush cache.
         public static void FlushCache()
         {
-            if (_cacheDirty)
+            lock (_cachePersistenceLock)
             {
-                SaveCache();
-            }
+                if (_cacheDirty)
+                {
+                    SaveCache();
+                }
 
-            if (_ignoredCacheDirty)
-            {
-                SaveIgnoredCache();
+                if (_ignoredCacheDirty)
+                {
+                    SaveIgnoredCache();
+                }
             }
         }
 
@@ -341,7 +366,12 @@ namespace AutoTranslator_Core
         // EN: This method builds cache key.
         public static string BuildCacheKey(string text)
         {
-            return $"{AutoTranslatorMod.Settings.TargetLang}|{text}";
+            return BuildCacheKey(AutoTranslatorMod.Settings.TargetLang, text);
+        }
+
+        private static string BuildCacheKey(TargetLanguage targetLanguage, string text)
+        {
+            return $"{targetLanguage}|{text}";
         }
 
         // 這個方法負責嘗試執行 GetOriginalTextFrom快取Key 並回報是否成功。
@@ -380,24 +410,50 @@ namespace AutoTranslator_Core
             return IgnoredCache.ContainsKey(BuildCacheKey(GetTranslationLookupText(text)));
         }
 
+        public static void PrepareForLanguageChange()
+        {
+            lock (_cachePersistenceLock)
+            {
+                System.Threading.Interlocked.Increment(ref _uiLanguageGeneration);
+                FlushCache();
+                DiscardQueuedClassifications();
+                DiscardQueuedTranslations();
+                PendingClassifications.Clear();
+                PendingTranslations.Clear();
+            }
+        }
+
+        private static bool IsUILanguageContextCurrent(int generation, TargetLanguage targetLanguage)
+        {
+            return System.Threading.Volatile.Read(ref _uiLanguageGeneration) == generation
+                && AutoTranslatorMod.Settings.TargetLang == targetLanguage;
+        }
+
         // 這個方法負責處理 ReloadFor語言Change 相關流程。
         // EN: This method handles reload for language change.
         public static void ReloadForLanguageChange()
         {
-            Cache.Clear();
-            IgnoredCache.Clear();
-            FastBypassDecisionCache.Clear();
-            TextDecisionCache.Clear();
-            Patch_GUI_Label_GUIContent.ClearCache();
-            DiscardQueuedClassifications();
-            while (TranslationQueue.TryDequeue(out _)) { }
-            PendingTranslations.Clear();
-            System.Threading.Interlocked.Exchange(ref _queuedApproxCount, 0);
-            _cacheDirty = false;
-            _ignoredCacheDirty = false;
+            lock (_cachePersistenceLock)
+            {
+                System.Threading.Interlocked.Increment(ref _uiLanguageGeneration);
+                Cache.Clear();
+                IgnoredCache.Clear();
+                FastBypassDecisionCache.Clear();
+                TextDecisionCache.Clear();
+                ClearRenderDecisionCache();
+                Patch_GUI_Label_GUIContent.ClearCache();
+                DiscardQueuedClassifications();
+                DiscardQueuedTranslations();
+                PendingClassifications.Clear();
+                PendingTranslations.Clear();
+                System.Threading.Interlocked.Exchange(ref _classificationApproxCount, 0);
+                System.Threading.Interlocked.Exchange(ref _queuedApproxCount, 0);
+                _cacheDirty = false;
+                _ignoredCacheDirty = false;
 
-            LoadCache();
-            LoadIgnoredCache();
+                LoadCache();
+                LoadIgnoredCache();
+            }
         }
 
         // 這個方法負責嘗試執行 GetCached翻譯 並回報是否成功。
@@ -436,7 +492,7 @@ namespace AutoTranslator_Core
                 if (TryNormalizeCachedTranslation(lookupText, lookupText, translated, out translated))
                 {
                     Cache[cacheKey] = translated;
-                    _cacheDirty = true;
+                    MarkCacheDirty();
                     ClearRenderDecisionCache();
                     translated = RestoreTranslationDisplayText(text, translated);
                     return true;
@@ -448,11 +504,49 @@ namespace AutoTranslator_Core
 
         internal static bool TryResolveRenderText(string original, out string translated)
         {
-            translated = null;
-            if (ShouldBypassUIPatchText(original)) return false;
+            return TryResolveRenderTextCore(original, false, out translated);
+        }
 
+        // Callers that already performed the bypass check can use this path to
+        // avoid paying for the same dictionary lookup twice per GUI draw.
+        internal static bool TryResolveRenderTextKnownNotBypassed(string original, out string translated)
+        {
+            return TryResolveRenderTextCore(original, true, out translated);
+        }
+
+        private static bool TryResolveRenderTextCore(string original, bool bypassAlreadyChecked, out string translated)
+        {
+            translated = null;
             EnsureRenderDecisionSettingsCurrent();
             string renderKey = BuildRenderDecisionKey(original);
+
+            // A render decision is the hot-path cache. Check it before the
+            // validated translation cache so stable labels do not repeatedly
+            // run regex, placeholder, and language-safety validation every
+            // frame. Cache writes invalidate this snapshot via
+            // ClearRenderDecisionCache().
+            if (RenderDecisionCache.TryGetValue(renderKey, out UIRenderDecision decision)
+                && decision.Version == _renderDecisionVersion)
+            {
+                switch (decision.Kind)
+                {
+                    case UIRenderDecisionKind.Translated:
+                        translated = decision.TranslatedText;
+                        return !string.IsNullOrEmpty(translated);
+                    case UIRenderDecisionKind.PassThrough:
+                    case UIRenderDecisionKind.Classifying:
+                        return false;
+                    case UIRenderDecisionKind.Pending:
+                        if (DateTime.UtcNow.Ticks < decision.RetryAfterTicks) return false;
+                        break;
+                }
+            }
+
+            if (!bypassAlreadyChecked && ShouldBypassUIPatchText(original))
+            {
+                RememberRenderDecision(renderKey, UIRenderDecisionKind.PassThrough, null, 0L);
+                return false;
+            }
 
             if (TryGetCachedTranslationKnownSafe(original, out translated))
             {
@@ -463,25 +557,6 @@ namespace AutoTranslator_Core
                 }
                 RememberRenderDecision(renderKey, UIRenderDecisionKind.Translated, translated, 0L);
                 return true;
-            }
-
-            if (RenderDecisionCache.TryGetValue(renderKey, out UIRenderDecision decision)
-                && decision.Version == _renderDecisionVersion)
-            {
-                switch (decision.Kind)
-                {
-                    case UIRenderDecisionKind.Translated:
-                        translated = decision.TranslatedText;
-                        return HasRenderableUICharacters(translated);
-                    case UIRenderDecisionKind.PassThrough:
-                        return false;
-                    case UIRenderDecisionKind.Classifying:
-                        return false;
-                    case UIRenderDecisionKind.Pending:
-                        long nowTicks = DateTime.UtcNow.Ticks;
-                        if (nowTicks < decision.RetryAfterTicks) return false;
-                        break;
-                }
             }
 
             if (QueueForClassification(original))
@@ -561,7 +636,7 @@ namespace AutoTranslator_Core
             {
                 Cache.TryRemove(cacheKey, out _);
                 RememberIgnored(original);
-                _cacheDirty = true;
+                MarkCacheDirty();
                 ClearRenderDecisionCache();
                 return false;
             }
@@ -571,7 +646,7 @@ namespace AutoTranslator_Core
             {
                 Cache.TryRemove(cacheKey, out _);
                 RememberIgnored(original);
-                _cacheDirty = true;
+                MarkCacheDirty();
                 ClearRenderDecisionCache();
                 return false;
             }
@@ -579,7 +654,7 @@ namespace AutoTranslator_Core
             if (!string.Equals(normalized, translated, StringComparison.Ordinal))
             {
                 Cache[cacheKey] = normalized;
-                _cacheDirty = true;
+                MarkCacheDirty();
                 ClearRenderDecisionCache();
             }
             return true;
@@ -614,9 +689,21 @@ namespace AutoTranslator_Core
                 string cacheKey = BuildCacheKey(GetTranslationLookupText(text));
                 if (IgnoredCache.TryAdd(cacheKey, true))
                 {
-                    _ignoredCacheDirty = true;
+                    MarkIgnoredCacheDirty();
                 }
             }
+        }
+
+        private static void MarkCacheDirty()
+        {
+            System.Threading.Interlocked.Increment(ref _cacheChangeVersion);
+            _cacheDirty = true;
+        }
+
+        private static void MarkIgnoredCacheDirty()
+        {
+            System.Threading.Interlocked.Increment(ref _ignoredCacheChangeVersion);
+            _ignoredCacheDirty = true;
         }
 
 
@@ -624,13 +711,16 @@ namespace AutoTranslator_Core
         // EN: This method saves cache if due.
         private static void SaveCacheIfDue(bool force = false)
         {
-            if (!_cacheDirty && !_ignoredCacheDirty) return;
+            lock (_cachePersistenceLock)
+            {
+                if (!_cacheDirty && !_ignoredCacheDirty) return;
 
-            long last = System.Threading.Interlocked.Read(ref _lastCacheSaveTicks);
-            if (!force && DateTime.UtcNow.Ticks - last < TimeSpan.FromSeconds(10).Ticks) return;
+                long last = System.Threading.Interlocked.Read(ref _lastCacheSaveTicks);
+                if (!force && DateTime.UtcNow.Ticks - last < TimeSpan.FromSeconds(10).Ticks) return;
 
-            if (_cacheDirty) SaveCache();
-            if (_ignoredCacheDirty) SaveIgnoredCache();
+                if (_cacheDirty) SaveCache();
+                if (_ignoredCacheDirty) SaveIgnoredCache();
+            }
         }
 
 
@@ -638,36 +728,39 @@ namespace AutoTranslator_Core
         // EN: This method clears UI cache.
         public static void ClearUICache()
         {
-
-            Cache.Clear();
-            IgnoredCache.Clear();
-            FastBypassDecisionCache.Clear();
-            TextDecisionCache.Clear();
-            ClearRenderDecisionCache();
-            Patch_GUI_Label_GUIContent.ClearCache();
-            DiscardQueuedClassifications();
-            while (TranslationQueue.TryDequeue(out _)) { }
-            PendingTranslations.Clear();
-            System.Threading.Interlocked.Exchange(ref _queuedApproxCount, 0);
-            _cacheDirty = false;
-            _ignoredCacheDirty = false;
-
-
-            try
+            lock (_cachePersistenceLock)
             {
-                if (File.Exists(CacheFilePath))
-                {
-                    File.Delete(CacheFilePath);
-                }
+                System.Threading.Interlocked.Increment(ref _uiLanguageGeneration);
+                Cache.Clear();
+                IgnoredCache.Clear();
+                FastBypassDecisionCache.Clear();
+                TextDecisionCache.Clear();
+                ClearRenderDecisionCache();
+                Patch_GUI_Label_GUIContent.ClearCache();
+                DiscardQueuedClassifications();
+                PendingClassifications.Clear();
+                while (TranslationQueue.TryDequeue(out _)) { }
+                PendingTranslations.Clear();
+                System.Threading.Interlocked.Exchange(ref _queuedApproxCount, 0);
+                _cacheDirty = false;
+                _ignoredCacheDirty = false;
 
-                if (File.Exists(IgnoredCacheFilePath))
+                try
                 {
-                    File.Delete(IgnoredCacheFilePath);
+                    if (File.Exists(CacheFilePath))
+                    {
+                        File.Delete(CacheFilePath);
+                    }
+
+                    if (File.Exists(IgnoredCacheFilePath))
+                    {
+                        File.Delete(IgnoredCacheFilePath);
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                Verse.Log.Warning($"[AutoTranslationCore] " + "ATC_LogError_DeleteUICacheFailed".Translate(ex.Message));
+                catch (Exception ex)
+                {
+                    Verse.Log.Warning($"[AutoTranslationCore] " + "ATC_LogError_DeleteUICacheFailed".Translate(ex.Message));
+                }
             }
 
             Verse.Log.Message("[AutoTranslationCore] 🔄 " + "ATC_Log_UICacheClearedFull".Translate());

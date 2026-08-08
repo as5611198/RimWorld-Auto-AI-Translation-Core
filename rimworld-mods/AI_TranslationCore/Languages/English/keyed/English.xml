@@ -100,6 +100,47 @@
   <ATC_MultiSelect_Title>Select mods to translate (multiple choices allowed)</ATC_MultiSelect_Title>
   <ATC_MultiSelect_Search>Type a mod name to search...</ATC_MultiSelect_Search>
   <ATC_MultiSelect_Start>Start translating the {0} selected mods</ATC_MultiSelect_Start>
+  <ATC_PolicyShadowRun_Button>Agent classification dry run ({0})</ATC_PolicyShadowRun_Button>
+  <ATC_PolicyShadowRun_Task>Running Agent classification dry run...</ATC_PolicyShadowRun_Task>
+  <ATC_PolicyShadowRun_Start>Starting an Agent classification dry run for {0} selected mods; no translations will be written or injected.</ATC_PolicyShadowRun_Start>
+  <ATC_PolicyShadowRun_Title>Agent Classification Dry-Run Results</ATC_PolicyShadowRun_Title>
+  <ATC_PolicyShadowRun_Summary>Mods: {0}\nCandidates: {1}\nAllow: {2}\nDeny: {3}\nAmbiguous: {4}\nGroups: {5}\nEstimated requests: {6}\nEstimated input tokens: {7}\nEstimated output tokens: {8}\nEstimated total tokens: {9}\nActual AI/API calls / consumed tokens: 0 / 0\nElapsed: {10}\nReport: {11}\nTranslation writes / runtime injections: 0 / 0</ATC_PolicyShadowRun_Summary>
+  <ATC_PolicyAgent_Enable>Enable AI Policy Agent for ambiguous text (off by default)</ATC_PolicyAgent_Enable>
+  <ATC_PolicyAgent_EnableTooltip>Classifies ambiguous text before translation. DeepL cannot perform classification; configure an AI chat provider. Failures keep the original text.</ATC_PolicyAgent_EnableTooltip>
+  <ATC_PolicyAgent_ApiTitle>Dedicated Policy Agent API</ATC_PolicyAgent_ApiTitle>
+  <ATC_PolicyAgent_ApiNotice>Use a separate provider, key, base URL, and model here. The Policy Agent never uses the translation API list.</ATC_PolicyAgent_ApiNotice>
+  <ATC_PolicyAgent_ApiEnabled>Enable this dedicated Agent API configuration</ATC_PolicyAgent_ApiEnabled>
+  <ATC_PolicyAgent_ApiReady>Dedicated Agent API is ready.</ATC_PolicyAgent_ApiReady>
+  <ATC_PolicyAgent_ApiIncomplete>Dedicated Agent API is incomplete; the Policy Agent will not use translation API keys.</ATC_PolicyAgent_ApiIncomplete>
+  <ATC_PolicyAgent_MaxCallsPerRun>Policy Agent call soft threshold per translation task: {0}</ATC_PolicyAgent_MaxCallsPerRun>
+  <ATC_PolicyAgent_MaxEstimatedTokensPerRun>Estimated-token soft threshold per translation task: {0}</ATC_PolicyAgent_MaxEstimatedTokensPerRun>
+  <ATC_PolicyAgent_MaxCallsPerMod>Policy Agent call soft threshold per mod: {0}</ATC_PolicyAgent_MaxCallsPerMod>
+  <ATC_PolicyAgent_RetryNotice>Retries per request: {0}. Every retry counts toward the call and estimated-token soft thresholds.</ATC_PolicyAgent_RetryNotice>
+  <ATC_PolicyAgent_ClearCache>Clear Policy Agent decision cache</ATC_PolicyAgent_ClearCache>
+  <ATC_PolicyAgent_CacheCleared>Policy Agent decision cache cleared.</ATC_PolicyAgent_CacheCleared>
+  <ATC_PolicyAgent_CacheClearFailed>Could not clear the Policy Agent decision cache.</ATC_PolicyAgent_CacheClearFailed>
+  <ATC_PolicyAgent_NoProvider>No compatible AI Policy Agent provider is ready. DeepL cannot classify text; ambiguous text will keep its original value.</ATC_PolicyAgent_NoProvider>
+  <ATC_PolicyAgent_BudgetExhausted>Policy Agent stopped at the soft threshold. Remaining ambiguous text will keep its original value.</ATC_PolicyAgent_BudgetExhausted>
+  <ATC_PolicyAgent_BudgetPrompt_Title>Policy Agent soft-threshold confirmation</ATC_PolicyAgent_BudgetPrompt_Title>
+  <ATC_PolicyAgent_BudgetPrompt_Message>The next Policy Agent request will cross a soft threshold.\nMod: {0}\nTask calls: {1} -&gt; {2} (threshold {3}); current mod: {4} -&gt; {5} (threshold {6})\nEstimated tokens: {7} -&gt; {8} (threshold {9}){10}\nCurrently discovered ambiguous groups still pending: about {11}\nRequest type: {12}\nContinuing suppresses further prompts for this task; provider quota and billing still apply.</ATC_PolicyAgent_BudgetPrompt_Message>
+  <ATC_PolicyAgent_BudgetPrompt_ReportedTokens>Provider-reported tokens so far (may be incomplete): {0}</ATC_PolicyAgent_BudgetPrompt_ReportedTokens>
+  <ATC_PolicyAgent_BudgetPrompt_RequestNew>new request</ATC_PolicyAgent_BudgetPrompt_RequestNew>
+  <ATC_PolicyAgent_BudgetPrompt_RequestRetry>retry</ATC_PolicyAgent_BudgetPrompt_RequestRetry>
+  <ATC_PolicyAgent_BudgetPrompt_Continue>Continue with Agent</ATC_PolicyAgent_BudgetPrompt_Continue>
+  <ATC_PolicyAgent_BudgetPrompt_LocalOnly>Stop Agent and continue</ATC_PolicyAgent_BudgetPrompt_LocalOnly>
+  <ATC_PolicyAgent_BudgetPrompt_Cancel>Cancel this translation</ATC_PolicyAgent_BudgetPrompt_Cancel>
+  <ATC_PolicyAgent_BudgetPrompt_Waiting>Waiting for Policy Agent soft-threshold choice</ATC_PolicyAgent_BudgetPrompt_Waiting>
+  <ATC_PolicyAgent_BudgetPrompt_Notice>Translation pauses at a soft threshold for confirmation. Continuing removes internal soft thresholds for this task, but provider quota and billing still apply.</ATC_PolicyAgent_BudgetPrompt_Notice>
+  <ATC_PolicyAgent_EmergencyLimitReached>Policy Agent reached the technical safety guard ({0} calls or {1} estimated tokens). Agent use is disabled for the rest of this task.</ATC_PolicyAgent_EmergencyLimitReached>
+  <ATC_PolicyAgent_LocalOnlySelected>Policy Agent was disabled for the rest of this task; new ambiguous text will keep its original value.</ATC_PolicyAgent_LocalOnlySelected>
+  <ATC_PolicyAgent_BatchSummary>Policy [{0}]: local allow {1}, local deny {2}, Agent allow {3}, kept original {4}.</ATC_PolicyAgent_BatchSummary>
+  <ATC_PolicyAgent_RunSummary>Policy Agent summary: calls {0}, estimated tokens {1}, cache hits {2}, local allow {3}, local deny {4}, Agent allow {5}, Agent deny {6}, review {7}, unresolved {8}.</ATC_PolicyAgent_RunSummary>
+  <ATC_PolicyAgent_ActualTokenSummary>Policy Agent provider-reported actual tokens: {0}.</ATC_PolicyAgent_ActualTokenSummary>
+  <ATC_HardcodedUi_EnablePrototype>Enable approved hard-coded UI prototype (fixture only)</ATC_HardcodedUi_EnablePrototype>
+  <ATC_HardcodedUi_EnablePrototypeTooltip>Opt-in targeted patches use only a manually approved fixture manifest. They never scan or modify third-party DLLs at runtime, and the default is off.</ATC_HardcodedUi_EnablePrototypeTooltip>
+  <ATC_HardcodedUi_Status>Targeted UI prototype: {0}</ATC_HardcodedUi_Status>
+  <ATC_HardcodedUi_ReloadManifest>Reload approved UI manifest</ATC_HardcodedUi_ReloadManifest>
+  <ATC_HardcodedUi_Conflict>Targeted prototype is paused while global UI interception is enabled.</ATC_HardcodedUi_Conflict>
   <ATC_SubTask_AnalyzingDict>Analyzing local localization text...</ATC_SubTask_AnalyzingDict>
   <ATC_SubTask_BuildingDict>Building dictionary: {0}</ATC_SubTask_BuildingDict>
   <ATC_SubTask_DictDone>Dictionary built successfully!</ATC_SubTask_DictDone>
@@ -606,4 +647,46 @@
   <ATC_Blacklist_DownloadSkipped>Cloud download skipped for blacklisted mod: {0}</ATC_Blacklist_DownloadSkipped>
   <ATC_Blacklist_DownloadBlockedStatus>Cloud download blocked</ATC_Blacklist_DownloadBlockedStatus>
   <ATC_Cloud_Btn_BatchBestTip>Downloads only active installed mods with a matching cloud translation. Mods unavailable in the cloud are skipped.</ATC_Cloud_Btn_BatchBestTip>
+  <ATC_Unresolved_Title>Unresolved Translations ({0})</ATC_Unresolved_Title>
+  <ATC_Unresolved_TitleShort>Unresolved Translations</ATC_Unresolved_TitleShort>
+  <ATC_Unresolved_Summary>Review entries that AI could not translate safely. Retry, keep the original text, or edit one manually.</ATC_Unresolved_Summary>
+  <ATC_Unresolved_Search>Search key, source text, reason, or file...</ATC_Unresolved_Search>
+  <ATC_Unresolved_Empty>No unresolved translations remain.</ATC_Unresolved_Empty>
+  <ATC_Unresolved_Mods>Mods</ATC_Unresolved_Mods>
+  <ATC_Unresolved_Groups>Type / Source File</ATC_Unresolved_Groups>
+  <ATC_Unresolved_Entries>Entries ({0})</ATC_Unresolved_Entries>
+  <ATC_Unresolved_All>All</ATC_Unresolved_All>
+  <ATC_Unresolved_UnknownMod>Unknown mod</ATC_Unresolved_UnknownMod>
+  <ATC_Unresolved_UnknownSource>Unknown source file</ATC_Unresolved_UnknownSource>
+  <ATC_Unresolved_Attempts>Attempts: {0}</ATC_Unresolved_Attempts>
+  <ATC_Unresolved_Manual>Edit</ATC_Unresolved_Manual>
+  <ATC_Unresolved_SelectVisible>Select visible</ATC_Unresolved_SelectVisible>
+  <ATC_Unresolved_ClearSelection>Clear</ATC_Unresolved_ClearSelection>
+  <ATC_Unresolved_Selected>Selected: {0}</ATC_Unresolved_Selected>
+  <ATC_Unresolved_KeepOriginal>Keep Original / Ignore</ATC_Unresolved_KeepOriginal>
+  <ATC_Unresolved_RetryAI>Retry with AI</ATC_Unresolved_RetryAI>
+  <ATC_Unresolved_NoSelection>Select at least one entry first.</ATC_Unresolved_NoSelection>
+  <ATC_Unresolved_Running>Wait for the current translation task to finish.</ATC_Unresolved_Running>
+  <ATC_Unresolved_ConfirmIgnore>Keep the original text for {0} selected entries and ignore them while the source is unchanged?</ATC_Unresolved_ConfirmIgnore>
+  <ATC_Unresolved_ConfirmButton>Keep Original</ATC_Unresolved_ConfirmButton>
+  <ATC_Unresolved_IgnoreDone>Kept the original text for {0} entries.</ATC_Unresolved_IgnoreDone>
+  <ATC_Unresolved_ModNotFound>Could not find the installed mod: {0}</ATC_Unresolved_ModNotFound>
+  <ATC_Unresolved_RetryDone>AI retry resolved {0} of {1} entries.</ATC_Unresolved_RetryDone>
+  <ATC_Unresolved_WrongLanguage>This item belongs to target language {0}. Switch back to that target language before handling it.</ATC_Unresolved_WrongLanguage>
+  <ATC_Unresolved_SourceChanged>The source for {0} has changed or disappeared. Scan that mod again before handling this item.</ATC_Unresolved_SourceChanged>
+  <ATC_Unresolved_IgnoreSaveFailed>The keep-original decision could not be saved. The item remains pending.</ATC_Unresolved_IgnoreSaveFailed>
+  <ATC_Unresolved_ReasonApi>API request failed</ATC_Unresolved_ReasonApi>
+  <ATC_Unresolved_ReasonMalformed>AI returned an invalid response format</ATC_Unresolved_ReasonMalformed>
+  <ATC_Unresolved_ReasonEmpty>AI returned an empty response</ATC_Unresolved_ReasonEmpty>
+  <ATC_Unresolved_ReasonEnglish>English text remained in the result</ATC_Unresolved_ReasonEnglish>
+  <ATC_Unresolved_ReasonVariant>Wrong Chinese variant</ATC_Unresolved_ReasonVariant>
+  <ATC_Unresolved_ReasonWrongLanguage>Result uses the wrong target language</ATC_Unresolved_ReasonWrongLanguage>
+  <ATC_Unresolved_ReasonToken>Protected token mismatch</ATC_Unresolved_ReasonToken>
+  <ATC_Unresolved_ReasonFormat>Format argument mismatch</ATC_Unresolved_ReasonFormat>
+  <ATC_Unresolved_ReasonTitleTag>Title tag mismatch</ATC_Unresolved_ReasonTitleTag>
+  <ATC_Unresolved_ReasonSave>Translation file could not be saved</ATC_Unresolved_ReasonSave>
+  <ATC_Unresolved_ReasonSource>Source XML could not be processed</ATC_Unresolved_ReasonSource>
+  <ATC_Unresolved_ReasonPolicyReview>Policy Agent requested manual review</ATC_Unresolved_ReasonPolicyReview>
+  <ATC_Unresolved_ReasonPolicyAgentFailure>Policy Agent classification failed</ATC_Unresolved_ReasonPolicyAgentFailure>
+  <ATC_Unresolved_ReasonUnknown>Translation was rejected</ATC_Unresolved_ReasonUnknown>
 </LanguageData>

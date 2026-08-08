@@ -117,7 +117,7 @@ namespace AutoTranslator_Core
                 else
                 {
 
-                    Log.Warning($"[AutoTranslationCore] " + "ATC_Warning_InvalidUrlFallback".Translate(custom));
+                    Log.Warning($"[AutoTranslationCore] " + TranslateText("ATC_Warning_InvalidUrlFallback", custom));
                     return custom;
                 }
             }

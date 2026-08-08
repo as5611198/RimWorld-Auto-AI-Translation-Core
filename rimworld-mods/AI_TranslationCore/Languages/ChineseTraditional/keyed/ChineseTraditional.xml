@@ -101,6 +101,42 @@
   <ATC_MultiSelect_Title>選擇要翻譯的模組 (可多選)</ATC_MultiSelect_Title>
   <ATC_MultiSelect_Search>在此輸入模組名稱來搜尋...</ATC_MultiSelect_Search>
   <ATC_MultiSelect_Start>開始翻譯已勾選的 {0} 個模組</ATC_MultiSelect_Start>
+  <ATC_PolicyShadowRun_Button>Agent 分類試跑（{0}）</ATC_PolicyShadowRun_Button>
+  <ATC_PolicyShadowRun_Task>正在執行 Agent 分類試跑...</ATC_PolicyShadowRun_Task>
+  <ATC_PolicyShadowRun_Start>開始分析已選取的 {0} 個模組；不會寫入或注入翻譯。</ATC_PolicyShadowRun_Start>
+  <ATC_PolicyShadowRun_Title>Agent 分類試跑結果</ATC_PolicyShadowRun_Title>
+  <ATC_PolicyShadowRun_Summary>模組：{0}\n候選文本：{1}\n允許：{2}\n拒絕：{3}\n灰區：{4}\n群組：{5}\n預估請求：{6}\n預估輸入 Token：{7}\n預估輸出 Token：{8}\n預估 Token 總計：{9}\n實際 AI/API 呼叫／消耗 Token：0／0\n耗時：{10}\n報告：{11}\n翻譯寫入／執行期注入：0／0</ATC_PolicyShadowRun_Summary>
+  <ATC_PolicyAgent_Enable>啟用 AI Policy Agent 判定灰區文本（預設關閉）</ATC_PolicyAgent_Enable>
+  <ATC_PolicyAgent_EnableTooltip>啟用後會在翻譯前判定灰區文本。DeepL 無法執行分類，請設定 AI 對話服務；判定失敗時會保留原文。</ATC_PolicyAgent_EnableTooltip>
+  <ATC_PolicyAgent_MaxCallsPerRun>本次翻譯任務的 Policy Agent 呼叫軟性門檻：{0}</ATC_PolicyAgent_MaxCallsPerRun>
+  <ATC_PolicyAgent_MaxEstimatedTokensPerRun>本次翻譯任務的預估 Token 軟性門檻：{0}</ATC_PolicyAgent_MaxEstimatedTokensPerRun>
+  <ATC_PolicyAgent_MaxCallsPerMod>每個模組的 Policy Agent 呼叫軟性門檻：{0}</ATC_PolicyAgent_MaxCallsPerMod>
+  <ATC_PolicyAgent_RetryNotice>每個請求最多重試 {0} 次；每次重試都會計入呼叫與預估 Token 軟性門檻。</ATC_PolicyAgent_RetryNotice>
+  <ATC_PolicyAgent_ClearCache>清除 Policy Agent 判定快取</ATC_PolicyAgent_ClearCache>
+  <ATC_PolicyAgent_CacheCleared>已清除 Policy Agent 判定快取。</ATC_PolicyAgent_CacheCleared>
+  <ATC_PolicyAgent_CacheClearFailed>無法清除 Policy Agent 判定快取。</ATC_PolicyAgent_CacheClearFailed>
+  <ATC_PolicyAgent_NoProvider>沒有可用的 AI Policy Agent 服務。DeepL 無法分類文本；灰區文本將保留原文。</ATC_PolicyAgent_NoProvider>
+  <ATC_PolicyAgent_BudgetExhausted>Policy Agent 已在軟性門檻停止；其餘灰區文本將保留原文。</ATC_PolicyAgent_BudgetExhausted>
+  <ATC_PolicyAgent_BudgetPrompt_Title>Policy Agent 軟性門檻確認</ATC_PolicyAgent_BudgetPrompt_Title>
+  <ATC_PolicyAgent_BudgetPrompt_Message>下一次 Policy Agent 請求將超過軟性門檻。\n模組：{0}\n本次任務呼叫：{1} -&gt; {2}（門檻 {3}）；目前模組：{4} -&gt; {5}（門檻 {6}）\n預估 Token：{7} -&gt; {8}（門檻 {9}）{10}\n目前已發現、尚待處理的灰區群組：約 {11}\n請求類型：{12}\n選擇繼續後，本次任務不再詢問；供應商額度與計費仍然有效。</ATC_PolicyAgent_BudgetPrompt_Message>
+  <ATC_PolicyAgent_BudgetPrompt_ReportedTokens>供應商目前已回報 Token（可能不完整）：{0}</ATC_PolicyAgent_BudgetPrompt_ReportedTokens>
+  <ATC_PolicyAgent_BudgetPrompt_RequestNew>新請求</ATC_PolicyAgent_BudgetPrompt_RequestNew>
+  <ATC_PolicyAgent_BudgetPrompt_RequestRetry>重試</ATC_PolicyAgent_BudgetPrompt_RequestRetry>
+  <ATC_PolicyAgent_BudgetPrompt_Continue>繼續使用 Agent</ATC_PolicyAgent_BudgetPrompt_Continue>
+  <ATC_PolicyAgent_BudgetPrompt_LocalOnly>停用 Agent，繼續翻譯</ATC_PolicyAgent_BudgetPrompt_LocalOnly>
+  <ATC_PolicyAgent_BudgetPrompt_Cancel>取消本次翻譯</ATC_PolicyAgent_BudgetPrompt_Cancel>
+  <ATC_PolicyAgent_BudgetPrompt_Waiting>等待 Policy Agent 軟性門檻選擇</ATC_PolicyAgent_BudgetPrompt_Waiting>
+  <ATC_PolicyAgent_BudgetPrompt_Notice>達到軟性門檻時會暫停並詢問；選擇繼續後，本次任務不再詢問或套用內部軟性門檻，但供應商額度與計費仍然有效。</ATC_PolicyAgent_BudgetPrompt_Notice>
+  <ATC_PolicyAgent_EmergencyLimitReached>Policy Agent 已達技術安全護欄（{0} 次呼叫或 {1} 預估 Token）；本次任務後續將停用 Agent。</ATC_PolicyAgent_EmergencyLimitReached>
+  <ATC_PolicyAgent_LocalOnlySelected>已選擇停用本次任務後續的 Policy Agent；灰區新文本保留原文。</ATC_PolicyAgent_LocalOnlySelected>
+  <ATC_PolicyAgent_BatchSummary>Policy [{0}]：本機允許 {1}、本機拒絕 {2}、Agent 允許 {3}、保留原文 {4}。</ATC_PolicyAgent_BatchSummary>
+  <ATC_PolicyAgent_RunSummary>Policy Agent 摘要：呼叫 {0}、預估 Token {1}、快取命中 {2}、本機允許 {3}、本機拒絕 {4}、Agent 允許 {5}、Agent 拒絕 {6}、待複查 {7}、未解決 {8}。</ATC_PolicyAgent_RunSummary>
+  <ATC_PolicyAgent_ActualTokenSummary>Policy Agent 供應商回報的實際 Token：{0}。</ATC_PolicyAgent_ActualTokenSummary>
+  <ATC_HardcodedUi_EnablePrototype>啟用已核准的硬編碼 UI 原型（僅測試模組）</ATC_HardcodedUi_EnablePrototype>
+  <ATC_HardcodedUi_EnablePrototypeTooltip>只會使用人工核准的測試模組 manifest。執行期間不掃描或修改第三方 DLL，預設關閉。</ATC_HardcodedUi_EnablePrototypeTooltip>
+  <ATC_HardcodedUi_Status>定向 UI 原型：{0}</ATC_HardcodedUi_Status>
+  <ATC_HardcodedUi_ReloadManifest>重新載入已核准的 UI manifest</ATC_HardcodedUi_ReloadManifest>
+  <ATC_HardcodedUi_Conflict>全域 UI 攔截器啟用時，定向原型會暫停。</ATC_HardcodedUi_Conflict>
   <ATC_SubTask_AnalyzingDict>正在分析本機漢化文本...</ATC_SubTask_AnalyzingDict>
   <ATC_SubTask_BuildingDict>建構字典中: {0}</ATC_SubTask_BuildingDict>
   <ATC_SubTask_DictDone>字典建置完成！</ATC_SubTask_DictDone>
@@ -639,4 +675,51 @@
   <ATC_Blacklist_DownloadSkipped>已略過黑名單模組的雲端下載：{0}</ATC_Blacklist_DownloadSkipped>
   <ATC_Blacklist_DownloadBlockedStatus>已封鎖雲端下載</ATC_Blacklist_DownloadBlockedStatus>
   <ATC_Cloud_Btn_BatchBestTip>只下載已啟用且雲端確實有對應翻譯的模組；雲端沒有的模組會自動略過。</ATC_Cloud_Btn_BatchBestTip>
+  <ATC_Unresolved_Title>未解決的翻譯（{0}）</ATC_Unresolved_Title>
+  <ATC_Unresolved_TitleShort>未解決的翻譯</ATC_Unresolved_TitleShort>
+  <ATC_Unresolved_Summary>這些詞條未能安全完成翻譯；可以重新送交 AI、保留原文，或逐條手動編輯。</ATC_Unresolved_Summary>
+  <ATC_Unresolved_Search>搜尋 Key、原文、原因或來源檔...</ATC_Unresolved_Search>
+  <ATC_Unresolved_Empty>目前沒有未解決的翻譯。</ATC_Unresolved_Empty>
+  <ATC_Unresolved_Mods>模組</ATC_Unresolved_Mods>
+  <ATC_Unresolved_Groups>類型 / 來源檔</ATC_Unresolved_Groups>
+  <ATC_Unresolved_Entries>詞條（{0}）</ATC_Unresolved_Entries>
+  <ATC_Unresolved_All>全部</ATC_Unresolved_All>
+  <ATC_Unresolved_UnknownMod>未知模組</ATC_Unresolved_UnknownMod>
+  <ATC_Unresolved_UnknownSource>未知來源檔</ATC_Unresolved_UnknownSource>
+  <ATC_Unresolved_Attempts>已嘗試：{0} 次</ATC_Unresolved_Attempts>
+  <ATC_Unresolved_Manual>手動編輯</ATC_Unresolved_Manual>
+  <ATC_Unresolved_SelectVisible>勾選目前項目</ATC_Unresolved_SelectVisible>
+  <ATC_Unresolved_ClearSelection>清除勾選</ATC_Unresolved_ClearSelection>
+  <ATC_Unresolved_Selected>已選：{0}</ATC_Unresolved_Selected>
+  <ATC_Unresolved_KeepOriginal>保留原文 / 忽略</ATC_Unresolved_KeepOriginal>
+  <ATC_Unresolved_RetryAI>重新送交 AI</ATC_Unresolved_RetryAI>
+  <ATC_Unresolved_NoSelection>請先勾選至少一個詞條。</ATC_Unresolved_NoSelection>
+  <ATC_Unresolved_Running>請等待目前的翻譯工作完成。</ATC_Unresolved_Running>
+  <ATC_Unresolved_ConfirmIgnore>要讓選取的 {0} 個詞條保留原文，並在來源未變更時不再送交 AI 嗎？</ATC_Unresolved_ConfirmIgnore>
+  <ATC_Unresolved_ConfirmButton>保留原文</ATC_Unresolved_ConfirmButton>
+  <ATC_Unresolved_IgnoreDone>已讓 {0} 個詞條保留原文。</ATC_Unresolved_IgnoreDone>
+  <ATC_Unresolved_ModNotFound>找不到已安裝的模組：{0}</ATC_Unresolved_ModNotFound>
+  <ATC_Unresolved_RetryDone>AI 重試已解決 {0} / {1} 個詞條。</ATC_Unresolved_RetryDone>
+  <ATC_Unresolved_WrongLanguage>這個詞條屬於 {0} 目標語言；請先切換回該目標語言再處理。</ATC_Unresolved_WrongLanguage>
+  <ATC_Unresolved_SourceChanged>{0} 的來源文字已變更或消失；請先重新掃描該模組。</ATC_Unresolved_SourceChanged>
+  <ATC_Unresolved_IgnoreSaveFailed>無法儲存保留原文的決定；此詞條仍會保留在待處理清單。</ATC_Unresolved_IgnoreSaveFailed>
+  <ATC_Unresolved_ReasonApi>API 請求失敗</ATC_Unresolved_ReasonApi>
+  <ATC_Unresolved_ReasonMalformed>AI 回傳格式不合法</ATC_Unresolved_ReasonMalformed>
+  <ATC_Unresolved_ReasonEmpty>AI 回傳空白內容</ATC_Unresolved_ReasonEmpty>
+  <ATC_Unresolved_ReasonEnglish>結果仍殘留英文</ATC_Unresolved_ReasonEnglish>
+  <ATC_Unresolved_ReasonVariant>簡繁體版本不符</ATC_Unresolved_ReasonVariant>
+  <ATC_Unresolved_ReasonWrongLanguage>結果使用了錯誤的目標語言</ATC_Unresolved_ReasonWrongLanguage>
+  <ATC_Unresolved_ReasonToken>受保護符號不一致</ATC_Unresolved_ReasonToken>
+  <ATC_Unresolved_ReasonFormat>格式參數不一致</ATC_Unresolved_ReasonFormat>
+  <ATC_Unresolved_ReasonTitleTag>標題標籤不一致</ATC_Unresolved_ReasonTitleTag>
+  <ATC_Unresolved_ReasonSave>無法儲存翻譯檔</ATC_Unresolved_ReasonSave>
+  <ATC_Unresolved_ReasonSource>無法處理來源 XML</ATC_Unresolved_ReasonSource>
+  <ATC_Unresolved_ReasonPolicyReview>Policy Agent 要求人工複核</ATC_Unresolved_ReasonPolicyReview>
+  <ATC_Unresolved_ReasonPolicyAgentFailure>Policy Agent 判斷失敗</ATC_Unresolved_ReasonPolicyAgentFailure>
+  <ATC_Unresolved_ReasonUnknown>翻譯結果未通過驗證</ATC_Unresolved_ReasonUnknown>
+  <ATC_PolicyAgent_ApiTitle>Policy Agent 專用 API 設定</ATC_PolicyAgent_ApiTitle>
+  <ATC_PolicyAgent_ApiNotice>在這裡設定獨立的供應商、Key、Base URL 與模型；Policy Agent 不會使用翻譯 API 清單。</ATC_PolicyAgent_ApiNotice>
+  <ATC_PolicyAgent_ApiEnabled>啟用這組 Agent 專用 API 設定</ATC_PolicyAgent_ApiEnabled>
+  <ATC_PolicyAgent_ApiReady>Agent 專用 API 已準備完成。</ATC_PolicyAgent_ApiReady>
+  <ATC_PolicyAgent_ApiIncomplete>Agent 專用 API 尚未完整設定；Policy Agent 不會使用翻譯 API Key。</ATC_PolicyAgent_ApiIncomplete>
 </LanguageData>

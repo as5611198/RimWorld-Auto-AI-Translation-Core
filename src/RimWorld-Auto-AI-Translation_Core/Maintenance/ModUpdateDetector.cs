@@ -44,6 +44,14 @@ namespace AutoTranslator_Core
         // 這個欄位保存 cached模組 的執行狀態或快取資料。
         // EN: This field stores cached mods runtime state or cached data.
         private static readonly object _cacheLock = new object();
+        private static readonly object _verificationPersistenceLock = new object();
+        private static readonly Dictionary<string, SourceFingerprintSnapshot> _pendingVerificationSnapshots =
+            new Dictionary<string, SourceFingerprintSnapshot>(StringComparer.OrdinalIgnoreCase);
+        private const int VerificationPersistenceMaxRetries = 3;
+        private static bool _verificationPersistenceQueued;
+        private static bool _pendingVerificationCacheRefresh;
+        private static int _verificationPersistenceRetryCount;
+        private static int _verificationPersistenceVersion;
         private static readonly DateTime _cacheClockOriginUtc = DateTime.UtcNow;
         private static List<ModMetaData> _cachedMods = null;
         // 這個欄位保存 lastCheckTime 的執行狀態或快取資料。
@@ -703,24 +711,149 @@ namespace AutoTranslator_Core
         public static void MarkModAsTranslatedSnapshot(string packageId, SourceFingerprintSnapshot source, bool refreshStatusCache = true)
         {
             if (string.IsNullOrWhiteSpace(packageId) || source == null) return;
+            QueueVerificationPersistence(packageId, source, refreshStatusCache);
+        }
 
-            if (AutoTranslatorMod.Settings.ModLastVerifiedTimes == null)
+        private static void QueueVerificationPersistence(
+            string packageId,
+            SourceFingerprintSnapshot source,
+            bool refreshStatusCache)
+        {
+            bool shouldQueue;
+            lock (_verificationPersistenceLock)
             {
-                AutoTranslatorMod.Settings.ModLastVerifiedTimes = new Dictionary<string, long>();
-            }
-            if (AutoTranslatorMod.Settings.ModLastVerifiedFingerprints == null)
-            {
-                AutoTranslatorMod.Settings.ModLastVerifiedFingerprints = new Dictionary<string, string>();
+                _pendingVerificationSnapshots[packageId] = new SourceFingerprintSnapshot
+                {
+                    LatestTicks = source.LatestTicks,
+                    Fingerprint = source.Fingerprint ?? string.Empty
+                };
+                _pendingVerificationCacheRefresh |= refreshStatusCache;
+                unchecked { _verificationPersistenceVersion++; }
+                shouldQueue = !_verificationPersistenceQueued;
+                _verificationPersistenceQueued = true;
+                if (shouldQueue) _verificationPersistenceRetryCount = 0;
             }
 
-            AutoTranslatorMod.Settings.ModLastVerifiedTimes[packageId] = source.LatestTicks;
-            AutoTranslatorMod.Settings.ModLastVerifiedFingerprints[packageId] = source.Fingerprint;
-            LoadedModManager.GetMod<AutoTranslatorMod>().WriteSettings();
-
-            if (refreshStatusCache)
+            if (shouldQueue)
             {
-                ClearStatusCache();
+                ATC_Dispatcher.RunOnMainThread(FlushPendingVerificationSnapshots);
             }
+        }
+
+        private static void FlushPendingVerificationSnapshots()
+        {
+            while (true)
+            {
+                Dictionary<string, SourceFingerprintSnapshot> pending;
+                bool refreshStatusCache;
+                int persistenceVersion;
+                lock (_verificationPersistenceLock)
+                {
+                    if (_pendingVerificationSnapshots.Count == 0)
+                    {
+                        _verificationPersistenceQueued = false;
+                        return;
+                    }
+
+                    pending = new Dictionary<string, SourceFingerprintSnapshot>(
+                        _pendingVerificationSnapshots,
+                        StringComparer.OrdinalIgnoreCase);
+                    _pendingVerificationSnapshots.Clear();
+                    refreshStatusCache = _pendingVerificationCacheRefresh;
+                    _pendingVerificationCacheRefresh = false;
+                    persistenceVersion = _verificationPersistenceVersion;
+                }
+
+                try
+                {
+                    AutoTranslatorSettings settings = AutoTranslatorMod.Settings;
+                    if (settings == null)
+                    {
+                        throw new InvalidOperationException("Translation settings are not available.");
+                    }
+
+                    if (settings.ModLastVerifiedTimes == null)
+                    {
+                        settings.ModLastVerifiedTimes = new Dictionary<string, long>();
+                    }
+                    if (settings.ModLastVerifiedFingerprints == null)
+                    {
+                        settings.ModLastVerifiedFingerprints = new Dictionary<string, string>();
+                    }
+
+                    foreach (KeyValuePair<string, SourceFingerprintSnapshot> pair in pending)
+                    {
+                        settings.ModLastVerifiedTimes[pair.Key] = pair.Value.LatestTicks;
+                        settings.ModLastVerifiedFingerprints[pair.Key] = pair.Value.Fingerprint ?? string.Empty;
+                    }
+
+                    AutoTranslatorMod mod = LoadedModManager.GetMod<AutoTranslatorMod>();
+                    if (mod == null)
+                    {
+                        throw new InvalidOperationException("Translation mod instance is not available.");
+                    }
+                    mod.WriteSettings();
+
+                    if (refreshStatusCache)
+                    {
+                        ClearStatusCache();
+                    }
+
+                    lock (_verificationPersistenceLock)
+                    {
+                        _verificationPersistenceRetryCount = 0;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("[AutoTranslationCore] Failed to persist translated-mod verification state on the main thread: " + ex);
+                    int retryAttempt;
+                    bool shouldRetry;
+                    lock (_verificationPersistenceLock)
+                    {
+                        foreach (KeyValuePair<string, SourceFingerprintSnapshot> pair in pending)
+                        {
+                            if (!_pendingVerificationSnapshots.ContainsKey(pair.Key))
+                            {
+                                _pendingVerificationSnapshots[pair.Key] = pair.Value;
+                            }
+                        }
+                        _pendingVerificationCacheRefresh |= refreshStatusCache;
+
+                        if (_verificationPersistenceVersion != persistenceVersion)
+                        {
+                            _verificationPersistenceRetryCount = 0;
+                        }
+
+                        retryAttempt = ++_verificationPersistenceRetryCount;
+                        shouldRetry = retryAttempt <= VerificationPersistenceMaxRetries;
+                        if (!shouldRetry)
+                        {
+                            _verificationPersistenceQueued = false;
+                        }
+                    }
+
+                    if (shouldRetry)
+                    {
+                        ScheduleVerificationPersistenceRetry(retryAttempt);
+                    }
+                    else
+                    {
+                        Log.Error("[AutoTranslationCore] Verification state remains queued after repeated persistence failures; the next completed mod will retry it.");
+                    }
+                    return;
+                }
+            }
+        }
+
+        private static void ScheduleVerificationPersistenceRetry(int retryAttempt)
+        {
+            int delayMilliseconds = Math.Min(2000, 250 * Math.Max(1, retryAttempt));
+            Task.Run(async () =>
+            {
+                await Task.Delay(delayMilliseconds);
+                ATC_Dispatcher.RunOnMainThread(FlushPendingVerificationSnapshots);
+            });
         }
 
         public static ModTranslationStatus GetTranslationStatus(TranslationStatusCheckSnapshot check)
@@ -1161,23 +1294,14 @@ namespace AutoTranslator_Core
                 effectiveRootDir,
                 AutoTranslatorMod.Settings.TargetLang,
                 false);
-            if (AutoTranslatorMod.Settings.ModLastVerifiedTimes == null)
-            {
-                AutoTranslatorMod.Settings.ModLastVerifiedTimes = new Dictionary<string, long>();
-            }
-            if (AutoTranslatorMod.Settings.ModLastVerifiedFingerprints == null)
-            {
-                AutoTranslatorMod.Settings.ModLastVerifiedFingerprints = new Dictionary<string, string>();
-            }
-
-            AutoTranslatorMod.Settings.ModLastVerifiedTimes[packageId] = source.LatestTicks;
-            AutoTranslatorMod.Settings.ModLastVerifiedFingerprints[packageId] = source.Fingerprint;
-            LoadedModManager.GetMod<AutoTranslatorMod>().WriteSettings();
-
-            if (refreshStatusCache)
-            {
-                ClearStatusCache();
-            }
+            QueueVerificationPersistence(
+                packageId,
+                new SourceFingerprintSnapshot
+                {
+                    LatestTicks = source.LatestTicks,
+                    Fingerprint = source.Fingerprint
+                },
+                refreshStatusCache);
         }
     }
 }

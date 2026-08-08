@@ -22,7 +22,7 @@ namespace AutoTranslator_Core
         {
             if (AutoTranslatorMod.Settings != null && AutoTranslatorMod.Settings.IsCloudDownloadBlacklisted(packageId))
             {
-                AutoTranslatorSettings.AddLog("ATC_Blacklist_DownloadSkipped".Translate(packageId));
+                AutoTranslatorSettings.AddLog(AutoTranslatorAPI.TranslateText("ATC_Blacklist_DownloadSkipped", packageId));
                 return false;
             }
 
@@ -167,7 +167,8 @@ namespace AutoTranslator_Core
                 string fallbackZip = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{packageId}_{targetLangFolder}_cloud.zip");
                 if (System.IO.File.Exists(fallbackZip)) System.IO.File.Delete(fallbackZip);
 
-                ATC_Dispatcher.RunOnMainThread(() => AutoTranslatorSettings.AddErrorLog("ATC_LogError_DownloadCorrupted".Translate(packageId, ex.Message)));
+                ATC_Dispatcher.RunOnMainThread(() => AutoTranslatorSettings.AddErrorLog(
+                    AutoTranslatorAPI.TranslateText("ATC_LogError_DownloadCorrupted", packageId, ex.Message)));
                 return false;
             }
         }
@@ -240,7 +241,7 @@ namespace AutoTranslator_Core
 
                 if (result.DeletedFiles > 0)
                 {
-                    AutoTranslatorSettings.AddLog("ATC_ClearCacheSuccess".Translate(result.DeletedFiles));
+                    AutoTranslatorSettings.AddLog(AutoTranslatorAPI.TranslateText("ATC_ClearCacheSuccess", result.DeletedFiles));
                     Log.Message($"[AutoTranslationCore] Auto-cleared {result.DeletedFiles} old files for updated mods (Backup created).");
                 }
 

@@ -98,24 +98,43 @@ namespace AutoTranslator_Core
 
             try
             {
-                XmlDocument doc = new XmlDocument();
-                doc.Load(filePath);
-                if (doc.DocumentElement == null) return true;
-
-                foreach (XmlNode node in doc.DocumentElement.ChildNodes)
+                XmlReaderSettings settings = new XmlReaderSettings
                 {
-                    if (node.NodeType != XmlNodeType.Element) continue;
-
-                    string value = node.InnerText;
-                    if (!string.IsNullOrEmpty(value))
-                    {
-                        value = value.Replace("\\n", "\n").Replace("\\r", "\r").Replace("/n", "\n");
-                    }
-
-                    dict[node.Name] = value;
+                    DtdProcessing = DtdProcessing.Prohibit,
+                    XmlResolver = null
+                };
+                XmlDocument doc = new XmlDocument { XmlResolver = null };
+                using (XmlReader reader = XmlReader.Create(filePath, settings))
+                {
+                    doc.Load(reader);
+                }
+                if (doc.DocumentElement == null ||
+                    !doc.DocumentElement.Name.Equals("LanguageData", StringComparison.Ordinal))
+                {
+                    return false;
                 }
 
+                dict = TranslationXmlDictionaryParser.Parse(doc.DocumentElement);
+
                 return true;
+            }
+            catch
+            {
+                dict.Clear();
+                return false;
+            }
+        }
+
+        internal static bool TryLoadRawXmlFileToDict(
+            string filePath,
+            out Dictionary<string, string> dict)
+        {
+            dict = new Dictionary<string, string>();
+            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath)) return false;
+
+            try
+            {
+                return TryParseXmlFileToDict(NormalizeCachePath(filePath), out dict);
             }
             catch
             {

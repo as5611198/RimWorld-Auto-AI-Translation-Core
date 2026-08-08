@@ -209,7 +209,14 @@ namespace AutoTranslator_Core
 
         // 這個方法負責處理 TraverseDefNode 相關流程。
         // EN: This method handles traverse Def node.
-        private static void TraverseDefNode(XmlNode node, string currentPath, string defType, Dictionary<string, Dictionary<string, string>> result)
+        private static void TraverseDefNode(
+            XmlNode node,
+            string currentPath,
+            string defType,
+            Dictionary<string, Dictionary<string, string>> result,
+            bool includePolicyCandidates,
+            string sourceFile,
+            Dictionary<string, Dictionary<string, string>> sourceFilesByType)
         {
             int liIndex = 0;
             foreach (XmlNode child in node.ChildNodes)
@@ -256,6 +263,10 @@ namespace AutoTranslator_Core
                         bool shouldTranslate = !IsProtectedDefPath(childPath) &&
                                                (isKnownTranslatablePath || isExactTextTag || !LooksLikeDefReferenceValue(text)) &&
                                                (isKnownTranslatablePath || IsTranslationTarget(child.Name, text));
+                        if (includePolicyCandidates && !IsProtectedDefPath(childPath))
+                        {
+                            shouldTranslate = true;
+                        }
 
 
                         if (isListItem && ShouldForceTranslateListItem(node, currentPath, text))
@@ -267,12 +278,28 @@ namespace AutoTranslator_Core
                         {
                             if (!result.ContainsKey(defType)) result[defType] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                             result[defType][childPath] = text;
+                            if (sourceFilesByType != null)
+                            {
+                                if (!sourceFilesByType.ContainsKey(defType))
+                                {
+                                    sourceFilesByType[defType] =
+                                        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                                }
+                                sourceFilesByType[defType][childPath] = sourceFile ?? string.Empty;
+                            }
                         }
                     }
                 }
                 else if (child.HasChildNodes)
                 {
-                    TraverseDefNode(child, childPath, defType, result);
+                    TraverseDefNode(
+                        child,
+                        childPath,
+                        defType,
+                        result,
+                        includePolicyCandidates,
+                        sourceFile,
+                        sourceFilesByType);
                 }
             }
         }
@@ -280,7 +307,37 @@ namespace AutoTranslator_Core
         // EN: This method handles extract english from raw defs.
         public static Dictionary<string, Dictionary<string, string>> ExtractEnglishFromRawDefs(string defsRoot)
         {
+            return ExtractEnglishFromRawDefs(defsRoot, false);
+        }
+
+        internal static Dictionary<string, Dictionary<string, string>> ExtractEnglishFromRawDefs(
+            string defsRoot,
+            bool includePolicyCandidates)
+        {
+            return ExtractEnglishFromRawDefs(defsRoot, includePolicyCandidates, null);
+        }
+
+        internal static Dictionary<string, Dictionary<string, string>> ExtractEnglishFromRawDefs(
+            string defsRoot,
+            bool includePolicyCandidates,
+            Dictionary<string, Dictionary<string, string>> sourceFilesByType)
+        {
+            List<string> ignoredFailures;
+            return ExtractEnglishFromRawDefs(
+                defsRoot,
+                includePolicyCandidates,
+                sourceFilesByType,
+                out ignoredFailures);
+        }
+
+        internal static Dictionary<string, Dictionary<string, string>> ExtractEnglishFromRawDefs(
+            string defsRoot,
+            bool includePolicyCandidates,
+            Dictionary<string, Dictionary<string, string>> sourceFilesByType,
+            out List<string> failedFiles)
+        {
             var result = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+            failedFiles = new List<string>();
             if (!Directory.Exists(defsRoot)) return result;
 
             foreach (var file in GetXmlFilesCached(defsRoot, SearchOption.AllDirectories))
@@ -289,8 +346,18 @@ namespace AutoTranslator_Core
 
                 try
                 {
-                    XmlDocument doc = new XmlDocument();
-                    doc.Load(file);
+                    XmlReaderSettings readerSettings = new XmlReaderSettings
+                    {
+                        DtdProcessing = DtdProcessing.Prohibit,
+                        IgnoreComments = true,
+                        IgnoreProcessingInstructions = true,
+                        XmlResolver = null
+                    };
+                    XmlDocument doc = new XmlDocument { XmlResolver = null };
+                    using (XmlReader reader = XmlReader.Create(file, readerSettings))
+                    {
+                        doc.Load(reader);
+                    }
                     if (doc.DocumentElement == null || doc.DocumentElement.Name.ToLower() != "defs") continue;
 
                     foreach (XmlNode defNode in doc.DocumentElement.ChildNodes)
@@ -310,10 +377,21 @@ namespace AutoTranslator_Core
 
                         if (string.IsNullOrEmpty(defName)) continue;
 
-                        TraverseDefNode(defNode, defName, defType, result);
+                        TraverseDefNode(
+                            defNode,
+                            defName,
+                            defType,
+                            result,
+                            includePolicyCandidates,
+                            file,
+                            sourceFilesByType);
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    failedFiles.Add(file);
+                    Log.Warning("[AutoTranslationCore] Could not process source Def XML " + file + ": " + ex.Message);
+                }
             }
             return result;
         }

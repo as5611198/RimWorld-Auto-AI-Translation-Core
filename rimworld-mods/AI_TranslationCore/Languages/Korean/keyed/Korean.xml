@@ -100,6 +100,41 @@
   <ATC_MultiSelect_Title>번역할 모드 선택 (다중 선택 가능)</ATC_MultiSelect_Title>
   <ATC_MultiSelect_Search>여기에 모드 이름을 입력하여 검색...</ATC_MultiSelect_Search>
   <ATC_MultiSelect_Start>선택한 {0}개의 모드 번역 시작</ATC_MultiSelect_Start>
+  <ATC_PolicyShadowRun_Button>Agent 분류 드라이런 ({0})</ATC_PolicyShadowRun_Button>
+  <ATC_PolicyShadowRun_Task>Agent 분류 드라이런 실행 중...</ATC_PolicyShadowRun_Task>
+  <ATC_PolicyShadowRun_Start>선택한 모드 {0}개에 대한 Agent 분류 드라이런을 시작합니다. 번역을 기록하거나 런타임에 주입하지 않습니다.</ATC_PolicyShadowRun_Start>
+  <ATC_PolicyShadowRun_Title>Agent 분류 드라이런 결과</ATC_PolicyShadowRun_Title>
+  <ATC_PolicyShadowRun_Summary>모드: {0}\n후보 텍스트: {1}\n허용: {2}\n거부: {3}\n모호함: {4}\n그룹: {5}\n예상 요청 수: {6}\n예상 입력 토큰: {7}\n예상 출력 토큰: {8}\n예상 전체 토큰: {9}\n실제 AI/API 호출 / 소비 토큰: 0 / 0\n경과 시간: {10}\n보고서: {11}\n번역 기록 / 런타임 주입: 0 / 0</ATC_PolicyShadowRun_Summary>
+  <ATC_PolicyAgent_Enable>모호한 텍스트용 AI Policy Agent 사용(기본값: 꺼짐)</ATC_PolicyAgent_Enable>
+  <ATC_PolicyAgent_EnableTooltip>사용하면 번역 전에 모호한 텍스트를 분류합니다. DeepL은 분류할 수 없으므로 AI 채팅 공급자를 설정하세요. 실패하면 원문을 유지합니다.</ATC_PolicyAgent_EnableTooltip>
+  <ATC_PolicyAgent_MaxCallsPerRun>번역 작업당 Policy Agent 호출 소프트 임계값: {0}</ATC_PolicyAgent_MaxCallsPerRun>
+  <ATC_PolicyAgent_MaxEstimatedTokensPerRun>번역 작업당 예상 토큰 소프트 임계값: {0}</ATC_PolicyAgent_MaxEstimatedTokensPerRun>
+  <ATC_PolicyAgent_MaxCallsPerMod>모드당 Policy Agent 호출 소프트 임계값: {0}</ATC_PolicyAgent_MaxCallsPerMod>
+  <ATC_PolicyAgent_RetryNotice>요청당 재시도 횟수: {0}. 모든 재시도는 호출 수와 예상 토큰 소프트 임계값에 포함됩니다.</ATC_PolicyAgent_RetryNotice>
+  <ATC_PolicyAgent_ClearCache>Policy Agent 판단 캐시 지우기</ATC_PolicyAgent_ClearCache>
+  <ATC_PolicyAgent_CacheCleared>Policy Agent 판단 캐시를 지웠습니다.</ATC_PolicyAgent_CacheCleared>
+  <ATC_PolicyAgent_CacheClearFailed>Policy Agent 판단 캐시를 지울 수 없습니다.</ATC_PolicyAgent_CacheClearFailed>
+  <ATC_PolicyAgent_NoProvider>사용 가능한 AI Policy Agent 공급자가 없습니다. DeepL은 텍스트를 분류할 수 없으므로 모호한 텍스트는 원문을 유지합니다.</ATC_PolicyAgent_NoProvider>
+  <ATC_PolicyAgent_BudgetExhausted>Policy Agent가 소프트 임계값에서 중지되었습니다. 남은 모호한 텍스트는 원문을 유지합니다.</ATC_PolicyAgent_BudgetExhausted>
+  <ATC_PolicyAgent_BudgetPrompt_Title>Policy Agent 소프트 임계값 확인</ATC_PolicyAgent_BudgetPrompt_Title>
+  <ATC_PolicyAgent_BudgetPrompt_Message>다음 Policy Agent 요청이 소프트 임계값을 초과합니다.\n모드: {0}\n작업 호출: {1} -&gt; {2}(임계값 {3}), 현재 모드: {4} -&gt; {5}(임계값 {6})\n예상 토큰: {7} -&gt; {8}(임계값 {9}){10}\n현재 발견되어 아직 처리하지 않은 모호한 그룹: 약 {11}\n요청 유형: {12}\n계속하면 이 작업에서는 다시 묻지 않습니다. 공급자 할당량과 요금은 계속 적용됩니다.</ATC_PolicyAgent_BudgetPrompt_Message>
+  <ATC_PolicyAgent_BudgetPrompt_ReportedTokens>공급자가 현재까지 보고한 토큰(불완전할 수 있음): {0}</ATC_PolicyAgent_BudgetPrompt_ReportedTokens>
+  <ATC_PolicyAgent_BudgetPrompt_RequestNew>새 요청</ATC_PolicyAgent_BudgetPrompt_RequestNew>
+  <ATC_PolicyAgent_BudgetPrompt_RequestRetry>재시도</ATC_PolicyAgent_BudgetPrompt_RequestRetry>
+  <ATC_PolicyAgent_BudgetPrompt_Continue>Agent 계속 사용</ATC_PolicyAgent_BudgetPrompt_Continue>
+  <ATC_PolicyAgent_BudgetPrompt_LocalOnly>Agent를 중지하고 계속</ATC_PolicyAgent_BudgetPrompt_LocalOnly>
+  <ATC_PolicyAgent_BudgetPrompt_Cancel>번역 취소</ATC_PolicyAgent_BudgetPrompt_Cancel>
+  <ATC_PolicyAgent_BudgetPrompt_Waiting>Policy Agent 소프트 임계값 선택 대기 중</ATC_PolicyAgent_BudgetPrompt_Waiting>
+  <ATC_PolicyAgent_BudgetPrompt_Notice>소프트 임계값에서 번역을 일시 중지하고 확인합니다. 계속하면 이 작업의 내부 임계값과 재확인은 해제되지만 공급자 할당량과 요금은 계속 적용됩니다.</ATC_PolicyAgent_BudgetPrompt_Notice>
+  <ATC_PolicyAgent_EmergencyLimitReached>Policy Agent가 기술 안전 한도({0}회 호출 또는 예상 {1}토큰)에 도달하여 이 작업의 나머지에서는 Agent를 중지합니다.</ATC_PolicyAgent_EmergencyLimitReached>
+  <ATC_PolicyAgent_LocalOnlySelected>이 작업의 나머지에서 Policy Agent를 중지했습니다. 새 모호한 텍스트는 원문을 유지합니다.</ATC_PolicyAgent_LocalOnlySelected>
+  <ATC_PolicyAgent_BatchSummary>Policy [{0}]: 로컬 허용 {1}, 로컬 거부 {2}, Agent 허용 {3}, 원문 유지 {4}.</ATC_PolicyAgent_BatchSummary>
+  <ATC_PolicyAgent_RunSummary>Policy Agent 요약: 호출 {0}, 예상 토큰 {1}, 캐시 적중 {2}, 로컬 허용 {3}, 로컬 거부 {4}, Agent 허용 {5}, Agent 거부 {6}, 검토 필요 {7}, 미해결 {8}.</ATC_PolicyAgent_RunSummary>
+  <ATC_HardcodedUi_EnablePrototype>승인된 하드코드 UI 프로토타입 활성화 (fixture 전용)</ATC_HardcodedUi_EnablePrototype>
+  <ATC_HardcodedUi_EnablePrototypeTooltip>수동 승인된 fixture manifest의 지정 패치만 사용합니다. 실행 중 타사 DLL을 읽거나 수정하지 않으며 기본값은 꺼짐입니다.</ATC_HardcodedUi_EnablePrototypeTooltip>
+  <ATC_HardcodedUi_Status>지정 UI 프로토타입: {0}</ATC_HardcodedUi_Status>
+  <ATC_HardcodedUi_ReloadManifest>승인된 UI manifest 다시 로드</ATC_HardcodedUi_ReloadManifest>
+  <ATC_HardcodedUi_Conflict>전역 UI 인터셉터가 켜져 있는 동안 지정 프로토타입은 일시 중지됩니다.</ATC_HardcodedUi_Conflict>
   <ATC_SubTask_AnalyzingDict>로컬 번역 텍스트 분석 중...</ATC_SubTask_AnalyzingDict>
   <ATC_SubTask_BuildingDict>사전 빌드 중: {0}</ATC_SubTask_BuildingDict>
   <ATC_SubTask_DictDone>사전 구축 완료!</ATC_SubTask_DictDone>
@@ -587,4 +622,9 @@
   <ATC_Blacklist_DownloadSkipped>차단된 모드의 클라우드 다운로드를 건너뜀: {0}</ATC_Blacklist_DownloadSkipped>
   <ATC_Blacklist_DownloadBlockedStatus>클라우드 다운로드 차단됨</ATC_Blacklist_DownloadBlockedStatus>
   <ATC_Cloud_Btn_BatchBestTip>활성화된 설치 모드 중 클라우드에 해당 번역이 있는 모드만 다운로드합니다.</ATC_Cloud_Btn_BatchBestTip>
+  <ATC_PolicyAgent_ApiTitle>Dedicated Policy Agent API</ATC_PolicyAgent_ApiTitle>
+  <ATC_PolicyAgent_ApiNotice>Use a separate provider, key, base URL, and model here. The Policy Agent never uses the translation API list.</ATC_PolicyAgent_ApiNotice>
+  <ATC_PolicyAgent_ApiEnabled>Enable this dedicated Agent API configuration</ATC_PolicyAgent_ApiEnabled>
+  <ATC_PolicyAgent_ApiReady>Dedicated Agent API is ready.</ATC_PolicyAgent_ApiReady>
+  <ATC_PolicyAgent_ApiIncomplete>Dedicated Agent API is incomplete; the Policy Agent will not use translation API keys.</ATC_PolicyAgent_ApiIncomplete>
 </LanguageData>

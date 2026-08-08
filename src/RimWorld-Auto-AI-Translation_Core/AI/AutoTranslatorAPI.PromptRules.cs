@@ -67,6 +67,7 @@ Your SOLE task is to translate every string in the provided JSON array into {rul
 3. Escape Characters: If the original text contains literal escape sequences like \n, \t, or \r, keep them exactly as literal strings. DO NOT output actual line breaks.
 4. Quotation Marks: If quotes are needed in the translated text, you MUST escape them properly using backslashes (e.g., \"") to prevent breaking the JSON structure.
 5. Curly braces are sacred: if the source contains {{PAWN}}, {{PAWN_nameDef}}, {{0}}, or any {{...}} token, the translation MUST contain the same token with curly braces. NEVER convert {{...}} to [...].
+ 6. RimWorld [title:...] tags contain player-visible text: keep the literal [title: prefix and final ] unchanged, but translate only the text between them. Never drop or rename the tag.
 
 [RIMWORLD XML / DEF RULES]
 1. InteractionDef, RulePackDef, QuestScriptDef, and similar grammar strings often use `ruleName->text`. Keep the left side and the `->` operator exactly unchanged; translate only the natural-language text on the right side.

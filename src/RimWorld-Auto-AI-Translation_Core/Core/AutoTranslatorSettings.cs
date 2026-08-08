@@ -30,6 +30,17 @@ namespace AutoTranslator_Core
         // 這個欄位保存 MaxThreads 的執行狀態或快取資料。
         // EN: This field stores max threads runtime state or cached data.
         public int MaxThreads = 3;
+        public bool EnableTranslationPolicyAgent = false;
+        public int PolicyAgentMaxCallsPerRun = 20;
+        public long PolicyAgentMaxEstimatedTokensPerRun = 200000L;
+        public int PolicyAgentMaxCallsPerMod = 20;
+        public int PolicyAgentMaxRetriesPerRequest = 1;
+        // This configuration is intentionally separate from the translation key pool so
+        // policy classification can use a cheaper or otherwise independent model.
+        public ApiKeyConfig PolicyAgentApiConfig = new ApiKeyConfig
+        {
+            Label = "Policy Agent"
+        };
         public List<ApiKeyConfig> ApiConfigs = new List<ApiKeyConfig>();
 
         // 這個欄位保存 CurrentProgress 的執行狀態或快取資料。
@@ -103,6 +114,8 @@ namespace AutoTranslator_Core
         // 這個欄位保存 EnableUINew翻譯 的執行狀態或快取資料。
         // EN: This field stores enable UI new translation runtime state or cached data.
         public bool EnableUINewTranslation = true;
+        // This opt-in prototype only applies explicitly approved targeted patches.
+        public bool EnableHardcodedUiPrototype = false;
         // 這個欄位保存 EnableUIErrorLogInterception 的執行狀態或快取資料。
         // EN: This field stores enable UI error log interception runtime state or cached data.
         public bool EnableUIErrorLogInterception = false;
@@ -394,11 +407,22 @@ namespace AutoTranslator_Core
             Scribe_Values.Look(ref OnlyScanActiveMods, "OnlyScanActiveMods", true);
             Scribe_Values.Look(ref EnableUIInterceptor, "EnableUIInterceptor", false);
             Scribe_Values.Look(ref EnableUINewTranslation, "EnableUINewTranslation", true);
+            Scribe_Values.Look(ref EnableHardcodedUiPrototype, "EnableHardcodedUiPrototype", false);
             Scribe_Values.Look(ref EnableUIErrorLogInterception, "EnableUIErrorLogInterception", false);
             Scribe_Values.Look(ref TranslateWorkbenchModNames, "TranslateWorkbenchModNames", false);
             Scribe_Values.Look(ref ShowWorldMainButton, "ShowWorldMainButton", true);
             Scribe_Values.Look(ref MaxThreads, "MaxThreads", 3);
+            Scribe_Values.Look(ref EnableTranslationPolicyAgent, "EnableTranslationPolicyAgent", false);
+            Scribe_Values.Look(ref PolicyAgentMaxCallsPerRun, "PolicyAgentMaxCallsPerRun", 20);
+            Scribe_Values.Look(ref PolicyAgentMaxEstimatedTokensPerRun, "PolicyAgentMaxEstimatedTokensPerRun", 200000L);
+            Scribe_Values.Look(ref PolicyAgentMaxCallsPerMod, "PolicyAgentMaxCallsPerMod", 20);
+            Scribe_Values.Look(ref PolicyAgentMaxRetriesPerRequest, "PolicyAgentMaxRetriesPerRequest", 1);
+            PolicyAgentMaxCallsPerRun = Math.Min(20, Math.Max(0, PolicyAgentMaxCallsPerRun));
+            PolicyAgentMaxEstimatedTokensPerRun = Math.Min(200000L, Math.Max(0L, PolicyAgentMaxEstimatedTokensPerRun));
+            PolicyAgentMaxCallsPerMod = Math.Min(20, Math.Max(0, PolicyAgentMaxCallsPerMod));
+            PolicyAgentMaxRetriesPerRequest = Math.Min(1, Math.Max(0, PolicyAgentMaxRetriesPerRequest));
             Scribe_Values.Look(ref ShowOriginalUI, "ShowOriginalUI", false);
+            Scribe_Deep.Look(ref PolicyAgentApiConfig, "PolicyAgentApiConfig");
             Scribe_Collections.Look(ref ApiConfigs, "ApiConfigs", LookMode.Deep);
             Scribe_Values.Look(ref TotalCharCount, "TotalCharCount", 0L);
 
@@ -436,6 +460,14 @@ namespace AutoTranslator_Core
                 if (ApiConfigs == null || ApiConfigs.Count == 0)
                 {
                     ApiConfigs = new List<ApiKeyConfig> { new ApiKeyConfig() };
+                }
+
+                if (PolicyAgentApiConfig == null)
+                {
+                    PolicyAgentApiConfig = new ApiKeyConfig
+                    {
+                        Label = "Policy Agent"
+                    };
                 }
 
                 if (ExportHistory == null) ExportHistory = new List<string>();

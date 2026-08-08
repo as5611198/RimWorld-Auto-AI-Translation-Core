@@ -73,9 +73,13 @@ namespace AutoTranslator_Core
         // 這個欄位保存 cacheDirty 的執行狀態或快取資料。
         // EN: This field stores cache dirty runtime state or cached data.
         private static volatile bool _cacheDirty = false;
+        private static int _cacheChangeVersion = 0;
         // 這個欄位保存 ignored快取Dirty 的執行狀態或快取資料。
         // EN: This field stores ignored cache dirty runtime state or cached data.
         private static volatile bool _ignoredCacheDirty = false;
+        private static int _ignoredCacheChangeVersion = 0;
+        private static readonly object _cachePersistenceLock = new object();
+        private static int _uiLanguageGeneration = 0;
         // 這個欄位保存 last快取SaveTicks 的執行狀態或快取資料。
         // EN: This field stores last cache save ticks runtime state or cached data.
         private static long _lastCacheSaveTicks = 0L;
@@ -95,8 +99,6 @@ namespace AutoTranslator_Core
         private static readonly Regex NumericStatusRegex = new Regex(@"(?:\d+(?:\.\d+)?\s*[%/]|[=/|]\s*\d+(?:\.\d+)?|\d+(?:\.\d+)?\s*(?:h|mm|cm|kg|g|W|kW|XP)\b)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly Regex MusicPlaybackStatusRegex = new Regex(@"^\s*(?:Now\s+playing|Currently\s+playing|Playing)\s*[:：]\s*.+$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        private static readonly Regex DynamicNumberRegex = new Regex(@"(?<![A-Za-z0-9_])[-+]?\d+(?:[\.,]\d+)?(?:\s*(?:%|ms|s|h|d|kg|g|W|kW|MW|XP))?(?![A-Za-z0-9_])", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-        private static readonly Regex DynamicNumberPlaceholderRegex = new Regex(@"\{num\d+\}", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly Regex LanguageDetectionNumericMarkerRegex = new Regex(@"(?<=\d)\s*(?:x|×)\s*(?=\d|\p{L}|[\s\)\]\},.;:!?]|$)|(?<=\p{L})\s*(?:x|×)\s*(?=\d)|(?<=\d)\s*(?:°\s*)?(?:C|F)\b|(?<=\d)\s*(?:kW|MW|W|XP|MB|GB|kB|kg|mm|cm|ms|L|g|m|s|h|d)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly ConcurrentDictionary<string, bool> FastBypassDecisionCache = new ConcurrentDictionary<string, bool>();
         private static readonly ConcurrentDictionary<string, bool> TextDecisionCache = new ConcurrentDictionary<string, bool>();
