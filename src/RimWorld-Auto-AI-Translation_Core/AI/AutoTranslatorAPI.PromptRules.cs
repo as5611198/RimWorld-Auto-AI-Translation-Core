@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
+using AutoTranslator_Core.Terminology;
 using Verse;
 using static AutoTranslator_Core.DeleteTranslationWindow;
 // 這個檔案負責不同語言的提示詞規則。
@@ -16,6 +18,9 @@ namespace AutoTranslator_Core
     // EN: This class manages the main workflow and state for AutoTranslatorAPI.
     public static partial class AutoTranslatorAPI
     {
+        private static readonly AsyncLocal<string> TerminologyPromptContext = new AsyncLocal<string>();
+        private static readonly AsyncLocal<IReadOnlyList<TerminologyCandidate>> TerminologyRequestTerms =
+            new AsyncLocal<IReadOnlyList<TerminologyCandidate>>();
 
 
         // 這個結構保存 語言規則 所需的資料欄位。
@@ -47,13 +52,13 @@ namespace AutoTranslator_Core
                 rule = PromptRules[TargetLanguage.English];
 
 
-            return $@"You are a top-tier AI translation engine specialized in localizing RimWorld game mods.
-Your SOLE task is to translate every string in the provided JSON array into {rule.Name}.
+            string basePrompt = $@"You are a top-tier AI translation engine specialized in localizing RimWorld game mods.
+Your SOLE task is to translate every source string in the provided JSON request into {rule.Name}.
 
 [ABSOLUTE CORE RULES - VIOLATION WILL CAUSE SYSTEM CRASH]
-1. Mandatory Format: You MUST return ONLY a valid JSON array.
+1. Mandatory Format: Follow the provider-specific structured output contract appended after these translation rules.
 2. No Nonsense: ABSOLUTELY NO Markdown tags (e.g., ```json or ```). NO greetings, NO concluding remarks, NO explanations, and NO conversational filler like ""Sure"" or ""Here is your translation"".
-3. Strict Array Length Match: The returned JSON array MUST have the EXACT SAME number of elements as the input JSON array, and the order MUST match 100%.
+3. Stable ID Match: Return exactly one translation for every input ID. Preserve each ID exactly; never omit, duplicate, invent, or reorder meaning between IDs.
 4. Original Text Preservation: If a string contains untranslatable code, file paths, or appears to be pure programming code, return the original string exactly as is. NEVER leave it empty.
 5. RimWorld grammar variables are NOT code by themselves. If a sentence contains variables such as [PAWN_nameDef], [PAWN_pronoun], [PAWN_objective], [PAWN_possessive], [INITIATOR_nameDef], or [RECIPIENT_nameDef], translate all surrounding natural-language prose and keep only the bracketed variables unchanged.
 
@@ -67,6 +72,7 @@ Your SOLE task is to translate every string in the provided JSON array into {rul
 3. Escape Characters: If the original text contains literal escape sequences like \n, \t, or \r, keep them exactly as literal strings. DO NOT output actual line breaks.
 4. Quotation Marks: If quotes are needed in the translated text, you MUST escape them properly using backslashes (e.g., \"") to prevent breaking the JSON structure.
 5. Curly braces are sacred: if the source contains {{PAWN}}, {{PAWN_nameDef}}, {{0}}, or any {{...}} token, the translation MUST contain the same token with curly braces. NEVER convert {{...}} to [...].
+ 6. RimWorld [title:...] tags contain player-visible text: keep the literal [title: prefix and final ] unchanged, but translate only the text between them. Never drop or rename the tag.
 
 [RIMWORLD XML / DEF RULES]
 1. InteractionDef, RulePackDef, QuestScriptDef, and similar grammar strings often use `ruleName->text`. Keep the left side and the `->` operator exactly unchanged; translate only the natural-language text on the right side.
@@ -77,11 +83,14 @@ Your SOLE task is to translate every string in the provided JSON array into {rul
 6. If source text describes or contains XML list structure, preserve multi-level tag nesting and use <li> tags for array/list items. Do not flatten nested lists and do not invent tag names.
 
 [INPUT & OUTPUT EXAMPLES]
-Input Example: [""Attack"", ""Pawn {{0}} is dead."", ""<color=red>Warning!</color>""]
-Correct Output Example: [""攻擊"", ""殖民者 {{0}} 已經死亡。"", ""<color=red>警告！</color>""]
-Wrong Output Example: ```json\n[""攻擊"", ...]``` (WRONG! Markdown is strictly forbidden!)
+Input Example: {{""items"":[{{""id"":""0"",""source"":""Attack""}},{{""id"":""1"",""source"":""Pawn {{0}} is dead.""}}]}}
+Correct Output Shape: {{""translations"":[{{""id"":""0"",""text"":""translated text""}},{{""id"":""1"",""text"":""translated text""}}]}}
+Wrong Output Example: ```json\n{{...}}``` (WRONG! Markdown is strictly forbidden!)
 
-FINAL STRICT WARNING: Your output MUST start directly with `[` and end directly with `]`. Absolutely NO other text is allowed!";
+FINAL STRICT WARNING: Obey the appended provider output contract exactly and emit no conversational text.";
+            return string.IsNullOrWhiteSpace(TerminologyPromptContext.Value)
+                ? basePrompt
+                : basePrompt + "\n\n" + TerminologyPromptContext.Value;
         }
 
         // 這個方法負責清理並標準化 BatchFor目標語言 內容。

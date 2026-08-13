@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using AutoTranslator_Core.Terminology;
+using AutoTranslator_Core.TranslationPolicy;
 using Verse;
 using static AutoTranslator_Core.DeleteTranslationWindow;
 // 這個檔案負責 API 供應商與提示詞規則，並包裝翻譯請求的核心流程。
@@ -17,9 +19,6 @@ namespace AutoTranslator_Core
     public static partial class AutoTranslatorAPI
     {
 
-        // 這個常數定義 翻譯DispatchTimeoutMs 的固定值。
-        // EN: This constant defines the fixed value for translation dispatch timeout ms.
-        private const int TranslationDispatchTimeoutMs = 5000;
         // 這個欄位保存 currentKeyIndex 的執行狀態或快取資料。
         // EN: This field stores current key index runtime state or cached data.
         private static int currentKeyIndex = 0;
@@ -36,7 +35,7 @@ namespace AutoTranslator_Core
         public static readonly Dictionary<TranslatorProvider, ProviderDef> ProviderRegistry = new Dictionary<TranslatorProvider, ProviderDef>
         {
             { TranslatorProvider.Google, new ProviderDef { BaseUrl = "https://generativelanguage.googleapis.com/v1beta", ListModelsUrl = "https://generativelanguage.googleapis.com/v1beta/models" } },
-            { TranslatorProvider.DeepSeek, new ProviderDef { BaseUrl = "https://api.deepseek.com/v1", ListModelsUrl = "https://api.deepseek.com/models" } },
+            { TranslatorProvider.DeepSeek, new ProviderDef { BaseUrl = DeepSeekProviderAdapter.OfficialBaseUrl, ListModelsUrl = "https://api.deepseek.com/models" } },
             { TranslatorProvider.Grok, new ProviderDef { BaseUrl = "https://api.x.ai/v1", ListModelsUrl = "https://api.x.ai/v1/models" } },
             { TranslatorProvider.OpenRouter, new ProviderDef { BaseUrl = "https://openrouter.ai/api/v1", ListModelsUrl = "https://openrouter.ai/api/v1/models" } },
             { TranslatorProvider.GLM, new ProviderDef { BaseUrl = "https://open.bigmodel.cn/api/paas/v4", ListModelsUrl = "https://open.bigmodel.cn/api/paas/v4/models" } },
@@ -67,17 +66,20 @@ namespace AutoTranslator_Core
 
         // 這個方法負責取得 Next設定 資料。
         // EN: This method gets next config.
-        public static ApiKeyConfig GetNextConfig()
+        public static ApiKeyConfig GetNextConfig(TranslationTaskTier requestedTier = TranslationTaskTier.Bulk)
         {
             var validConfigs = AutoTranslatorMod.Settings.ApiConfigs
                 .Where(IsConfigReady)
                 .ToList();
 
             if (validConfigs.Count == 0) return null;
-            if (validConfigs.Count == 1) return validConfigs[0];
+            List<ApiKeyConfig> eligible =
+                TranslationTaskTierRouter.SelectEligible(validConfigs, requestedTier);
+            if (eligible.Count == 0) return null;
+            if (eligible.Count == 1) return eligible[0];
 
             int idx = System.Threading.Interlocked.Increment(ref currentKeyIndex);
-            return validConfigs[Math.Abs(idx) % validConfigs.Count];
+            return eligible[Math.Abs(idx) % eligible.Count];
         }
 
         // 這個方法負責判斷 Is設定Ready 條件是否成立。
@@ -95,25 +97,31 @@ namespace AutoTranslator_Core
         public static bool HasAnyReadyConfig()
         {
             return AutoTranslatorMod.Settings.ApiConfigs != null &&
-                   AutoTranslatorMod.Settings.ApiConfigs.Any(IsConfigReady);
+                   AutoTranslatorMod.Settings.ApiConfigs.Any(config =>
+                       IsConfigReady(config) && config.TaskTier == TranslationTaskTier.Bulk);
         }
 
 
         // 這個方法負責處理 DelayWithPipelineCancellationAsync 相關流程。
         // EN: This method handles delay with pipeline cancellation async.
-        private static async Task<bool> DelayWithPipelineCancellationAsync(int delayMs)
+        private static async Task<bool> DelayWithPipelineCancellationAsync(
+            int delayMs,
+            Func<bool> additionalCancellation = null)
         {
-            int remaining = Math.Max(0, delayMs);
-            while (remaining > 0)
+            using (TranslationRequestActivity.BeginRetryWait())
             {
-                if (AutoTranslatorSettings.IsCancellationRequested) return false;
+                int remaining = Math.Max(0, delayMs);
+                while (remaining > 0)
+                {
+                    if (IsRequestCancellationRequested(additionalCancellation)) return false;
 
-                int slice = Math.Min(remaining, 100);
-                await Task.Delay(slice);
-                remaining -= slice;
+                    int slice = Math.Min(remaining, 100);
+                    await Task.Delay(slice);
+                    remaining -= slice;
+                }
+
+                return !IsRequestCancellationRequested(additionalCancellation);
             }
-
-            return !AutoTranslatorSettings.IsCancellationRequested;
         }
 
         // 這個方法負責建立 RequestTimeout回應 物件或檔案。
@@ -124,57 +132,162 @@ namespace AutoTranslator_Core
             {
                 IsSuccess = false,
                 HttpCode = 0,
-                ErrorText = $"Request timed out after {timeoutSeconds}s [{provider}]",
-                ResponseBody = string.Empty
+                ErrorText = timeoutSeconds > 0
+                    ? $"Request timed out after {timeoutSeconds}s [{provider}]"
+                    : $"Request cancelled before completion [{provider}]",
+                ResponseBody = string.Empty,
+                FailureKind = timeoutSeconds > 0
+                    ? TranslationRequestFailureKind.ResponseTimeout
+                    : TranslationRequestFailureKind.Cancelled,
+                FailureStage = timeoutSeconds > 0 ? "WaitingResponse" : "Cancelled",
+                TimeoutSeconds = Math.Max(0, timeoutSeconds)
             };
         }
 
-        // 這個方法負責建立 RequestDispatchTimeout回應 物件或檔案。
-        // EN: This method creates request dispatch timeout response.
-        private static ATC_WebResponse CreateRequestDispatchTimeoutResponse(TranslatorProvider provider)
+        private static ATC_WebResponse CreateUnityTransportStallResponse(
+            TranslatorProvider provider,
+            int configuredTimeoutSeconds,
+            int cleanupGraceSeconds)
         {
             return new ATC_WebResponse
             {
                 IsSuccess = false,
                 HttpCode = 0,
-                ErrorText = $"Request dispatch timed out before UnityWebRequest started [{provider}]",
-                ResponseBody = string.Empty
+                ErrorText =
+                    "UnityWebRequest did not finish within " + cleanupGraceSeconds +
+                    "s after the configured " + configuredTimeoutSeconds +
+                    "s timeout; the request may be stuck inside Unity's network layer and was forcibly aborted [" +
+                    provider + "]",
+                ResponseBody = string.Empty,
+                FailureKind = TranslationRequestFailureKind.UnityTransportStall,
+                FailureStage = "UnityWebRequestCleanup",
+                TimeoutSeconds = Math.Max(0, configuredTimeoutSeconds)
             };
         }
 
-        // 這個方法負責處理 WaitFor翻譯回應Async 相關流程。
-        // EN: This method handles wait for translation response async.
-        private static async Task<bool> WaitForTranslationResponseAsync(Task<ATC_WebResponse> responseTask, int timeoutSeconds)
+        // 只在主執行緒或 UnityWebRequest 明確回報無法啟動時使用；等待本身沒有逾時。
+        // EN: Used only for a definite local dispatch failure; waiting itself has no timeout.
+        private static ATC_WebResponse CreateRequestDispatchFailureResponse(TranslatorProvider provider)
         {
-            int timeoutMs = Math.Max(1, timeoutSeconds) * 1000;
-            System.Diagnostics.Stopwatch timer = System.Diagnostics.Stopwatch.StartNew();
-
-            while (!responseTask.IsCompleted)
+            return new ATC_WebResponse
             {
-                if (AutoTranslatorSettings.IsCancellationRequested) return false;
-                if (timer.ElapsedMilliseconds >= timeoutMs) return false;
-
-                await Task.Delay(100);
-            }
-
-            return true;
+                IsSuccess = false,
+                HttpCode = 0,
+                ErrorText = $"UnityWebRequest could not be started [{provider}]",
+                ResponseBody = string.Empty,
+                FailureKind = TranslationRequestFailureKind.LocalDispatch,
+                FailureStage = "Dispatching"
+            };
         }
 
         // 這個方法負責翻譯 BatchAsync 內容。
         // EN: This method translates batch async.
-        public static async Task<List<string>> TranslateBatchAsync(List<string> texts, ApiKeyConfig forceConfig = null, bool suppressFinalParseError = false)
+        public static async Task<List<string>> TranslateBatchAsync(
+            List<string> texts,
+            ApiKeyConfig forceConfig = null,
+            bool suppressFinalParseError = false,
+            string packageId = null,
+            string requestScope = null,
+            string requestPurpose = "translation",
+            bool reportFailureToUser = true)
+        {
+            ClearLastTranslationFailure();
+            long sourceCharacters = (texts ?? new List<string>())
+                .Sum(text => (long)(text ?? string.Empty).Length);
+            bool connectionTest = texts != null && texts.Count == 1 && texts[0] == "Connection Test";
+            string previousTerminologyContext = TerminologyPromptContext.Value;
+            IReadOnlyList<TerminologyCandidate> previousTerminologyTerms = TerminologyRequestTerms.Value;
+            List<TerminologyCandidate> requestTerms = connectionTest
+                ? new List<TerminologyCandidate>()
+                : TerminologyRuntime.GetRelevantTerms(packageId, texts);
+            TerminologyRequestTerms.Value = requestTerms;
+            TerminologyPromptContext.Value = connectionTest
+                ? string.Empty
+                : TerminologyPromptContextBuilder.Build(requestTerms, texts, 20, 2000);
+            try
+            {
+                using (TranslationUsageCoordinator.PushRequestContext(
+                    packageId,
+                    connectionTest ? "connection_test" : requestPurpose,
+                    requestScope,
+                    sourceCharacters,
+                    exempt: connectionTest,
+                    itemCount: texts?.Count ?? 0))
+                {
+                    List<string> result = await TranslateBatchCoreAsync(
+                        texts,
+                        forceConfig,
+                        suppressFinalParseError,
+                        ResolveTaskTier(requestPurpose, connectionTest));
+                    if (result == null)
+                    {
+                        PublishLastTranslationFailure(requestScope);
+                        if (reportFailureToUser &&
+                            !connectionTest &&
+                            !AutoTranslatorSettings.IsCancellationRequested)
+                        {
+                            string contextInfo = !string.IsNullOrWhiteSpace(requestScope)
+                                ? requestScope
+                                : !string.IsNullOrWhiteSpace(packageId)
+                                    ? packageId
+                                    : requestPurpose ?? "translation";
+                            string failureDetail = DescribeLastTranslationFailure(
+                                contextInfo,
+                                requestScope,
+                                out string aggregationKey,
+                                out int affectedItems);
+                            AddAggregatedTranslationFailure(
+                                aggregationKey,
+                                failureDetail,
+                                affectedItems > 0 ? affectedItems : texts?.Count ?? 0);
+                        }
+                    }
+                    return result;
+                }
+            }
+            finally
+            {
+                TerminologyPromptContext.Value = previousTerminologyContext;
+                TerminologyRequestTerms.Value = previousTerminologyTerms;
+            }
+        }
+
+        private static async Task<List<string>> TranslateBatchCoreAsync(
+            List<string> texts,
+            ApiKeyConfig forceConfig,
+            bool suppressFinalParseError,
+            TranslationTaskTier taskTier)
         {
             if (AutoTranslatorSettings.IsCancellationRequested) return null;
 
-            ApiKeyConfig targetConfig = forceConfig ?? GetNextConfig();
-            if (targetConfig == null) return null;
-
-            string apiKey = CleanInput(targetConfig.Key);
-            string model = CleanInput(targetConfig.SelectedModel);
-            string baseUrl = GetBaseUrl(targetConfig);
+            ApiKeyConfig targetConfig = forceConfig ?? GetNextConfig(taskTier);
+            if (targetConfig == null)
+            {
+                RecordLastTranslationFailure(null, new ATC_WebResponse
+                {
+                    HttpCode = 0,
+                    ErrorText = "No enabled API configuration is available for this task tier.",
+                    ResponseBody = string.Empty,
+                    FailureKind = TranslationRequestFailureKind.Configuration,
+                    FailureStage = "Configuration",
+                    ItemCount = texts != null ? texts.Count : 0,
+                    SourceCharacters = texts != null
+                        ? texts.Sum(text => (long)(text ?? string.Empty).Length)
+                        : 0L
+                }, false, false, 1);
+                return null;
+            }
 
             try
             {
+                if (targetConfig.Provider == TranslatorProvider.DeepSeek)
+                    return await TranslateDeepSeekBatchAsync(texts, targetConfig, suppressFinalParseError);
+                if (targetConfig.Provider != TranslatorProvider.DeepL)
+                    return await TranslateStructuredProviderBatchAsync(texts, targetConfig, suppressFinalParseError);
+
+                string apiKey = CleanInput(targetConfig.Key);
+                string model = CleanInput(targetConfig.SelectedModel);
+                string baseUrl = GetBaseUrl(targetConfig);
                 string url;
                 object payload;
                 TargetLanguage requestTargetLang = AutoTranslatorMod.Settings.TargetLang;
@@ -190,7 +303,22 @@ namespace AutoTranslator_Core
                 {
                     url = $"{baseUrl}/translate";
                     string deepLLang = MapToDeepLLangCode(requestTargetLang);
-                    if (string.IsNullOrEmpty(deepLLang)) return null;
+                    if (string.IsNullOrEmpty(deepLLang))
+                    {
+                        RecordLastTranslationFailure(targetConfig, new ATC_WebResponse
+                        {
+                            HttpCode = 0,
+                            ErrorText = "The selected target language is not supported by the DeepL route.",
+                            ResponseBody = string.Empty,
+                            FailureKind = TranslationRequestFailureKind.Configuration,
+                            FailureStage = "Configuration",
+                            ItemCount = texts != null ? texts.Count : 0,
+                            SourceCharacters = texts != null
+                                ? texts.Sum(text => (long)(text ?? string.Empty).Length)
+                                : 0L
+                        }, false, false, 1);
+                        return null;
+                    }
                     payload = new { text = texts.ToArray(), target_lang = deepLLang, preserve_formatting = true, tag_handling = "xml" };
                 }
                 else
@@ -211,117 +339,31 @@ namespace AutoTranslator_Core
                 string jsonPayload = JsonConvert.SerializeObject(payload);
                 var profile = GetRuntimeProfile(targetConfig.Provider, model);
                 bool isConnectionTestRequest = texts.Count == 1 && texts[0] == "Connection Test";
-                bool reasoningModel = IsReasoningModel(model);
-                int maxRetries = isConnectionTestRequest || reasoningModel ? 0 : 1;
-                int maxFormatRetries = profile.FormatRetries;
+                // A retry is another potentially billable request. Failed batches are
+                // persisted as unresolved work and only retried after explicit user action.
+                int maxRetries = 0;
+                int maxFormatRetries = 0;
                 int formatRetryCount = 0;
                 bool hadFormatRetry = false;
                 int customTimeout = AutoTranslatorMod.Settings.TimeoutSeconds > 0 ? AutoTranslatorMod.Settings.TimeoutSeconds : 60;
-                if (reasoningModel) customTimeout = 300;
-                customTimeout = Math.Max(customTimeout, profile.TimeoutFloorSeconds);
+                customTimeout = TranslationPolicyAgentTimeout.Resolve(customTimeout, 0);
 
                 for (int attempt = 0; attempt <= maxRetries; attempt++)
                 {
                     if (AutoTranslatorSettings.IsCancellationRequested) return null;
 
-                    var tcs = new TaskCompletionSource<ATC_WebResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-                    var dispatchStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-                    int requestId = -1;
-                    System.Diagnostics.Stopwatch requestTimer = System.Diagnostics.Stopwatch.StartNew();
-                    AutoTranslatorPerf.BeginApiRequest();
-                    ATC_WebResponse resHolder = null;
-                    try
-                    {
-                        ATC_Dispatcher.RunOnMainThread(() =>
-                        {
-                            if (tcs.Task.IsCompleted)
-                            {
-                                dispatchStarted.TrySetResult(false);
-                                return;
-                            }
+                    ATC_WebResponse resHolder = await SendTranslationRequestWithConcurrencyRecoveryAsync(
+                        () => SendJsonRequestAttemptAsync(
+                            url,
+                            jsonPayload,
+                            apiKey,
+                            targetConfig.Provider,
+                            customTimeout),
+                        targetConfig);
 
-                            if (AutoTranslatorSettings.IsCancellationRequested)
-                            {
-                                dispatchStarted.TrySetResult(false);
-                                tcs.TrySetResult(CreateRequestTimeoutResponse(targetConfig.Provider, 0));
-                                return;
-                            }
-
-                            try
-                            {
-                                requestId = ATC_WebRequestEngine.Instance.FireRequest(url, jsonPayload, apiKey, targetConfig.Provider, customTimeout, tcs);
-                                dispatchStarted.TrySetResult(requestId > 0);
-                            }
-                            catch (Exception ex)
-                            {
-                                dispatchStarted.TrySetResult(false);
-                                tcs.TrySetResult(new ATC_WebResponse
-                                {
-                                    IsSuccess = false,
-                                    HttpCode = 0,
-                                    ErrorText = ex.Message,
-                                    ResponseBody = string.Empty
-                                });
-                            }
-                        });
-
-                        int hardTimeoutSeconds = Math.Max(customTimeout + 10, 30);
-                        Task dispatchWait = await Task.WhenAny(dispatchStarted.Task, Task.Delay(TranslationDispatchTimeoutMs));
-                        if (dispatchWait != dispatchStarted.Task)
-                        {
-                            dispatchStarted.TrySetResult(false);
-                            resHolder = CreateRequestDispatchTimeoutResponse(targetConfig.Provider);
-                            tcs.TrySetResult(resHolder);
-                            ATC_Dispatcher.RunOnMainThread(() =>
-                                Verse.Log.Warning($"[AutoTranslationCore] Translation request dispatch timed out before UnityWebRequest started [{targetConfig.Provider}]")
-                            );
-                        }
-                        else if (!await dispatchStarted.Task)
-                        {
-                            if (AutoTranslatorSettings.IsCancellationRequested)
-                            {
-                                tcs.TrySetResult(CreateRequestTimeoutResponse(targetConfig.Provider, 0));
-                                return null;
-                            }
-
-                            if (tcs.Task.IsCompleted)
-                            {
-                                resHolder = await tcs.Task;
-                            }
-                            else
-                            {
-                                return null;
-                            }
-                        }
-                        else
-                        {
-                            bool responseReady = await WaitForTranslationResponseAsync(tcs.Task, hardTimeoutSeconds);
-                            if (responseReady)
-                            {
-                                resHolder = await tcs.Task;
-                            }
-                            else if (AutoTranslatorSettings.IsCancellationRequested)
-                            {
-                                tcs.TrySetResult(CreateRequestTimeoutResponse(targetConfig.Provider, 0));
-                                AbortTranslationRequest(requestId, "Translation request cancelled");
-                                return null;
-                            }
-                            else
-                            {
-                                tcs.TrySetResult(CreateRequestTimeoutResponse(targetConfig.Provider, hardTimeoutSeconds));
-                                AbortTranslationRequest(requestId, "Translation request timed out");
-                                resHolder = CreateRequestTimeoutResponse(targetConfig.Provider, hardTimeoutSeconds);
-                            }
-                        }
-                    }
-                    finally
-                    {
-                        requestTimer.Stop();
-                        AutoTranslatorPerf.EndApiRequest(requestTimer.ElapsedMilliseconds, resHolder != null && resHolder.IsSuccess);
-                    }
-
-                    if (AutoTranslatorSettings.IsCancellationRequested) return null;
                     if (resHolder == null) return null;
+                    if (AutoTranslatorSettings.IsCancellationRequested && !resHolder.IsSuccess) return null;
+                    if (resHolder.BudgetDenied) return null;
 
                     if (resHolder.IsSuccess)
                     {
@@ -332,7 +374,11 @@ namespace AutoTranslator_Core
                             return new List<string> { "Connection OK" };
                         }
 
-                        List<string> parsed = ParseResponse(resHolder.ResponseBody, targetConfig.Provider, texts.Count, expectsGoogleFormat);
+                        List<string> parsed = ParseResponse(
+                            resHolder.ResponseBody,
+                            targetConfig.Provider,
+                            texts.Count,
+                            expectsGoogleFormat);
                         if (parsed != null && parsed.Count == texts.Count)
                         {
                             parsed = NormalizeBatchForTargetLanguage(parsed, requestTargetLang);
@@ -356,19 +402,33 @@ namespace AutoTranslator_Core
                             int jitter = new System.Random().Next(100, 800);
                             int delayMs = baseDelay + jitter;
 
-                            AutoTranslatorSettings.AddLog("⚠️ " + "ATC_Log_AIFormatRetry".Translate(formatRetryCount.ToString()));
+                            AutoTranslatorSettings.AddLog("⚠️ " + AutoTranslatorAPI.TranslateText("ATC_Log_AIFormatRetry", formatRetryCount));
                             ATC_Dispatcher.RunOnMainThread(() =>
-                                Verse.Log.Warning($"[AutoTranslationCore] " + "ATC_Log_AIFormatRetry".Translate(formatRetryCount.ToString()))
+                                Verse.Log.Warning($"[AutoTranslationCore] " + AutoTranslatorAPI.TranslateText("ATC_Log_AIFormatRetry", formatRetryCount))
                             );
 
                             if (!await DelayWithPipelineCancellationAsync(delayMs)) return null;
                             continue;
                         }
 
-                        if (!suppressFinalParseError)
+                        TranslationFailureDiagnosticPolicy.LogInvalidResponseForDeveloper(
+                            targetConfig != null
+                                ? targetConfig.Provider + "/translation"
+                                : "translation",
+                            "The response could not be parsed into the expected translation batch.",
+                            resHolder.ResponseBody);
+                        RecordLastTranslationFailure(targetConfig, new ATC_WebResponse
                         {
-                            AutoTranslatorSettings.AddErrorLog("⚠️ " + "ATC_Error_ParseFailed".Translate());
-                        }
+                            HttpCode = resHolder.HttpCode,
+                            ErrorText = "The provider response could not be parsed into the expected translation batch.",
+                            ResponseBody = resHolder.ResponseBody,
+                            FailureKind = TranslationRequestFailureKind.InvalidResponse,
+                            FailureStage = "ResponseParsing",
+                            ItemCount = resHolder.ItemCount,
+                            SourceCharacters = resHolder.SourceCharacters,
+                            EstimatedInputTokens = resHolder.EstimatedInputTokens,
+                            TimeoutSeconds = resHolder.TimeoutSeconds
+                        }, false, false, 1);
                         return null;
                     }
 
@@ -382,7 +442,7 @@ namespace AutoTranslator_Core
 
 
                         ATC_Dispatcher.RunOnMainThread(() =>
-                            Verse.Log.Warning($"[AutoTranslationCore] " + "ATC_Log_RetryAttempt".Translate(statusCode.ToString(), (attempt + 1).ToString(), delayMs.ToString()))
+                            Verse.Log.Warning($"[AutoTranslationCore] " + AutoTranslatorAPI.TranslateText("ATC_Log_RetryAttempt", statusCode, attempt + 1, delayMs))
                         );
 
                         if (!await DelayWithPipelineCancellationAsync(delayMs)) return null;
@@ -390,22 +450,6 @@ namespace AutoTranslator_Core
                     }
 
                     string errText = resHolder.ErrorText;
-                    if (statusCode == 401 || statusCode == 403)
-                    {
-                        AutoTranslatorSettings.AddErrorLog($"🔒 [{targetConfig.Provider}] " + "ATC_Error_Unauthorized".Translate());
-                    }
-                    else if (statusCode == 429)
-                    {
-                        AutoTranslatorSettings.AddErrorLog($"⏱️ [{targetConfig.Provider}] " + "ATC_Error_RateLimit".Translate());
-                    }
-                    else if (statusCode >= 500)
-                    {
-                        AutoTranslatorSettings.AddErrorLog($"🔥 [{targetConfig.Provider}] " + "ATC_Error_ServerError".Translate());
-                    }
-                    else
-                    {
-                        AutoTranslatorSettings.AddErrorLog($"⚠️ [{targetConfig.Provider}] " + "ATC_Error_HttpGeneric".Translate(statusCode.ToString()) + $" ({errText})");
-                    }
 
 
                     ATC_Dispatcher.RunOnMainThread(() =>
@@ -418,12 +462,47 @@ namespace AutoTranslator_Core
             }
             catch (Exception ex)
             {
+                RecordLastTranslationFailure(targetConfig, new ATC_WebResponse
+                {
+                    HttpCode = 0,
+                    ErrorText = ex.Message,
+                    ResponseBody = string.Empty,
+                    FailureKind = TranslationRequestFailureKind.Transport,
+                    FailureStage = "TranslationProcessing",
+                    ItemCount = texts != null ? texts.Count : 0,
+                    SourceCharacters = texts != null
+                        ? texts.Sum(text => (long)(text ?? string.Empty).Length)
+                        : 0L
+                }, false, false, 1);
 
                 ATC_Dispatcher.RunOnMainThread(() =>
                     Verse.Log.Error($"[AutoTranslationCore] Fatal Translation Bridge Error: {ex}")
                 );
                 return null;
             }
+        }
+
+        private static void AddAggregatedTranslationFailure(
+            string aggregationKey,
+            string failureDetail,
+            int affectedItems)
+        {
+            AutoTranslatorSettings.AddAggregatedErrorLog(
+                aggregationKey,
+                failureDetail,
+                failureDetail,
+                affectedItems);
+        }
+
+        private static TranslationTaskTier ResolveTaskTier(string requestPurpose, bool connectionTest)
+        {
+            if (connectionTest) return TranslationTaskTier.Bulk;
+            string purpose = (requestPurpose ?? string.Empty).Trim().ToLowerInvariant();
+            if (purpose == "manual_retry" || purpose == "unresolved_retry" || purpose == "validation_retry")
+                return TranslationTaskTier.Precision;
+            if (purpose == "analysis" || purpose == "review")
+                return TranslationTaskTier.Standard;
+            return TranslationTaskTier.Bulk;
         }
     }
 

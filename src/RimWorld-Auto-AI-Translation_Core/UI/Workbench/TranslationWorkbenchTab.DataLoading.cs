@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using Verse;
+using AutoTranslator_Core.TranslationPolicy;
 using static AutoTranslator_Core.DeleteTranslationWindow;
 // 這個檔案負責 翻譯工作台分頁資料載入 相關邏輯，支援 Auto Translation Core 的執行流程。
 // EN: This file contains translation workbench tab data loading support code.
@@ -16,6 +17,7 @@ namespace AutoTranslator_Core
         // EN: This class manages the main workflow and state for TranslationWorkbenchTab.
         public static partial class TranslationWorkbenchTab
         {
+            private static TargetLanguage? _loadedWorkbenchTargetLanguage;
 
             // 這個方法負責讀取 Real資料 資料。
             // EN: This method loads real data.
@@ -46,6 +48,73 @@ namespace AutoTranslator_Core
                 };
             }
 
+            private static bool IsOwnedWorkbenchOutputFile(
+                string filePath,
+                string packageId,
+                ISet<string> ownedKeyedFileNames = null)
+            {
+                if (string.IsNullOrWhiteSpace(filePath) || string.IsNullOrWhiteSpace(packageId)) return false;
+
+                return IsWorkbenchGeneratedOutputFile(filePath, packageId, ownedKeyedFileNames) ||
+                       IsWorkbenchCorrectionOutputFile(filePath, packageId);
+            }
+
+            private static bool IsWorkbenchGeneratedOutputFile(
+                string filePath,
+                string packageId,
+                ISet<string> ownedKeyedFileNames = null)
+            {
+                return IsExactWorkbenchPackageFile(filePath, packageId, "_AutoTranslated.xml") ||
+                       TranslationGeneratedOutputOwnership.IsOwnedKeyedFile(
+                           filePath,
+                           packageId,
+                           ownedKeyedFileNames);
+            }
+
+            private static bool IsWorkbenchCorrectionOutputFile(string filePath, string packageId)
+            {
+                return IsExactWorkbenchPackageFile(filePath, packageId, "_CloudCorrections.xml");
+            }
+
+            private static bool IsExactWorkbenchPackageFile(string filePath, string packageId, string suffix)
+            {
+                if (string.IsNullOrWhiteSpace(filePath) ||
+                    string.IsNullOrWhiteSpace(packageId) ||
+                    string.IsNullOrWhiteSpace(suffix))
+                {
+                    return false;
+                }
+
+                string cleanPackageId = packageId.Replace(".", "_").ToLowerInvariant();
+                return string.Equals(
+                    Path.GetFileName(filePath),
+                    cleanPackageId + suffix,
+                    StringComparison.OrdinalIgnoreCase);
+            }
+
+            private static HashSet<string> GetWorkbenchOwnedKeyedFileNames(
+                string packageId,
+                TargetLanguage targetLang,
+                IEnumerable<string> langRoots)
+            {
+                List<string> sourceFiles = new List<string>();
+                foreach (string langRoot in langRoots ?? Enumerable.Empty<string>())
+                {
+                    foreach (string sourceKeyedPath in AutoTranslatorScanner.GetTranslatableLanguageBucketPaths(
+                        langRoot,
+                        targetLang,
+                        "Keyed",
+                        false))
+                    {
+                        sourceFiles.AddRange(AutoTranslatorScanner.GetXmlFilesForTranslationCache(
+                            sourceKeyedPath,
+                            SearchOption.AllDirectories));
+                    }
+                }
+
+                return TranslationGeneratedOutputOwnership.BuildKeyedFileNameSet(packageId, sourceFiles);
+            }
+
             private static void StartLoadingModForEditing(Verse.ModMetaData targetMod, string initialSearchText)
             {
                 StartLoadingModForEditing(targetMod, initialSearchText, null);
@@ -62,8 +131,13 @@ namespace AutoTranslator_Core
                 if (snapshot == null) return;
 
                 _editingMod = targetMod;
+                _loadedWorkbenchTargetLanguage = null;
                 _isLoading = true;
                 _itemSearchText = initialSearchText ?? "";
+                // Direct navigation must not inherit a stale translation filter from the
+                // previous visit, otherwise the requested item is loaded but stays hidden.
+                if (focusRequest != null)
+                    _workbenchItemTranslationFilter = WorkbenchItemTranslationFilter.All;
                 _pendingWorkbenchFocus = focusRequest;
                 _activeWorkbenchFocus = null;
                 _itemScroll = UnityEngine.Vector2.zero;
@@ -76,6 +150,10 @@ namespace AutoTranslator_Core
                 var resultData = new Dictionary<string, List<WorkbenchItem>>();
                 var langRoots = AutoTranslatorScanner.GetAllEffectiveLangPaths(targetMod.PackageId, targetMod.RootDir);
                 var defsRoots = AutoTranslatorScanner.GetAllEffectiveDefsPaths(targetMod.PackageId, targetMod.RootDir);
+                HashSet<string> ownedKeyedFileNames = GetWorkbenchOwnedKeyedFileNames(
+                    targetMod.PackageId,
+                    targetMod.TargetLang,
+                    langRoots);
 
 
                 string targetLangFolder = targetMod.TargetLangFolder;
@@ -117,12 +195,11 @@ namespace AutoTranslator_Core
                 string packKeyedDir = System.IO.Path.Combine(AutoTranslatorScanner.GetLocalPackPath(), "Languages", targetLangFolder, "Keyed");
                 if (System.IO.Directory.Exists(packKeyedDir))
                 {
-                    string idMatch = targetMod.PackageId.Replace(".", "_").ToLower();
                     foreach (var file in AutoTranslatorScanner.GetXmlFilesForTranslationCache(packKeyedDir, System.IO.SearchOption.AllDirectories))
                     {
-                        if (System.IO.Path.GetFileName(file).ToLower().Contains(idMatch))
+                        if (IsOwnedWorkbenchOutputFile(file, targetMod.PackageId, ownedKeyedFileNames))
                         {
-                            var d = AutoTranslatorScanner.LoadXmlFileToDict(file);
+                            var d = AutoTranslatorScanner.LoadXmlFileToDict(file, targetMod.TargetLang);
                             foreach (var kv in d)
                             {
                                 transKeyed[kv.Key] = kv.Value;
@@ -227,7 +304,7 @@ namespace AutoTranslator_Core
 
                 foreach (var defRoot in defsRoots)
                 {
-                    var dict = AutoTranslatorScanner.ExtractEnglishFromRawDefs(defRoot);
+                    var dict = AutoTranslatorScanner.ExtractEnglishFromRawDefs(defRoot, true);
                     if (officialTarReference)
                     {
                         MergeOfficialDefPathAliases(
@@ -236,15 +313,24 @@ namespace AutoTranslator_Core
                     }
                     foreach (var typeKv in dict)
                     {
-                        rawDefLanguageSamples.AddRange(typeKv.Value.Values.Where(v => !string.IsNullOrWhiteSpace(v)).Take(40));
-                        string sample = string.Join("\n", typeKv.Value.Values.Where(v => !string.IsNullOrWhiteSpace(v)).Take(120).ToArray());
+                        List<KeyValuePair<string, string>> visibleCandidates = typeKv.Value
+                            .Where(kv => TranslationPolicyNativeTargetFilter.ShouldKeep(
+                                TranslationPolicyBucket.DefInjected,
+                                typeKv.Key,
+                                kv.Key,
+                                kv.Value))
+                            .ToList();
+                        if (visibleCandidates.Count == 0) continue;
+
+                        rawDefLanguageSamples.AddRange(visibleCandidates.Select(kv => kv.Value).Where(v => !string.IsNullOrWhiteSpace(v)).Take(40));
+                        string sample = string.Join("\n", visibleCandidates.Select(kv => kv.Value).Where(v => !string.IsNullOrWhiteSpace(v)).Take(120).ToArray());
                         if (LanguageDetector.LooksLikeTargetLanguage(sample, targetMod.TargetLang))
                         {
                             rawDefTypesAlreadyTarget.Add(typeKv.Key);
                         }
 
                         if (!engDefs.ContainsKey(typeKv.Key)) engDefs[typeKv.Key] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                        foreach (var kv in typeKv.Value) engDefs[typeKv.Key][kv.Key] = kv.Value;
+                        foreach (var kv in visibleCandidates) engDefs[typeKv.Key][kv.Key] = kv.Value;
                     }
                 }
                 bool rawDefsLookLikeTarget = LanguageDetector.LooksLikeTargetLanguage(
@@ -259,7 +345,7 @@ namespace AutoTranslator_Core
                         string defType = System.IO.Path.GetFileName(typeDir);
                         foreach (var file in AutoTranslatorScanner.GetXmlFilesForTranslationCache(typeDir, System.IO.SearchOption.TopDirectoryOnly))
                         {
-                            if (System.IO.Path.GetFileName(file).ToLower().Contains(targetMod.PackageId.Replace(".", "_").ToLower()))
+                            if (IsOwnedWorkbenchOutputFile(file, targetMod.PackageId))
                             {
                                 if (!transDefs.ContainsKey(defType)) transDefs[defType] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                                 var d = AutoTranslatorScanner.LoadXmlFileToDict(file);
@@ -413,9 +499,23 @@ namespace AutoTranslator_Core
                     }
                 }
 
+                WorkbenchDllLoadResult dllLoad = LoadDllWorkbenchData(
+                    targetMod.Mod,
+                    targetMod.TargetLang);
+
                 ATC_Dispatcher.RunOnMainThread(() => {
                     if (_editingMod != targetMod.Mod) return;
+                    if (AutoTranslatorMod.Settings.TargetLang != targetMod.TargetLang)
+                    {
+                        StartLoadingModForEditing(targetMod.Mod, _itemSearchText, _pendingWorkbenchFocus);
+                        return;
+                    }
+                    _loadedWorkbenchTargetLanguage = targetMod.TargetLang;
                     _categorizedData = resultData;
+                    _dllCategorizedData = dllLoad.Categories ??
+                        new Dictionary<string, List<WorkbenchItem>>(StringComparer.OrdinalIgnoreCase);
+                    _dllScanResult = dllLoad.ScanResult;
+                    _dllStaleSavedEntryCount = dllLoad.StaleSavedEntryCount;
                     WorkbenchFocusRequest focus = _pendingWorkbenchFocus;
                     if (focus != null && officialTarReference && !string.IsNullOrWhiteSpace(focus.Category))
                     {
@@ -425,10 +525,17 @@ namespace AutoTranslator_Core
                             engDefs,
                             officialNormalizedDefPaths);
                     }
-                    string selectedCategory = _categorizedData.Keys.FirstOrDefault() ?? "";
-                    if (focus != null && !string.IsNullOrWhiteSpace(focus.Category) && _categorizedData.ContainsKey(focus.Category))
+                    string selectedCategory = AllWorkbenchCategoriesView;
+                    _selectedWorkbenchSource = WorkbenchSourceKind.All;
+                    IDictionary<string, List<WorkbenchItem>> focusData = focus != null &&
+                        focus.Source == WorkbenchSourceKind.Dll
+                        ? _dllCategorizedData
+                        : _categorizedData;
+                    if (focus != null && !string.IsNullOrWhiteSpace(focus.Category) &&
+                        focusData.ContainsKey(focus.Category))
                     {
                         selectedCategory = focus.Category;
+                        _selectedWorkbenchSource = focus.Source;
                     }
 
                     _selectedCategory = selectedCategory;
@@ -439,6 +546,8 @@ namespace AutoTranslator_Core
                     _categorizedDataVersion++;
                     _cachedVisibleItems = null;
                     _isLoading = false;
+                    if (!string.IsNullOrWhiteSpace(dllLoad.Error))
+                        SetWorkbenchStatus("ATC_Workbench_DllLoadFailed".Translate(dllLoad.Error).ToString());
                 });
             }
 
@@ -571,7 +680,10 @@ namespace AutoTranslator_Core
             {
                 if (focus == null || string.IsNullOrWhiteSpace(focus.Key)) return 0f;
                 if (string.IsNullOrWhiteSpace(selectedCategory)) return 0f;
-                if (!_categorizedData.TryGetValue(selectedCategory, out List<WorkbenchItem> items) || items == null) return 0f;
+                IDictionary<string, List<WorkbenchItem>> source = focus.Source == WorkbenchSourceKind.Dll
+                    ? _dllCategorizedData
+                    : _categorizedData;
+                if (!source.TryGetValue(selectedCategory, out List<WorkbenchItem> items) || items == null) return 0f;
 
                 int index = items.FindIndex(i => i != null && string.Equals(i.Key, focus.Key, StringComparison.OrdinalIgnoreCase));
                 if (index < 0) return 0f;
@@ -592,10 +704,15 @@ namespace AutoTranslator_Core
 
             private static float GetInitialCategoryScrollForFocus(string selectedCategory)
             {
-                if (string.IsNullOrWhiteSpace(selectedCategory) || _categorizedData == null || _categorizedData.Count == 0) return 0f;
+                if (string.IsNullOrWhiteSpace(selectedCategory)) return 0f;
+
+                IDictionary<string, List<WorkbenchItem>> source = _selectedWorkbenchSource == WorkbenchSourceKind.Dll
+                    ? _dllCategorizedData
+                    : _categorizedData;
+                if (source == null || source.Count == 0) return 0f;
 
                 int index = 0;
-                foreach (string category in _categorizedData.Keys)
+                foreach (string category in source.Keys)
                 {
                     if (string.Equals(category, selectedCategory, StringComparison.OrdinalIgnoreCase))
                     {

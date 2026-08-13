@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>7.3</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\packages\Newtonsoft.Json.13.0.4\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Compile Include="Program.cs" />
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\AI\DeepSeekProviderAdapter.cs"
+             Link="DeepSeekProviderAdapter.cs" />
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\Terminology\TerminologyModels.cs"
+             Link="TerminologyModels.cs" />
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\Terminology\TerminologyApplicationValidator.cs"
+             Link="TerminologyApplicationValidator.cs" />
+  </ItemGroup>
+</Project>

@@ -167,7 +167,7 @@ namespace AutoTranslator_Core
     "damageDef", "weaponDef", "apparelDef", "projectileDef",
 
 
-    "defName", "dollName", "dollPartName", "methodName", "class", "worker",
+    "defName", "debugLabel", "dollName", "dollPartName", "methodName", "class", "worker",
 
 
     "eyeTexPath", "browTexPath", "lidTexPath", "lashTexPath",
@@ -198,7 +198,9 @@ namespace AutoTranslator_Core
     "linkFlags", "renderNodeTagDef", "tagDef"
 };
         private static readonly Regex FilePathRegex = new Regex(@"\.(png|jpg|jpeg|wav|mp3|ogg|xml|txt|lua|tex|dds)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-        private static readonly Regex ProtectedTokenRegex = new Regex(@"(\{[^{}\r\n]+\}|\[[^\[\]\r\n]+\])", RegexOptions.Compiled);
+        // [title:...] carries player-visible text; protect its markup separately while allowing the value to translate.
+        private static readonly Regex ProtectedTokenRegex = new Regex(@"(\{[^{}\r\n]+\}|\[(?!title:)[^\[\]\r\n]+\])", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex TranslatableTitleTagRegex = new Regex(@"\[title:[^\[\]\r\n]*\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex FormatArgumentRegex = new Regex(@"\{(\d+)(?:,[^{}:]+)?(?::[^{}]+)?\}", RegexOptions.Compiled);
 
         private static readonly Regex ValidXmlNameRegex = new Regex(

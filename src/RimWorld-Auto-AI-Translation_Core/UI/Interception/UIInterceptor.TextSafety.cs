@@ -64,38 +64,12 @@ namespace AutoTranslator_Core
 
         private static string NormalizeDynamicNumberTemplate(string text)
         {
-            if (string.IsNullOrWhiteSpace(text)) return text;
-            if (!text.Any(char.IsDigit)) return text;
-
-            int index = 0;
-            string normalized = DynamicNumberRegex.Replace(text, match =>
-            {
-                index++;
-                return "{num" + index.ToString() + "}";
-            });
-
-            return index > 0 ? normalized : text;
+            return UIDynamicNumberTemplate.Normalize(text);
         }
 
         private static string RestoreDynamicNumbers(string original, string translated)
         {
-            if (string.IsNullOrWhiteSpace(original) || string.IsNullOrWhiteSpace(translated)) return translated;
-            if (translated.IndexOf("{num", StringComparison.OrdinalIgnoreCase) < 0) return translated;
-
-            var numbers = DynamicNumberRegex.Matches(original)
-                .Cast<System.Text.RegularExpressions.Match>()
-                .Select(match => match.Value)
-                .ToArray();
-            if (numbers.Length == 0) return translated;
-
-            return DynamicNumberPlaceholderRegex.Replace(translated, match =>
-            {
-                string rawIndex = match.Value.Substring(4, match.Value.Length - 5);
-                if (!int.TryParse(rawIndex, out int numberIndex)) return match.Value;
-
-                int arrayIndex = numberIndex - 1;
-                return arrayIndex >= 0 && arrayIndex < numbers.Length ? numbers[arrayIndex] : match.Value;
-            });
+            return UIDynamicNumberTemplate.Restore(original, translated);
         }
 
         internal static bool ShouldInterceptText(string text)
@@ -329,14 +303,14 @@ namespace AutoTranslator_Core
 
         private static bool HasDynamicNumberTemplate(string text)
         {
-            return !string.IsNullOrEmpty(text) && DynamicNumberPlaceholderRegex.IsMatch(text);
+            return !string.IsNullOrEmpty(text) && UIDynamicNumberTemplate.PlaceholderRegex.IsMatch(text);
         }
 
         private static bool HasDynamicNumberTemplateLoss(string original, string translated)
         {
-            int originalCount = DynamicNumberPlaceholderRegex.Matches(original ?? "").Count;
+            int originalCount = UIDynamicNumberTemplate.PlaceholderRegex.Matches(original ?? "").Count;
             if (originalCount == 0) return false;
-            int translatedCount = DynamicNumberPlaceholderRegex.Matches(translated ?? "").Count;
+            int translatedCount = UIDynamicNumberTemplate.PlaceholderRegex.Matches(translated ?? "").Count;
             return translatedCount < originalCount;
         }
 
@@ -356,11 +330,11 @@ namespace AutoTranslator_Core
         {
             if (string.IsNullOrWhiteSpace(text)) return string.Empty;
 
-            string sample = DynamicNumberPlaceholderRegex.Replace(text, " ");
+            string sample = UIDynamicNumberTemplate.PlaceholderRegex.Replace(text, " ");
             sample = LanguageDetectionNumericMarkerRegex.Replace(sample, " ");
-            sample = DynamicNumberRegex.Replace(sample, " ");
+            sample = UIDynamicNumberTemplate.NumberRegex.Replace(sample, " ");
             sample = LanguageDetectionNumericMarkerRegex.Replace(sample, " ");
-            sample = DynamicNumberRegex.Replace(sample, " ");
+            sample = UIDynamicNumberTemplate.NumberRegex.Replace(sample, " ");
             sample = System.Text.RegularExpressions.Regex.Replace(sample, @"\s+", " ");
             return sample.Trim();
         }

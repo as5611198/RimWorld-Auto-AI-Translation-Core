@@ -54,6 +54,7 @@ namespace AutoTranslator_Core
                 hook.AddComponent<AutoTranslator_PumpBehaviour>();
                 hook.AddComponent<UIInterceptorLifecycle>();
                 AutoTranslatorScanner.ApplyStartupKeyedHotfixes();
+                TargetedHardcodedUi.HardcodedUiTargetedPatchManager.Initialize();
                 AutoTranslatorScanner.RequestKeyedMemoryDrop();
             }
             catch (Exception ex)

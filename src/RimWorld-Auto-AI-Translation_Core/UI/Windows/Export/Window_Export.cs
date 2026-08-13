@@ -277,7 +277,9 @@ namespace AutoTranslator_Core
             if (_isLoading) return;
 
             List<ExportInstalledModSnapshot> installedMods = ModLister.AllInstalledMods
-                .Where(m => m != null && !string.IsNullOrWhiteSpace(m.PackageId))
+                .Where(m => m != null &&
+                            !string.IsNullOrWhiteSpace(m.PackageId) &&
+                            !AutoTranslatorScanner.IsOfficialBaseGameOrDlcPackage(m.PackageId))
                 .Select(m => new ExportInstalledModSnapshot
                 {
                     ModName = m.Name,

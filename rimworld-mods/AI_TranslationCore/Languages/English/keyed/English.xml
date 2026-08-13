@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LanguageData>
-  <ATC_ModTitle>AI Intelligent Translation Network (AI Translation Network) V3.0</ATC_ModTitle>
+  <ATC_ModTitle>AI Intelligent Translation Network (AI Translation Network) V4.1 BETA</ATC_ModTitle>
   <ATC_TargetLang>Target Language</ATC_TargetLang>
   <ATC_Lang_Traditional>Traditional Chinese</ATC_Lang_Traditional>
   <ATC_Lang_Simplified>Simplified Chinese</ATC_Lang_Simplified>
@@ -14,6 +14,8 @@
   <ATC_CustomBaseUrl>Custom API URL (Base URL)</ATC_CustomBaseUrl>
   <ATC_DefaultEmpty>Leave blank by default</ATC_DefaultEmpty>
   <ATC_OnlyScanActive>Scan only active mods</ATC_OnlyScanActive>
+  <ATC_EnableDevelopmentDebugLogging>Enable development debug logging (off by default)</ATC_EnableDevelopmentDebugLogging>
+  <ATC_EnableDevelopmentDebugLoggingTooltip>Writes detailed request lifecycle diagnostics to RimWorld's log and AutoTranslation_Log.txt. This may produce many entries; API keys, authorization headers, and request content are not logged.</ATC_EnableDevelopmentDebugLoggingTooltip>
   <ATC_Tooltip_TargetLang>【Target Language】\nSets the language that the AI will translate foreign mods into.</ATC_Tooltip_TargetLang>
   <ATC_Tooltip_Provider>【AI Provider】\nSelect your AI model provider. Google (Gemini) or OpenAI is highly recommended.</ATC_Tooltip_Provider>
   <ATC_TestConnection>Test Connection</ATC_TestConnection>
@@ -58,6 +60,10 @@
   <ATC_Log_TaskError>[Error] Production line unexpectedly interrupted: {0}</ATC_Log_TaskError>
   <ATC_Log_Clean>[Clean] Production line stopped, memory released.</ATC_Log_Clean>
   <ATC_CancelRequested>Stop command received, emergency braking the production line...</ATC_CancelRequested>
+  <ATC_Stopping>Stopping…</ATC_Stopping>
+  <ATC_StoppingStatus>Draining requests: queued {0} / active {1} / retrying {2}</ATC_StoppingStatus>
+  <ATC_RequestActivityStatus>Background requests: queued {0} / active {1} / retrying {2}</ATC_RequestActivityStatus>
+  <ATC_StopCompleted>Translation has fully stopped; queued, active, and retry-waiting requests are all zero.</ATC_StopCompleted>
   <ATC_Log_FetchModelsSuccess>✅ Model list for [{0}] successfully retrieved automatically!</ATC_Log_FetchModelsSuccess>
   <ATC_Log_FetchModelsFail>[System] Failed to retrieve model list, please check the key.</ATC_Log_FetchModelsFail>
   <ATC_Log_AllTranslationWritten>[Success] All translations have been safely written to !Translation_AI_Pack!</ATC_Log_AllTranslationWritten>
@@ -75,8 +81,8 @@
   <ATC_FinishMessage_Title>Translation Completion Notification</ATC_FinishMessage_Title>
   <ATC_FinishMessage_OK>Understood! (OK)</ATC_FinishMessage_OK>
   <ATC_FinishMessage_Text>The translation task has been successfully completed!\n【🪂 Memory Airdrop Successful】\nThe system has injected the fresh translation directly into the game memory via official channels!\nYou can now close this window and the configuration panel with peace of mind. The items and technologies on the screen have instantly been translated into your chosen language!\n(Note: A physical XML backup was generated in the background, but you 【absolutely do not need】 to enable it in the mod list! At the next startup, the system will load everything invisibly, freeing you completely from load order conflicts! Have fun!)</ATC_FinishMessage_Text>
-  <ATC_Tutorial_FullText>【V3.0 User Manual: From Free Rider to Contributor】\n1. ☁️ 【Explore the Cloud First, Don't Reinvent the Wheel】\nBefore starting to translate, we highly recommend visiting the 【Cloud Workshop】 tab! It is possible that professional translation teams or other players have already uploaded a high-quality translation pack. Downloading with a single click will let you enjoy the translated game instantly!\n\n2. ⚙️ 【Configure the API for Translation】\nIf the desired mod is not in the cloud, select your 【Target Language】 (supports multi-language like English, Chinese, Japanese, Russian, etc.) and your 【Provider】 (Gemini or DeepSeek are recommended). The "Infinite API Magazine" feature allows you to add multiple API keys via the "+" button, and the system will automatically rotate tasks to exploit your free quotas to the last drop!\n(After pasting the key, no need to click search: the system will load models in the background!)\n\n3. 🚀 【One-Click Translation and Memory Airdrop】\nSet the number of threads, then click 【🚀 One-Click Translate All Mods】 or use 【🎯 Translate Selected Mod(s)】 for precise targeting. Once finished, 【there is absolutely no need to restart the game】! The system will automatically trigger "Memory Airdrop" to instantly inject the translation into the game. Close the panel to see the result!\n\n4. 🔍 【Global Workbench and Cloud Sharing】\nFind the machine translation a bit strange? Go to the 【Global Editing】 tab, use the powerful "Global Text Search" tool to track down typos and correct them with a single click! Once the modifications are done, return to the cloud workshop and share your work with the 【Manual Translation (Manual)】 tag to help the community!\n\n【Frequently Asked Questions (FAQ)】\nQ: Why don't I have a "Delete" button in the cloud workshop?\nR: To protect users' hard work from accidental deletion, the delete function is reserved for administrators and official translation teams with a master code. Ordinary players can upload their files with peace of mind: the system will intelligently merge versions and keep the best one!\n\nQ: What is "Hot Reload"?\nR: If you are an experienced player who likes to manually modify the generated translation XML files: after saving your changes, simply click this button. The system will instantly refresh the front-end UI cache and re-inject the data into memory. The result is visible in a second!\n\nQ: Why does the production log show a red warning "Waiting for retry"?\nR: The API server is overloaded or has temporarily limited the request frequency! The mod integrates a powerful 【exponential backoff retry】 mechanism. If the translation eventually succeeds, just let things run and wait a moment~ (≧∀≦)ゞ\n\nQ: Connection error with a local server (LM Studio / Ollama, etc.).\nR: 1. Verify the accuracy of the "Custom API URL" field (for example, http://localhost:1234). Don't worry about the suffix, the system will add /v1 itself!\n2. The API Key field must not be empty! For local servers, simply enter some random characters.\n\nQ: Will the dynamic UI interceptor slow down the game?\nR: Thanks to our ultra-fast O(1) table lookup algorithms and built-in safety valves, even under an avalanche of errors, the game will run at a stable 120 FPS. However, keep in mind that this feature captures absolutely all untranslated strings on the screen. If you are using a 【paid API】, enable it with caution to avoid exorbitant bills!</ATC_Tutorial_FullText>
-  <ATC_UpdateLog_FullText>--- V3.0 Cloud Workshop ＆ Global Editor Online ---\n• New 【Shared Cloud Workshop】: Supports one-click uploading and downloading of multi-language translation packs. Features three quality tags: "Pro Translation", "Manual Translation", and "AI Translation". Built-in 3-2-1 smart version control, soft delete protection, and update log.\n• Enhanced 【Global Workbench】: Added asynchronous background "Global Text Search" with a dynamic progress bar. Smoothly search through all caches and built-in translations even with hundreds of mods. Supports language filtering and one-click jump editing.\n• Redesigned 【Network Layer】: Upgraded to Unity's native network engine (UnityWebRequest) with forced UTF-8 compression, completely eliminating Windows encoding conflict issues that caused ZIP corruption or read errors.\n• Implemented 【Smart Micro-Detox】: Automatically filters low-level high-risk variables and face mods (like FaceDef), ending character texture corruption bugs after translation! Automatically cleans residual fake translation files at game startup.\n\n--- V2.2 Core Architecture ＆ Connection Stability ---\n• Optimized 【API Request Structure】: Rebuilt the underlying logic to improve compatibility with various AI providers and data parsing stability.\n• Implemented 【Automatic Backoff Retry】: When encountering server congestion (HTTP 429) or temporary connection anomalies (HTTP 500+), the system automatically cools down and retries, reducing translation interruptions.\n• New 【Custom Timeout ＆ Tests】: Added a "Test Connection" button and a timeout slider to the settings interface. (When using deep reasoning models, the system automatically adapts to a longer waiting time).\n• Improved 【Global Error Notifications】: Implemented cross-thread UI bridge technology. Now, if an API connection error or invalid key occurs, a real-time notification pops up at the top left of the game screen, avoiding the need to constantly check logs.\n\n--- V2.1 Translation Experience ＆ Smart Upgrades ---\n• Implemented 【One-Click Pack Export】: Supports exporting the translated mod independently to the desktop, complete with a machine translation watermark—perfect for submitting to the original author or for manual proofreading.\n• New 【Smart Mod Update Radar】: The system automatically detects mods that are "outdated" or "untranslated".\n• Support for 【Automatic Replacement】: When a mod is updated, the system automatically deletes old translation files and restarts the translation process to ensure the text remains up to date.\n• Fixed 【Line Break Anomalies】: Resolved the underlying bug where certain \n characters did not cause a line break, breaking the UI layout.\n\n--- V2.0 Performance Optimization ＆ Real-Time Rendering ---\n• Implemented 【Instant Memory Injection】: Translation results are written directly into the game memory. The display switches instantly to the target language and automatically applies next time, reducing load order conflicts.\n• Optimized 【Dynamic UI Interception Performance】: Rebuilt the underlying interception logic and cache design, significantly reducing FPS performance consumption.\n• New 【One-Click Hot Reload】: After manually modifying an XML translation file, click the button to instantly refresh the UI cache without restarting the game.\n\n--- V1.0 Official Release ---\n• Implemented 【Dynamic UI Interceptor System】: Supports real-time interception and automatic translation of untranslated text missed in configuration panels or static XML.\n• Implemented 【Bilingual Comparison】: Supports displaying the original text on mouse hover for easy comparison.</ATC_UpdateLog_FullText>
+  <ATC_Tutorial_FullText>【V4.1 BETA User Manual: From Free Rider to Contributor】\n1. ☁️ 【Explore the Cloud First, Don't Reinvent the Wheel】\nBefore starting to translate, we highly recommend visiting the 【Cloud Workshop】 tab! It is possible that professional translation teams or other players have already uploaded a high-quality translation pack. Downloading with a single click will let you enjoy the translated game instantly!\n\n2. ⚙️ 【Configure the API for Translation】\nIf the desired mod is not in the cloud, select your 【Target Language】 (supports multi-language like English, Chinese, Japanese, Russian, etc.) and your 【Provider】 (Gemini or DeepSeek are recommended). The "Infinite API Magazine" feature allows you to add multiple API keys via the "+" button, and the system will automatically rotate tasks to exploit your free quotas to the last drop!\n(After pasting the key, no need to click search: the system will load models in the background!)\n\n3. 🚀 【One-Click Translation and Memory Airdrop】\nSet the number of threads, then click 【🚀 One-Click Translate All Mods】 or use 【🎯 Translate Selected Mod(s)】 for precise targeting. Once finished, 【there is absolutely no need to restart the game】! The system will automatically trigger "Memory Airdrop" to instantly inject the translation into the game. Close the panel to see the result!\n\n4. 🔍 【Global Workbench and Cloud Sharing】\nFind the machine translation a bit strange? Go to the 【Global Editing】 tab, use the powerful "Global Text Search" tool to track down typos and correct them with a single click! Once the modifications are done, return to the cloud workshop and share your work with the 【Manual Translation (Manual)】 tag to help the community!\n\n【Frequently Asked Questions (FAQ)】\nQ: Why don't I have a "Delete" button in the cloud workshop?\nR: To protect users' hard work from accidental deletion, the delete function is reserved for administrators and official translation teams with a master code. Ordinary players can upload their files with peace of mind: the system will intelligently merge versions and keep the best one!\n\nQ: What is "Hot Reload"?\nR: If you are an experienced player who likes to manually modify the generated translation XML files: after saving your changes, simply click this button. The system will instantly refresh the front-end UI cache and re-inject the data into memory. The result is visible in a second!\n\nQ: Why does the production log show a red warning "Waiting for retry"?\nR: The API server is overloaded or has temporarily limited the request frequency! The mod integrates a powerful 【exponential backoff retry】 mechanism. If the translation eventually succeeds, just let things run and wait a moment~ (≧∀≦)ゞ\n\nQ: Connection error with a local server (LM Studio / Ollama, etc.).\nR: 1. Verify the accuracy of the "Custom API URL" field (for example, http://localhost:1234). Don't worry about the suffix, the system will add /v1 itself!\n2. The API Key field must not be empty! For local servers, simply enter some random characters.\n\nQ: Will the dynamic UI interceptor slow down the game?\nR: Thanks to our ultra-fast O(1) table lookup algorithms and built-in safety valves, even under an avalanche of errors, the game will run at a stable 120 FPS. However, keep in mind that this feature captures absolutely all untranslated strings on the screen. If you are using a 【paid API】, enable it with caution to avoid exorbitant bills!</ATC_Tutorial_FullText>
+  <ATC_UpdateLog_FullText>--- V4.1 BETA Mod Scanning and Filter Diagnostics ---\n• Fixed detection of custom content folders and legacy-version Defs.\n• Added filter details with reasons, candidate sources, and an Open Folder action.\n• Added safe force-translation and excluded inactive legacy or conditional sources to reduce wasted tokens.\n\n--- V4.0 BETA Cloud Workshop ＆ Global Editor Online ---\n• New 【Shared Cloud Workshop】: Supports one-click uploading and downloading of multi-language translation packs. Features three quality tags: "Pro Translation", "Manual Translation", and "AI Translation". Built-in 3-2-1 smart version control, soft delete protection, and update log.\n• Enhanced 【Global Workbench】: Added asynchronous background "Global Text Search" with a dynamic progress bar. Smoothly search through all caches and built-in translations even with hundreds of mods. Supports language filtering and one-click jump editing.\n• Redesigned 【Network Layer】: Upgraded to Unity's native network engine (UnityWebRequest) with forced UTF-8 compression, completely eliminating Windows encoding conflict issues that caused ZIP corruption or read errors.\n• Implemented 【Smart Micro-Detox】: Automatically filters low-level high-risk variables and face mods (like FaceDef), ending character texture corruption bugs after translation! Automatically cleans residual fake translation files at game startup.\n\n--- V2.2 Core Architecture ＆ Connection Stability ---\n• Optimized 【API Request Structure】: Rebuilt the underlying logic to improve compatibility with various AI providers and data parsing stability.\n• Implemented 【Automatic Backoff Retry】: When encountering server congestion (HTTP 429) or temporary connection anomalies (HTTP 500+), the system automatically cools down and retries, reducing translation interruptions.\n• New 【Custom Timeout ＆ Tests】: Added a "Test Connection" button and a timeout slider to the settings interface. (When using deep reasoning models, the system automatically adapts to a longer waiting time).\n• Improved 【Global Error Notifications】: Implemented cross-thread UI bridge technology. Now, if an API connection error or invalid key occurs, a real-time notification pops up at the top left of the game screen, avoiding the need to constantly check logs.\n\n--- V2.1 Translation Experience ＆ Smart Upgrades ---\n• Implemented 【One-Click Pack Export】: Supports exporting the translated mod independently to the desktop, complete with a machine translation watermark—perfect for submitting to the original author or for manual proofreading.\n• New 【Smart Mod Update Radar】: The system automatically detects mods that are "outdated" or "untranslated".\n• Support for 【Automatic Replacement】: When a mod is updated, the system automatically deletes old translation files and restarts the translation process to ensure the text remains up to date.\n• Fixed 【Line Break Anomalies】: Resolved the underlying bug where certain \n characters did not cause a line break, breaking the UI layout.\n\n--- V2.0 Performance Optimization ＆ Real-Time Rendering ---\n• Implemented 【Instant Memory Injection】: Translation results are written directly into the game memory. The display switches instantly to the target language and automatically applies next time, reducing load order conflicts.\n• Optimized 【Dynamic UI Interception Performance】: Rebuilt the underlying interception logic and cache design, significantly reducing FPS performance consumption.\n• New 【One-Click Hot Reload】: After manually modifying an XML translation file, click the button to instantly refresh the UI cache without restarting the game.\n\n--- V1.0 Official Release ---\n• Implemented 【Dynamic UI Interceptor System】: Supports real-time interception and automatic translation of untranslated text missed in configuration panels or static XML.\n• Implemented 【Bilingual Comparison】: Supports displaying the original text on mouse hover for easy comparison.</ATC_UpdateLog_FullText>
   <ATC_ApiConfigTitle>API Interface Configuration (Supports multiple parallel polling)</ATC_ApiConfigTitle>
   <ATC_Provider>Provider</ATC_Provider>
   <ATC_CustomUrlOptional>(Custom BaseUrl, leave blank for default)</ATC_CustomUrlOptional>
@@ -85,21 +91,109 @@
   <ATC_FetchingModel>Searching models...</ATC_FetchingModel>
   <ATC_NoModelWaitKey>No model selected (paste key for auto-detection)</ATC_NoModelWaitKey>
   <ATC_AddApiBtn>Add API Interface</ATC_AddApiBtn>
-  <ATC_EmergencyStop>Emergency Stop</ATC_EmergencyStop>
+  <ATC_EmergencyStop>Stop All Translation &amp; Analysis</ATC_EmergencyStop>
   <ATC_StartFullScan>Start Full Scan</ATC_StartFullScan>
   <ATC_EmptyConfigWarning>Please configure at least one valid API profile!</ATC_EmptyConfigWarning>
   <ATC_MaxThreads>Max Threads</ATC_MaxThreads>
   <ATC_MaxThreadsTip>Highly recommended: Number of active interfaces x 3</ATC_MaxThreadsTip>
   <ATC_Log_ApiRecovered>[API] Reconnection successful! The production line resumes high-speed operation.</ATC_Log_ApiRecovered>
   <ATC_Log_ApiRetry>[API] Server busy or timeout. Retrying in {0} seconds...</ATC_Log_ApiRetry>
-  <ATC_Log_ApiFallback>[API] Block translation completely failed! Switching to "duel mode" to translate sentence-by-sentence...</ATC_Log_ApiFallback>
-  <ATC_LogError_ApiCritical>[API Critical Error] Translation of the text at 【{0}】 completely failed! Original text preserved.</ATC_LogError_ApiCritical>
+  <ATC_Log_ApiFallback>[API] This translation batch returned no usable result; recording the cause.</ATC_Log_ApiFallback>
+  <ATC_LogError_ApiCritical>[API request incomplete] 【{0}】 produced no usable translation. The original text was preserved and can be retried later.</ATC_LogError_ApiCritical>
+  <ATC_Log_ApiConcurrencyRetry>[API recovery] The server reported excessive concurrency or request rate. Subsequent requests are temporarily serialized. Retry {0}/{1} starts in {2} seconds.</ATC_Log_ApiConcurrencyRetry>
+  <ATC_Log_ApiConcurrencyRecovered>[API recovery] The request succeeded after concurrency was reduced. Requests will remain serialized briefly to avoid another limit.</ATC_Log_ApiConcurrencyRecovered>
+  <ATC_LogError_ApiConcurrencyExhausted>[API concurrency/rate limit] Concurrency was reduced and waits were extended, but the server still rejected {0} retries. Original text was preserved. Retry later or lower Max Threads in API settings.</ATC_LogError_ApiConcurrencyExhausted>
+  <ATC_ApiFailureCategory_Quota>insufficient API balance or quota</ATC_ApiFailureCategory_Quota>
+  <ATC_ApiFailureCategory_Concurrency>API server concurrency or request-rate limit</ATC_ApiFailureCategory_Concurrency>
+  <ATC_ApiFailureCategory_Request>API connection, timeout, or response-format error</ATC_ApiFailureCategory_Request>
+  <ATC_ApiFailureCategory_LocalDispatch>the request was not sent because the game could not create the network request</ATC_ApiFailureCategory_LocalDispatch>
+  <ATC_ApiFailureCategory_ResponseTimeout>the network request started, but no complete response arrived before the timeout; use the uploaded-byte count to determine whether the body was actually sent</ATC_ApiFailureCategory_ResponseTimeout>
+  <ATC_ApiFailureCategory_ResponseTimeoutDuringUpload>the request timed out before its body finished uploading; the likely stage is connection, TLS, gateway negotiation, or body upload</ATC_ApiFailureCategory_ResponseTimeoutDuringUpload>
+  <ATC_ApiFailureCategory_ResponseTimeoutAfterUpload>the request body was fully handed to the network layer, but no complete response arrived; the likely stage is provider processing, first-response wait, or response download</ATC_ApiFailureCategory_ResponseTimeoutAfterUpload>
+  <ATC_ApiFailureCategory_UnityTransportStall>Unity's network request still did not finish during the 15-second cleanup grace period after the configured timeout; the stalled transport was forcibly cleaned up</ATC_ApiFailureCategory_UnityTransportStall>
+  <ATC_ApiFailureCategory_Http>the provider returned an HTTP error</ATC_ApiFailureCategory_Http>
+  <ATC_ApiFailureCategory_InvalidResponse>the provider responded, but the content was not a usable translation result</ATC_ApiFailureCategory_InvalidResponse>
+  <ATC_ApiFailureCategory_Configuration>no enabled API or model is available for this task tier</ATC_ApiFailureCategory_Configuration>
+  <ATC_ApiFailureCategory_BudgetDenied>the local usage limit configured for this translation run has been reached, so the task is paused</ATC_ApiFailureCategory_BudgetDenied>
+  <ATC_ApiFailureCategory_Cancelled>the request was cancelled by the user</ATC_ApiFailureCategory_Cancelled>
+  <ATC_ApiFailureCategory_Transport>the network connection or request transport failed</ATC_ApiFailureCategory_Transport>
+  <ATC_ApiResponse_None>no response</ATC_ApiResponse_None>
+  <ATC_LogError_ApiFailureUnknown>【{0}】 produced no usable translation. The original was preserved and recorded for retry. Check API settings, network access, and provider status.</ATC_LogError_ApiFailureUnknown>
+  <ATC_LogError_ApiFailureDetailed>【{0}】 produced no usable translation. Failure type: {1}. The original was preserved and recorded for retry. [Developer details] {2}</ATC_LogError_ApiFailureDetailed>
   <ATC_TranslateMultiMod>Single / Multi-Select Translation</ATC_TranslateMultiMod>
   <ATC_CheckingModStatus>Checking mod translation status...</ATC_CheckingModStatus>
   <ATC_SkipCurrentMod>Skip Current Mod</ATC_SkipCurrentMod>
   <ATC_MultiSelect_Title>Select mods to translate (multiple choices allowed)</ATC_MultiSelect_Title>
   <ATC_MultiSelect_Search>Type a mod name to search...</ATC_MultiSelect_Search>
   <ATC_MultiSelect_Start>Start translating the {0} selected mods</ATC_MultiSelect_Start>
+  <ATC_PolicyShadowRun_Button>Local-rules dry run ({0})</ATC_PolicyShadowRun_Button>
+  <ATC_PolicyShadowRun_Task>Running local-rules dry run...</ATC_PolicyShadowRun_Task>
+  <ATC_PolicyShadowRun_Start>Running local rules for {0} selected mods; Agent prediction is not called and no translations are written or injected.</ATC_PolicyShadowRun_Start>
+  <ATC_PolicyPreflight_CloudStart>Syncing cloud decisions for {0} selected mods; Agent prediction is not called and no translations are written or injected.</ATC_PolicyPreflight_CloudStart>
+  <ATC_PolicyPreflight_AgentStart>Running Agent prediction for {0} selected mods; the configured analysis model will be called, but no translations are written or injected.</ATC_PolicyPreflight_AgentStart>
+  <ATC_PolicyPreflight_LaunchTrace>Task trace: run #{0}; source={1}; mode={2}; mods={3}.</ATC_PolicyPreflight_LaunchTrace>
+  <ATC_Preflight_CloseRunningTitle>Smart translation task is running</ATC_Preflight_CloseRunningTitle>
+  <ATC_Preflight_CloseRunningConfirm>Closing this window will also stop the current smart translation task. Stop it and close?</ATC_Preflight_CloseRunningConfirm>
+  <ATC_Preflight_StopAndClose>Stop and close</ATC_Preflight_StopAndClose>
+  <ATC_Preflight_KeepOpen>Keep waiting</ATC_Preflight_KeepOpen>
+  <ATC_PolicyShadowRun_Title>Local-Rules Dry-Run Results</ATC_PolicyShadowRun_Title>
+  <ATC_PolicyShadowRun_Summary>Mods: {0}\nCandidates: {1}\nAllow: {2}\nDeny: {3}\nAmbiguous: {4}\nGroups: {5}\nEstimated requests: {6}\nEstimated input tokens: {7}\nEstimated output tokens: {8}\nEstimated total tokens: {9}\nActual AI/API calls / consumed tokens: 0 / 0\nElapsed: {10}\nReport: {11}\nTranslation writes / runtime injections: 0 / 0</ATC_PolicyShadowRun_Summary>
+  <ATC_PolicyAgent_Enable>Enable Agent prediction for uncertain text (off by default)</ATC_PolicyAgent_Enable>
+  <ATC_PolicyAgent_SharedModelPoolNotice>Agent prediction is a Standard analysis task. It prefers the Standard model in the shared three-tier pool, then falls back to Precision and Bulk. Only locally uncertain entries consume model tokens.</ATC_PolicyAgent_SharedModelPoolNotice>
+  <ATC_PolicyAgent_EnableTooltip>Runs Agent prediction only for entries local rules cannot decide. It uses the shared three-tier model pool; DeepL is excluded. Failures preserve the original text.</ATC_PolicyAgent_EnableTooltip>
+  <ATC_PolicyAgent_MaxCallsPerRun>Agent prediction call soft threshold per translation task: {0}</ATC_PolicyAgent_MaxCallsPerRun>
+  <ATC_PolicyAgent_MaxEstimatedTokensPerRun>Estimated-token soft threshold per translation task: {0}</ATC_PolicyAgent_MaxEstimatedTokensPerRun>
+  <ATC_PolicyAgent_MaxCallsPerMod>Agent prediction call soft threshold per mod: {0}</ATC_PolicyAgent_MaxCallsPerMod>
+  <ATC_PolicyAgent_RetryNotice>Retries per request: {0}. Every retry counts toward the call and estimated-token soft thresholds.</ATC_PolicyAgent_RetryNotice>
+  <ATC_PolicyAgent_ClearCache>Clear Agent prediction decision cache</ATC_PolicyAgent_ClearCache>
+  <ATC_PolicyAgent_CacheCleared>Agent prediction decision cache cleared.</ATC_PolicyAgent_CacheCleared>
+  <ATC_PolicyAgent_CacheClearFailed>Could not clear the Agent prediction decision cache.</ATC_PolicyAgent_CacheClearFailed>
+  <ATC_PolicyAgent_NoProvider>No compatible AI Agent prediction provider is ready. DeepL cannot classify text; ambiguous text will keep its original value.</ATC_PolicyAgent_NoProvider>
+  <ATC_PolicyAgent_BudgetExhausted>Agent prediction stopped at the soft threshold. Remaining ambiguous text will keep its original value.</ATC_PolicyAgent_BudgetExhausted>
+  <ATC_PolicyAgent_BudgetPrompt_Title>Agent prediction soft-threshold confirmation</ATC_PolicyAgent_BudgetPrompt_Title>
+  <ATC_PolicyAgent_BudgetPrompt_Message>The next Agent prediction request will cross a soft threshold.\nMod: {0}\nTask calls: {1} -&gt; {2} (threshold {3}); current mod: {4} -&gt; {5} (threshold {6})\nEstimated tokens: {7} -&gt; {8} (threshold {9}){10}\nCurrently discovered ambiguous groups still pending: about {11}\nRequest type: {12}\nContinuing suppresses further prompts for this task; provider quota and billing still apply.</ATC_PolicyAgent_BudgetPrompt_Message>
+  <ATC_PolicyAgent_BudgetPrompt_ReportedTokens>Provider-reported tokens so far (may be incomplete): {0}</ATC_PolicyAgent_BudgetPrompt_ReportedTokens>
+  <ATC_PolicyAgent_BudgetPrompt_RequestNew>new request</ATC_PolicyAgent_BudgetPrompt_RequestNew>
+  <ATC_PolicyAgent_BudgetPrompt_RequestRetry>retry</ATC_PolicyAgent_BudgetPrompt_RequestRetry>
+  <ATC_PolicyAgent_BudgetPrompt_Continue>Continue with Agent</ATC_PolicyAgent_BudgetPrompt_Continue>
+  <ATC_PolicyAgent_BudgetPrompt_LocalOnly>Stop Agent and continue</ATC_PolicyAgent_BudgetPrompt_LocalOnly>
+  <ATC_PolicyAgent_BudgetPrompt_Cancel>Cancel this translation</ATC_PolicyAgent_BudgetPrompt_Cancel>
+  <ATC_PolicyAgent_BudgetPrompt_Waiting>Waiting for Agent prediction soft-threshold choice</ATC_PolicyAgent_BudgetPrompt_Waiting>
+  <ATC_PolicyAgent_BudgetPrompt_Notice>Translation pauses at a soft threshold for confirmation. Continuing removes internal soft thresholds for this task, but provider quota and billing still apply.</ATC_PolicyAgent_BudgetPrompt_Notice>
+  <ATC_PolicyAgent_EmergencyLimitReached>Agent prediction reached the technical safety guard ({0} calls or {1} estimated tokens). Agent use is disabled for the rest of this task.</ATC_PolicyAgent_EmergencyLimitReached>
+  <ATC_PolicyAgent_LocalOnlySelected>Agent prediction was disabled for the rest of this task; new ambiguous text will keep its original value.</ATC_PolicyAgent_LocalOnlySelected>
+  <ATC_PolicyAgent_BatchSummary>Agent prediction [{0}]: local allow {1}, local deny {2}, Agent allow {3}, kept original {4}.</ATC_PolicyAgent_BatchSummary>
+  <ATC_PolicyAgent_BatchProgress>Agent prediction batches: estimated {0}, processed {1}, failed {2}, in progress {3}.</ATC_PolicyAgent_BatchProgress>
+  <ATC_PolicyAgent_RunSummary>Agent prediction summary: calls {0}, estimated tokens {1}, cache hits {2}, local allow {3}, local deny {4}, Agent allow {5}, Agent deny {6}, review {7}, unresolved {8}.</ATC_PolicyAgent_RunSummary>
+  <ATC_PolicyAgent_ActualTokenSummary>Agent prediction provider-reported actual tokens: {0}.</ATC_PolicyAgent_ActualTokenSummary>
+  <ATC_HardcodedUi_EnablePrototype>Include DLL hard-coded UI text</ATC_HardcodedUi_EnablePrototype>
+  <ATC_HardcodedUi_EnablePrototypeTooltip>Includes loaded Mods' DLL UI text in trial runs and translation. Static analysis decides provable entries, Agent pre-evaluation handles only uncertain entries when enabled, and user overrides always win. Third-party DLL files are never rewritten.</ATC_HardcodedUi_EnablePrototypeTooltip>
+  <ATC_HardcodedUi_Status>DLL hard-coded UI translation: {0}</ATC_HardcodedUi_Status>
+  <ATC_HardcodedUi_ReloadManifest>Reload approved UI manifest</ATC_HardcodedUi_ReloadManifest>
+  <ATC_HardcodedUi_Conflict>DLL targeted replacement is paused while legacy global UI interception is enabled.</ATC_HardcodedUi_Conflict>
+  <ATC_HardcodedUi_OpenWorkbench>Open DLL UI scan, Agent prediction, and translation workbench</ATC_HardcodedUi_OpenWorkbench>
+  <ATC_HardcodedUi_UseAgent>Use Agent prediction to identify translatable text in the DLL UI workbench</ATC_HardcodedUi_UseAgent>
+  <ATC_HardcodedUi_UseAgentTooltip>This is the same master switch shown in Agent prediction settings below. The Agent only decides translate/deny/review; the translation API still produces the translation.</ATC_HardcodedUi_UseAgentTooltip>
+  <ATC_HardcodedUi_WorkbenchTitle>DLL Hard-coded UI Translation Workbench</ATC_HardcodedUi_WorkbenchTitle>
+  <ATC_HardcodedUi_WorkbenchNotice>Flow: select Mod → scan DLL → static analysis decides provable entries → optional Agent pre-evaluation handles only uncertain entries → AI translates → review and save. User overrides always win.</ATC_HardcodedUi_WorkbenchNotice>
+  <ATC_HardcodedUi_NoActiveMods>No enabled Mods are available to scan</ATC_HardcodedUi_NoActiveMods>
+  <ATC_HardcodedUi_Scan>Scan DLL</ATC_HardcodedUi_Scan>
+  <ATC_HardcodedUi_AgentAnalyze>Agent prediction</ATC_HardcodedUi_AgentAnalyze>
+  <ATC_HardcodedUi_AiTranslate>AI translate</ATC_HardcodedUi_AiTranslate>
+  <ATC_HardcodedUi_SaveApply>Save and apply selected</ATC_HardcodedUi_SaveApply>
+  <ATC_HardcodedUi_Working>Working…</ATC_HardcodedUi_Working>
+  <ATC_HardcodedUi_ScanSummary>Checked {0} DLLs and {1} methods; recall candidates {2}. Decision: translate {3}, do not translate {4}, uncertain {5}.</ATC_HardcodedUi_ScanSummary>
+  <ATC_HardcodedUi_Empty>Select a Mod and scan first. Only strings passed directly to supported UI methods in loaded DLLs are shown.</ATC_HardcodedUi_Empty>
+  <ATC_HardcodedUi_NoCandidates>The current analyzer did not identify any candidates. This does not prove the DLL has no player-visible text; review scan coverage and developer diagnostics.</ATC_HardcodedUi_NoCandidates>
+  <ATC_HardcodedUi_NoLoadedAssembly>No loaded DLL was found under this Mod. Confirm the Mod is enabled and restart the game.</ATC_HardcodedUi_NoLoadedAssembly>
+  <ATC_HardcodedUi_AgentNotReady>Enable Agent prediction and configure a Standard, Precision, or Bulk model in the shared pool. You can also select candidates manually.</ATC_HardcodedUi_AgentNotReady>
+  <ATC_HardcodedUi_AgentSummary>Agent prediction complete: translate {0}, uncertain {1}, do not translate {2}. Only translate recommendations were selected automatically.</ATC_HardcodedUi_AgentSummary>
+  <ATC_HardcodedUi_AgentFailed>Agent prediction did not complete: {0}</ATC_HardcodedUi_AgentFailed>
+  <ATC_HardcodedUi_NoPending>No selected item is waiting for translation.</ATC_HardcodedUi_NoPending>
+  <ATC_HardcodedUi_AiFailed>AI did not return a complete translation. Existing edits were retained; see the log for the specific cause.</ATC_HardcodedUi_AiFailed>
+  <ATC_HardcodedUi_AiDone>AI translation complete. Review every item before saving.</ATC_HardcodedUi_AiDone>
+  <ATC_HardcodedUi_Saved>The approved manifest was saved and targeted UI translations were reloaded. Reopen an already-open target window.</ATC_HardcodedUi_Saved>
+  <ATC_HardcodedUi_SaveFailed>Save or apply failed: {0}</ATC_HardcodedUi_SaveFailed>
   <ATC_SubTask_AnalyzingDict>Analyzing local localization text...</ATC_SubTask_AnalyzingDict>
   <ATC_SubTask_BuildingDict>Building dictionary: {0}</ATC_SubTask_BuildingDict>
   <ATC_SubTask_DictDone>Dictionary built successfully!</ATC_SubTask_DictDone>
@@ -115,6 +209,19 @@
   <ATC_One_click_chaos>One-Click Random Select</ATC_One_click_chaos>
   <ATC_Rickroll>Absolutely do not click here...</ATC_Rickroll>
   <ATC_SelectAll>Select All</ATC_SelectAll>
+  <ATC_SelectUntranslated>Untranslated Mods Only</ATC_SelectUntranslated>
+  <ATC_SelectUntranslated_Checking>Checking translation status...</ATC_SelectUntranslated_Checking>
+  <ATC_SelectUntranslated_Result>Selected {0} untranslated mods; official base game and DLC packages were excluded.</ATC_SelectUntranslated_Result>
+  <ATC_SelectUntranslated_Failed>Could not check untranslated mods. See the developer log.</ATC_SelectUntranslated_Failed>
+  <ATC_HardcodedUi_BatchScanActive>Analyze DLLs for all active mods</ATC_HardcodedUi_BatchScanActive>
+  <ATC_HardcodedUi_BatchScanning>Analyzing active-mod DLLs...</ATC_HardcodedUi_BatchScanning>
+  <ATC_HardcodedUi_BatchScanDone>DLL analysis complete: checked {0} mods and found {1} candidates. Candidates are not final translation decisions.</ATC_HardcodedUi_BatchScanDone>
+  <ATC_HardcodedUi_BatchScanFailed>DLL batch analysis failed. See the developer log.</ATC_HardcodedUi_BatchScanFailed>
+  <ATC_HardcodedUi_BatchNotScanned>DLL: not analyzed</ATC_HardcodedUi_BatchNotScanned>
+  <ATC_HardcodedUi_ModNotLoaded>DLL: mod is disabled; XML can still be analyzed. Enable the mod and restart the game to analyze its DLL.</ATC_HardcodedUi_ModNotLoaded>
+  <ATC_HardcodedUi_BatchItemFailed>DLL: analysis failed ({0})</ATC_HardcodedUi_BatchItemFailed>
+  <ATC_HardcodedUi_BatchItemSummary>DLL: {0} assemblies / {1} methods / {2} recall candidates / {3} diagnostics; translate {4}, deny {5}, uncertain {6}, overrides {7}; analyzer v{8}</ATC_HardcodedUi_BatchItemSummary>
+  <ATC_HardcodedUi_BatchDetails>DLL details</ATC_HardcodedUi_BatchDetails>
   <ATC_DeselectAll>Deselect All</ATC_DeselectAll>
   <ATC_Log_UIInterceptorStarted>Dynamic UI interceptor activated! Background cache system starting...</ATC_Log_UIInterceptorStarted>
   <ATC_Log_UICacheLoaded>Successfully loaded {0} hard-coded UI cache lines!</ATC_Log_UICacheLoaded>
@@ -145,7 +252,7 @@
   <ATC_Log_EnglishResidualRejected>[Validation] English residual still unresolved after retry: {0}</ATC_Log_EnglishResidualRejected>
   <ATC_Log_ProtectedTokenMismatchRejected>[Validation] Protected token mismatch still unresolved after retry: {0}</ATC_Log_ProtectedTokenMismatchRejected>
   <ATC_Log_PlaceholderRepairSummary>[Validation] Repaired {0} placeholder tokens in {1} generated translation files.</ATC_Log_PlaceholderRepairSummary>
-  <ATC_Profile_Current>Current profile: {0} strings per batch, {1} format retries, {2}s timeout floor</ATC_Profile_Current>
+  <ATC_Profile_Current>Current profile: {0} strings per batch, {1} format retries, {2}s actual timeout</ATC_Profile_Current>
   <ATC_Profile_DeepSeek>DeepSeek: conservative batches to reduce empty or invalid JSON responses.</ATC_Profile_DeepSeek>
   <ATC_Profile_Google>Google/Gemini: standard batches for stable high-volume translation.</ATC_Profile_Google>
   <ATC_Profile_DeepL>DeepL: XML tag protection with no LLM JSON parse retry.</ATC_Profile_DeepL>
@@ -164,7 +271,7 @@
   <ATC_OriginalText>Original</ATC_OriginalText>
   <ATC_Log_MemoryDropSuccess>[Memory Airdrop] Successfully injected {0} system lines and {1} item definitions!</ATC_Log_MemoryDropSuccess>
   <ATC_LogError_MemoryDropFailed>[Memory Airdrop Failed] {0}</ATC_LogError_MemoryDropFailed>
-  <ATC_Button_HotReload>One-click Hot Reload (refresh screen without restarting!)</ATC_Button_HotReload>
+  <ATC_Button_HotReload>Hot Reload</ATC_Button_HotReload>
   <ATC_Message_HotReloadSuccess>🪂 [Memory Airdrop] Translations successfully injected, UI window cache refreshed!</ATC_Message_HotReloadSuccess>
   <ATC_Log_HotReloadSuccess>🪂 [Memory Airdrop] Translation data injected into core, UI window cache fully refreshed!</ATC_Log_HotReloadSuccess>
   <ATC_LogError_InvalidXmlKey>[XML Defender] AI returned an invalid key containing illegal characters, skipped line: {0}</ATC_LogError_InvalidXmlKey>
@@ -311,7 +418,7 @@
   <ATC_Log_RetryAttempt>Encountered HTTP {0}, preparing for retry n°{1} (cooldown {2} ms)...</ATC_Log_RetryAttempt>
   <ATC_Log_RetryTimeout>Request timed out, preparing for retry n°{0} (cooldown {1} ms)...</ATC_Log_RetryTimeout>
   <ATC_Setting_Timeout>API Request Timeout: {0} s</ATC_Setting_Timeout>
-  <ATC_Setting_Timeout_Tooltip>If the AI does not respond within this time, the system will automatically disconnect and retry. Recommended: 60-120\n(If using deep reasoning models, the background will force a minimum wait of 300 seconds)</ATC_Setting_Timeout_Tooltip>
+  <ATC_Setting_Timeout_Tooltip>The API network wait limit for translation, terminology, and Agent prediction. Unity first gets this configured period to finish normally, followed by a separate 15-second cleanup grace period. If it still does not finish, the Unity transport is reported as stalled and forcibly cleaned up. Recommended: 60-120 seconds.</ATC_Setting_Timeout_Tooltip>
   <ATC_FilteredCodeOnly>Filtered {0} pure code mods, no translation required.</ATC_FilteredCodeOnly>
   <ATC_FilteredModsCount>Filtered {0} mods with no scannable translation sources</ATC_FilteredModsCount>
   <ATC_Log_DeepL_EndpointDetected>✅ DeepL［{0}］endpoint detected successfully.</ATC_Log_DeepL_EndpointDetected>
@@ -417,8 +524,6 @@
   <ATC_Error_FetchModels_RateLimit>[{0}] Model lookup failed (429): Request too frequent, rate limit triggered. Please try again later.</ATC_Error_FetchModels_RateLimit>
   <ATC_Error_FetchModels_ServerError>[{0}] Model lookup failed ({1}): Server internal error, host unstable. Details: {2}</ATC_Error_FetchModels_ServerError>
   <ATC_Error_FetchModels_Unknown>[{0}] Model lookup failed ({1}): Unknown error. Details: {2}</ATC_Error_FetchModels_Unknown>
-  <ATC_Error_FetchModelsDispatchTimeout>[{0}] Model lookup did not start in time. Please close and reopen the settings panel, or try again after the game finishes loading.</ATC_Error_FetchModelsDispatchTimeout>
-  <ATC_Error_FetchModelsWatchdogReleased>[{0}] Model lookup timed out; stuck fetching state was released. Please retry later or click Refetch Models.</ATC_Error_FetchModelsWatchdogReleased>
   <ATC_Lang_French>French (Français)</ATC_Lang_French>
   <ATC_Lang_German>German (Deutsch)</ATC_Lang_German>
   <ATC_Lang_Spanish>Spanish (Español)</ATC_Lang_Spanish>
@@ -448,6 +553,7 @@
   <ATC_Cloud_NoLog>The author provided no update description for this version.</ATC_Cloud_NoLog>
   <ATC_UploadPreview_Title>Pre-Upload Package Inspection Preview Console - {0}</ATC_UploadPreview_Title>
   <ATC_UploadPreview_Loading>Performing lossless decoding and safety analysis of all XML files to package. Please wait...</ATC_UploadPreview_Loading>
+  <ATC_Workbench_Loading>Loading the current Mod's XML and DLL editing data. Please wait...</ATC_Workbench_Loading>
   <ATC_Preview_ClickToSee>Select an item on the left to display bilingual comparison</ATC_Preview_ClickToSee>
   <ATC_Upload_LogLabel>Update Description (to inform users of changes, similar to Steam announcement):</ATC_Upload_LogLabel>
   <ATC_Upload_LogHint>Please describe changes in this version briefly (e.g., fixed weapon graphic glitches, corrected converter typos...)</ATC_Upload_LogHint>
@@ -606,4 +712,248 @@
   <ATC_Blacklist_DownloadSkipped>Cloud download skipped for blacklisted mod: {0}</ATC_Blacklist_DownloadSkipped>
   <ATC_Blacklist_DownloadBlockedStatus>Cloud download blocked</ATC_Blacklist_DownloadBlockedStatus>
   <ATC_Cloud_Btn_BatchBestTip>Downloads only active installed mods with a matching cloud translation. Mods unavailable in the cloud are skipped.</ATC_Cloud_Btn_BatchBestTip>
+  <ATC_Unresolved_Title>Unresolved Translations ({0})</ATC_Unresolved_Title>
+  <ATC_Unresolved_TitleShort>Unresolved Translations</ATC_Unresolved_TitleShort>
+  <ATC_Unresolved_Summary>Review entries that AI could not translate safely. Retry, keep the original text, or edit one manually.</ATC_Unresolved_Summary>
+  <ATC_Unresolved_Search>Search key, source text, reason, or file...</ATC_Unresolved_Search>
+  <ATC_Unresolved_Empty>No unresolved translations remain.</ATC_Unresolved_Empty>
+  <ATC_Unresolved_Mods>Mods</ATC_Unresolved_Mods>
+  <ATC_Unresolved_Groups>Type / Source File</ATC_Unresolved_Groups>
+  <ATC_Unresolved_Entries>Entries ({0})</ATC_Unresolved_Entries>
+  <ATC_Unresolved_All>All</ATC_Unresolved_All>
+  <ATC_Unresolved_UnknownMod>Unknown mod</ATC_Unresolved_UnknownMod>
+  <ATC_Unresolved_UnknownSource>Unknown source file</ATC_Unresolved_UnknownSource>
+  <ATC_Unresolved_Attempts>Attempts: {0}</ATC_Unresolved_Attempts>
+  <ATC_Unresolved_Manual>Edit</ATC_Unresolved_Manual>
+  <ATC_Unresolved_SelectVisible>Select visible</ATC_Unresolved_SelectVisible>
+  <ATC_Unresolved_ClearSelection>Clear</ATC_Unresolved_ClearSelection>
+  <ATC_Unresolved_Selected>Selected: {0}</ATC_Unresolved_Selected>
+  <ATC_Unresolved_KeepOriginal>Keep Original / Ignore</ATC_Unresolved_KeepOriginal>
+  <ATC_Unresolved_RetryAI>Retry with AI</ATC_Unresolved_RetryAI>
+  <ATC_Unresolved_NoSelection>Select at least one entry first.</ATC_Unresolved_NoSelection>
+  <ATC_Unresolved_Running>Wait for the current translation task to finish.</ATC_Unresolved_Running>
+  <ATC_Unresolved_ConfirmIgnore>Keep the original text for {0} selected entries and ignore them while the source is unchanged?</ATC_Unresolved_ConfirmIgnore>
+  <ATC_Unresolved_ConfirmButton>Keep Original</ATC_Unresolved_ConfirmButton>
+  <ATC_Unresolved_IgnoreDone>Kept the original text for {0} entries.</ATC_Unresolved_IgnoreDone>
+  <ATC_Unresolved_ModNotFound>Could not find the installed mod: {0}</ATC_Unresolved_ModNotFound>
+  <ATC_Unresolved_RetryDone>AI retry resolved {0} of {1} entries.</ATC_Unresolved_RetryDone>
+  <ATC_Unresolved_WrongLanguage>This item belongs to target language {0}. Switch back to that target language before handling it.</ATC_Unresolved_WrongLanguage>
+  <ATC_Unresolved_SourceChanged>The source for {0} has changed or disappeared. Scan that mod again before handling this item.</ATC_Unresolved_SourceChanged>
+  <ATC_Unresolved_IgnoreSaveFailed>The keep-original decision could not be saved. The item remains pending.</ATC_Unresolved_IgnoreSaveFailed>
+  <ATC_Unresolved_ReasonApi>API request failed</ATC_Unresolved_ReasonApi>
+  <ATC_Unresolved_ReasonMalformed>AI returned an invalid response format</ATC_Unresolved_ReasonMalformed>
+  <ATC_Unresolved_ReasonEmpty>AI returned an empty response</ATC_Unresolved_ReasonEmpty>
+  <ATC_Unresolved_ReasonEnglish>English text remained in the result</ATC_Unresolved_ReasonEnglish>
+  <ATC_Unresolved_ReasonVariant>Wrong Chinese variant</ATC_Unresolved_ReasonVariant>
+  <ATC_Unresolved_ReasonWrongLanguage>Result uses the wrong target language</ATC_Unresolved_ReasonWrongLanguage>
+  <ATC_Unresolved_ReasonToken>Protected token mismatch</ATC_Unresolved_ReasonToken>
+  <ATC_Unresolved_ReasonFormat>Format argument mismatch</ATC_Unresolved_ReasonFormat>
+  <ATC_Unresolved_ReasonTitleTag>Title tag mismatch</ATC_Unresolved_ReasonTitleTag>
+  <ATC_Unresolved_ReasonSave>Translation file could not be saved</ATC_Unresolved_ReasonSave>
+  <ATC_Unresolved_ReasonSource>Source XML could not be processed</ATC_Unresolved_ReasonSource>
+  <ATC_Unresolved_ReasonPolicyReview>Agent prediction requested manual review</ATC_Unresolved_ReasonPolicyReview>
+  <ATC_Unresolved_ReasonPolicyAgentFailure>Agent prediction classification failed</ATC_Unresolved_ReasonPolicyAgentFailure>
+  <ATC_Unresolved_ReasonUnknown>Translation was rejected</ATC_Unresolved_ReasonUnknown>
+  <ATC_UsageBudget_Enable>Enable a usage limit for this translation run</ATC_UsageBudget_Enable>
+  <ATC_UsageBudget_EnableTooltip>Checks character and internal token budgets before sending a request; completed data is retained when the run pauses.</ATC_UsageBudget_EnableTooltip>
+  <ATC_UsageBudget_Characters>Maximum source characters for this run: {0}</ATC_UsageBudget_Characters>
+  <ATC_UsageBudget_Notice>The UI uses characters. The mod estimates tokens internally, records reported usage, and resumes after the budget is increased.</ATC_UsageBudget_Notice>
+  <ATC_StructuredOutput_Label>Structured output</ATC_StructuredOutput_Label>
+  <ATC_StructuredOutput_Tooltip>Auto uses the safest format supported by the provider and selected model. Manual overrides may fail on unsupported endpoints; format failures are not retried automatically.</ATC_StructuredOutput_Tooltip>
+  <ATC_StructuredOutput_Effective>Effective: {0}</ATC_StructuredOutput_Effective>
+  <ATC_StructuredOutput_Auto>Auto (recommended)</ATC_StructuredOutput_Auto>
+  <ATC_StructuredOutput_PromptOnly>Prompt only</ATC_StructuredOutput_PromptOnly>
+  <ATC_StructuredOutput_JsonObject>JSON object</ATC_StructuredOutput_JsonObject>
+  <ATC_StructuredOutput_JsonSchema>Strict JSON Schema</ATC_StructuredOutput_JsonSchema>
+  <ATC_StructuredOutput_GeminiSchema>Gemini response schema</ATC_StructuredOutput_GeminiSchema>
+  <ATC_StructuredOutput_StrictFunction>Strict function call</ATC_StructuredOutput_StrictFunction>
+  <ATC_StructuredOutput_Native>Provider native</ATC_StructuredOutput_Native>
+  <ATC_TaskTier_Label>Task workload tier</ATC_TaskTier_Label>
+  <ATC_TaskTier_Bulk>Bulk translation (required)</ATC_TaskTier_Bulk>
+  <ATC_TaskTier_Standard>Standard task</ATC_TaskTier_Standard>
+  <ATC_TaskTier_Precision>Small precision task</ATC_TaskTier_Precision>
+  <ATC_TaskTier_Tooltip>Bulk tasks only use Bulk models. Standard tasks fall back to Precision, then Bulk; Precision tasks fall back to Standard, then Bulk. Higher tiers never replace a missing Bulk model.</ATC_TaskTier_Tooltip>
+  <ATC_TaskTier_RequiresBulk>Configure and enable another Bulk translation model before assigning this API entry to an optional tier.</ATC_TaskTier_RequiresBulk>
+  <ATC_TranslationCache_Clear>Clear validated translation reuse cache</ATC_TranslationCache_Clear>
+  <ATC_TranslationCache_Cleared>Validated translation reuse cache cleared.</ATC_TranslationCache_Cleared>
+  <ATC_TranslationCache_ClearFailed>Could not clear the validated translation reuse cache.</ATC_TranslationCache_ClearFailed>
+  <ATC_PolicyCloud_Enable>Use the cloud decision cache (backend support required)</ATC_PolicyCloud_Enable>
+  <ATC_PolicyCloud_Tooltip>Exact source and policy versions can reuse cloud decisions. Results are never uploaded automatically; users must approve an append-only contribution from the mod list.</ATC_PolicyCloud_Tooltip>
+  <ATC_SourcePriority_Open>Configure translation source priority</ATC_SourcePriority_Open>
+  <ATC_SourcePriority_Title>Translation source priority</ATC_SourcePriority_Title>
+  <ATC_SourcePriority_Notice>Higher rows win when multiple valid translations exist. Every candidate still passes deterministic token, format, and target-language validation.</ATC_SourcePriority_Notice>
+  <ATC_SourcePriority_Global>Global default order</ATC_SourcePriority_Global>
+  <ATC_SourcePriority_ResetDefault>Restore recommended order</ATC_SourcePriority_ResetDefault>
+  <ATC_SourcePriority_NoMods>No installed mods</ATC_SourcePriority_NoMods>
+  <ATC_SourcePriority_UseOverride>Use a custom order for this mod</ATC_SourcePriority_UseOverride>
+  <ATC_SourcePriority_ModHint>Per-mod order overrides the global default only for the selected package.</ATC_SourcePriority_ModHint>
+  <ATC_SourcePriority_SaveClose>Save and close</ATC_SourcePriority_SaveClose>
+  <ATC_SourcePriority_UserManual>User manual edits</ATC_SourcePriority_UserManual>
+  <ATC_SourcePriority_ExternalHuman>Third-party human translation</ATC_SourcePriority_ExternalHuman>
+  <ATC_SourcePriority_ModNative>Mod built-in translation</ATC_SourcePriority_ModNative>
+  <ATC_SourcePriority_Cloud>Cloud translation</ATC_SourcePriority_Cloud>
+  <ATC_SourcePriority_Automatic>Automatic translation</ATC_SourcePriority_Automatic>
+  <ATC_PolicyCloud_Manage>Manage</ATC_PolicyCloud_Manage>
+  <ATC_PolicyCloud_ModTitle>Cloud decision-cache acceleration: {0}</ATC_PolicyCloud_ModTitle>
+  <ATC_PolicyCloud_ModExplanation>Package ID: {0}\nCurrent status: {1}\nDisabling acceleration for one mod makes its next run bypass both cloud results and the local decision cache.</ATC_PolicyCloud_ModExplanation>
+  <ATC_PolicyCloud_ModDetails>Candidates: {0}  Cloud allows: {1}  Pending additions: {2}\nLast updated: {3}</ATC_PolicyCloud_ModDetails>
+  <ATC_PolicyCloud_StatusGlobalOff>Cloud decision cache: globally disabled</ATC_PolicyCloud_StatusGlobalOff>
+  <ATC_PolicyCloud_StatusDisabled>Cloud decision cache: disabled for this mod (fresh analysis)</ATC_PolicyCloud_StatusDisabled>
+  <ATC_PolicyCloud_StatusNotUsed>Cloud decision cache: not used</ATC_PolicyCloud_StatusNotUsed>
+  <ATC_PolicyCloud_StatusAccelerated>Cloud decision cache: accelerated</ATC_PolicyCloud_StatusAccelerated>
+  <ATC_PolicyCloud_StatusPending>Fresh local analysis: awaiting upload approval</ATC_PolicyCloud_StatusPending>
+  <ATC_PolicyCloud_StatusUploaded>Analysis additions: uploaded</ATC_PolicyCloud_StatusUploaded>
+  <ATC_PolicyCloud_DisableAndReanalyze>Disable acceleration and select for analysis</ATC_PolicyCloud_DisableAndReanalyze>
+  <ATC_PolicyCloud_Reenable>Re-enable acceleration for this mod</ATC_PolicyCloud_Reenable>
+  <ATC_PolicyCloud_ReanalysisQueued>{0} is selected. Start a decision analysis using the button below.</ATC_PolicyCloud_ReanalysisQueued>
+  <ATC_PolicyCloud_UploadIncrement>Upload added decisions</ATC_PolicyCloud_UploadIncrement>
+  <ATC_PolicyCloud_Uploading>Uploading...</ATC_PolicyCloud_Uploading>
+  <ATC_PolicyCloud_DiscardPending>Discard this pending contribution</ATC_PolicyCloud_DiscardPending>
+  <ATC_PolicyCloud_AppendOnlyTooltip>The ordinary-user endpoint can only append stable IDs that need translation. It cannot delete or replace a record, and no source or translated text is uploaded.</ATC_PolicyCloud_AppendOnlyTooltip>
+  <ATC_PolicyCloud_UploadSuccess>Analysis additions uploaded.</ATC_PolicyCloud_UploadSuccess>
+  <ATC_PolicyCloud_UploadFailed>Upload failed. The pending local data was kept for retry.</ATC_PolicyCloud_UploadFailed>
+  <ATC_PolicyCloud_RuntimeUnavailable>The cloud decision cache is temporarily unavailable. Local rules and the Agent will be used automatically, and the translation task will continue.</ATC_PolicyCloud_RuntimeUnavailable>
+  <ATC_PolicyCloud_RuntimeRecovered>The cloud decision cache has recovered.</ATC_PolicyCloud_RuntimeRecovered>
+  <ATC_PolicyPreflight_ViewShort>Results</ATC_PolicyPreflight_ViewShort>
+  <ATC_PolicyPreflight_SyncCloud>Sync cloud decisions</ATC_PolicyPreflight_SyncCloud>
+  <ATC_PolicyPreflight_RunAgent>Agent prediction</ATC_PolicyPreflight_RunAgent>
+  <ATC_PolicyPreflight_CloudTask>Syncing cloud decisions</ATC_PolicyPreflight_CloudTask>
+  <ATC_PolicyPreflight_AgentTask>Running Agent prediction</ATC_PolicyPreflight_AgentTask>
+  <ATC_PolicyPreflight_RowSummary>Dry run: XML {0}, allow {1}, deny {2}, uncertain {3}, unresolved {4}, final {5}</ATC_PolicyPreflight_RowSummary>
+  <ATC_PolicyPreflight_NoResult>No local-rules dry-run result is available yet.</ATC_PolicyPreflight_NoResult>
+  <ATC_PolicyPreflight_ResultTitle>Local-rules dry-run results</ATC_PolicyPreflight_ResultTitle>
+  <ATC_PolicyPreflight_OverallSummary>Mods: {0}  XML candidates: {1}  Local allow: {2}  Local deny: {3}  Uncertain: {4}\nScanned XML files: {5}  Scan errors: {6}  Generated: {7}</ATC_PolicyPreflight_OverallSummary>
+  <ATC_PolicyPreflight_ModNoResult>No dry-run result is available for {0}.</ATC_PolicyPreflight_ModNoResult>
+  <ATC_PolicyPreflight_ModSummary>XML {0} | Local allow {1} / deny {2} / uncertain {3}\nCloud allow {4} / deny {5} | Agent allow {6} / deny {7} / review {8} | unresolved {9} | final translation candidates {10}</ATC_PolicyPreflight_ModSummary>
+  <ATC_PolicyPreflight_Details>Details</ATC_PolicyPreflight_Details>
+  <ATC_PolicyPreflight_DllSummary>DLL scan: {0} assemblies, {1} methods, {2} recall-first candidates, {3} diagnostics, analyzer v{8}.\nCurrent decision: translate {4}, do not translate {5}, uncertain {6}, user overrides {7}. Uncertain items still require later analysis.</ATC_PolicyPreflight_DllSummary>
+  <ATC_PolicyPreflight_DllError>DLL scan failed: {0}</ATC_PolicyPreflight_DllError>
+  <ATC_PolicyPreflight_DllNotScanned>DLL has not been scanned in this game session. Use “Analyze DLLs for all active mods” in the selection window first.</ATC_PolicyPreflight_DllNotScanned>
+  <ATC_PolicyPreflight_DiagnosticSamples>Local-rule diagnostic samples ({0}; bounded sample, not the complete candidate list)</ATC_PolicyPreflight_DiagnosticSamples>
+  <ATC_PolicyPreflight_DecisionAllow>Translate</ATC_PolicyPreflight_DecisionAllow>
+  <ATC_PolicyPreflight_DecisionDeny>Do not translate</ATC_PolicyPreflight_DecisionDeny>
+  <ATC_PolicyPreflight_DecisionUncertain>Uncertain</ATC_PolicyPreflight_DecisionUncertain>
+  <ATC_ErrorAggregate_Summary>Same root cause: {0} failed batches, {1} affected entries. Per-batch details remain in AutoTranslation_Log.txt.</ATC_ErrorAggregate_Summary>
+  <ATC_HardcodedUi_RestoreAutomatic>Restore automatic</ATC_HardcodedUi_RestoreAutomatic>
+  <ATC_HardcodedUi_DecisionLine>Decision: {0} — {1}</ATC_HardcodedUi_DecisionLine>
+  <ATC_HardcodedUi_UserOverride>User override: {0}</ATC_HardcodedUi_UserOverride>
+  <ATC_HardcodedUi_AutoAnalyzing>Analyzing DLL hard-coded UI text…</ATC_HardcodedUi_AutoAnalyzing>
+  <ATC_HardcodedUi_AutoTranslating>Translating confirmed DLL UI text…</ATC_HardcodedUi_AutoTranslating>
+  <ATC_HardcodedUi_AutoBatchFailed>DLL translation batch failed for {0} ({1} entries); unchanged originals were retained.</ATC_HardcodedUi_AutoBatchFailed>
+  <ATC_HardcodedUi_AutoDone>DLL UI processing completed for {0} Mods; {1} new translations were written and queued for runtime reload.</ATC_HardcodedUi_AutoDone>
+  <ATC_HardcodedUi_AutoFailed>DLL UI processing failed, but XML translation remains available. Details: {0}</ATC_HardcodedUi_AutoFailed>
+  <ATC_Workbench_SourceAll>All ({0})</ATC_Workbench_SourceAll>
+  <ATC_Workbench_SourceXml>XML ({0})</ATC_Workbench_SourceXml>
+  <ATC_Workbench_SourceDll>DLL ({0})</ATC_Workbench_SourceDll>
+  <ATC_Workbench_DllLoadFailed>DLL entries could not be loaded: {0}</ATC_Workbench_DllLoadFailed>
+  <ATC_Workbench_DllStaleManifest>{0} saved DLL translation(s) no longer match the current assembly, usually because the Mod/DLL was updated. Runtime application has stopped for those entries. Review the new scan, then Save and apply to remove the stale manifest entries.</ATC_Workbench_DllStaleManifest>
+  <ATC_Workbench_DllSaved>DLL translations and decisions were saved and queued for runtime reload.</ATC_Workbench_DllSaved>
+  <ATC_Workbench_TranslateCurrentRange>Translate range ({0})</ATC_Workbench_TranslateCurrentRange>
+  <ATC_Workbench_TranslateCurrentRangeTip>Translates every eligible result in the current source, category, and search scope. Existing translations are skipped and results are not saved automatically.</ATC_Workbench_TranslateCurrentRangeTip>
+  <ATC_Workbench_CurrentRangeProgress>Translating {0}/{1}</ATC_Workbench_CurrentRangeProgress>
+  <ATC_Workbench_CurrentRangeNothing>No untranslated entries are eligible in the current range.</ATC_Workbench_CurrentRangeNothing>
+  <ATC_Workbench_CurrentRangeStarted>Started translating {0} entries in the current range.</ATC_Workbench_CurrentRangeStarted>
+  <ATC_Workbench_CurrentRangeDone>Translated {0} of {1} entries. Review the results, then save manually.</ATC_Workbench_CurrentRangeDone>
+  <ATC_Workbench_CurrentRangeStopped>Stopped after translating {0} of {1} entries. Completed results remain unsaved for review.</ATC_Workbench_CurrentRangeStopped>
+  <ATC_Workbench_CurrentRangePartial>Translated {0} of {1} entries; some batches failed: {2}</ATC_Workbench_CurrentRangePartial>
+  <ATC_Workbench_DllAdvanced>DLL analysis details</ATC_Workbench_DllAdvanced>
+  <ATC_Workbench_DllAdvancedTip>Open the dedicated DLL workbench for evidence paths, Agent pre-evaluation, and advanced decision controls.</ATC_Workbench_DllAdvancedTip>
+  <ATC_Workbench_DllDecisionTip>Choose Translate, Do not translate, or Restore automatic. Manual choices always override later scans and Agent pre-evaluation.</ATC_Workbench_DllDecisionTip>
+  <ATC_Terminology_Enable>Enable intelligent terminology consistency analysis</ATC_Terminology_Enable>
+  <ATC_Terminology_EnableTooltip>Off by default. Only selected Mods are pre-scanned, and a terminology Agent may be called. This adds time and Token cost without guaranteeing terminology or final translation quality.</ATC_Terminology_EnableTooltip>
+  <ATC_Terminology_Configure>Select Mods for terminology analysis ({0})</ATC_Terminology_Configure>
+  <ATC_Terminology_Title>Terminology consistency: Mods and shared groups</ATC_Terminology_Title>
+  <ATC_Terminology_Notice>Only checked Mods contribute mechanical candidates or terminology Agent requests. Mods with the same group name may cross-validate and reuse terms; different groups remain isolated.</ATC_Terminology_Notice>
+  <ATC_Terminology_ModColumn>Enabled Mods participating in analysis</ATC_Terminology_ModColumn>
+  <ATC_Terminology_GroupColumn>Shared terminology group (optional)</ATC_Terminology_GroupColumn>
+  <ATC_Terminology_GroupHint>Example: Milira series</ATC_Terminology_GroupHint>
+  <ATC_Terminology_SelectedCount>{0} Mod(s) selected. No analysis runs while the master switch is off.</ATC_Terminology_SelectedCount>
+  <ATC_Terminology_Review>Review terms ({0})</ATC_Terminology_Review>
+  <ATC_Terminology_ReviewTitle>Terminology conflicts and manual approval</ATC_Terminology_ReviewTitle>
+  <ATC_Terminology_ReviewNotice>Agent and automatic evidence create temporary terms only. Verify the translation and scope before approval. User-approved terms have highest priority; rejected terms are not reused.</ATC_Terminology_ReviewNotice>
+  <ATC_Terminology_Refresh>Refresh</ATC_Terminology_Refresh>
+  <ATC_Terminology_ReviewCount>Showing {0} term(s) awaiting review</ATC_Terminology_ReviewCount>
+  <ATC_Terminology_Conflict>Conflicting translations in the same scope: {0}</ATC_Terminology_Conflict>
+  <ATC_Terminology_Target>Target</ATC_Terminology_Target>
+  <ATC_Terminology_Role>Role</ATC_Terminology_Role>
+  <ATC_Terminology_Approve>Approve</ATC_Terminology_Approve>
+  <ATC_Terminology_Reject>Reject</ATC_Terminology_Reject>
+  <ATC_Terminology_ScopeMod>Mod: {0}</ATC_Terminology_ScopeMod>
+  <ATC_Terminology_ScopeGroup>Group: {0}</ATC_Terminology_ScopeGroup>
+  <ATC_Terminology_ScopeGlobal>Global</ATC_Terminology_ScopeGlobal>
+  <ATC_Stop>Stop</ATC_Stop>
+  <ATC_Filter_AllTranslationStates>Translation: All</ATC_Filter_AllTranslationStates>
+  <ATC_Filter_Translated>Translation: Translated</ATC_Filter_Translated>
+  <ATC_Filter_Untranslated>Translation: Untranslated</ATC_Filter_Untranslated>
+  <ATC_Filter_UntranslatedIncludingDll>Translation: Untranslated (including DLL)</ATC_Filter_UntranslatedIncludingDll>
+  <ATC_Filter_AllDecisions>Decision: All</ATC_Filter_AllDecisions>
+  <ATC_Filter_DecisionTranslate>Decision: Translate</ATC_Filter_DecisionTranslate>
+  <ATC_Filter_DecisionDoNotTranslate>Decision: Do not translate</ATC_Filter_DecisionDoNotTranslate>
+  <ATC_Filter_DecisionUncertain>Decision: Uncertain</ATC_Filter_DecisionUncertain>
+  <ATC_Filter_VisibleCount>Showing {0} entries</ATC_Filter_VisibleCount>
+  <ATC_HardcodedUi_ChangeDecision>Click to change the user decision</ATC_HardcodedUi_ChangeDecision>
+  <ATC_HardcodedUi_BatchProgress>DLL analysis {0}/{1}: {2}</ATC_HardcodedUi_BatchProgress>
+  <ATC_HardcodedUi_BatchProgressIdle>DLL analysis has not started</ATC_HardcodedUi_BatchProgressIdle>
+  <ATC_HardcodedUi_BatchProgressDone>DLL analysis complete: {0} mods, {1} candidates</ATC_HardcodedUi_BatchProgressDone>
+  <ATC_HardcodedUi_BatchProgressStopped>DLL analysis stopped: {0} mods completed</ATC_HardcodedUi_BatchProgressStopped>
+  <ATC_HardcodedUi_AnalyzeSelectedDll>Analyze selected DLLs</ATC_HardcodedUi_AnalyzeSelectedDll>
+  <ATC_Disabled_DllFeatureOff>DLL hardcoded UI analysis is not enabled</ATC_Disabled_DllFeatureOff>
+  <ATC_PolicyPreflight_Finalizing>Result ready; saving and cleaning up…</ATC_PolicyPreflight_Finalizing>
+  <ATC_HardcodedUi_RestoreModDefaults>Restore defaults</ATC_HardcodedUi_RestoreModDefaults>
+  <ATC_HardcodedUi_RestoreModDefaultsConfirm>Clear {1} manual decisions for “{0}” and restore all automatic decisions?</ATC_HardcodedUi_RestoreModDefaultsConfirm>
+  <ATC_HardcodedUi_RestoreModDefaultsDone>Restored {0} manual decisions.</ATC_HardcodedUi_RestoreModDefaultsDone>
+  <ATC_HardcodedUi_NoModOverrides>This mod has no manually changed decisions</ATC_HardcodedUi_NoModOverrides>
+  <ATC_HardcodedUi_BatchScanStopped>DLL analysis stopped after completing {0} mods.</ATC_HardcodedUi_BatchScanStopped>
+  <ATC_DisabledReason>Unavailable: {0}</ATC_DisabledReason>
+  <ATC_Disabled_Stopping>the task is stopping and draining background requests</ATC_Disabled_Stopping>
+  <ATC_Disabled_TaskRunning>a translation or analysis task is already running</ATC_Disabled_TaskRunning>
+  <ATC_Disabled_StatusChecking>mod translation status is being checked</ATC_Disabled_StatusChecking>
+  <ATC_Disabled_NoResult>no trial-run result is available yet</ATC_Disabled_NoResult>
+  <ATC_Disabled_AgentNotConfigured>no model is configured for Agent prediction</ATC_Disabled_AgentNotConfigured>
+  <ATC_Disabled_TranslationNotConfigured>no translation model is configured</ATC_Disabled_TranslationNotConfigured>
+  <ATC_Disabled_NoModSelected>no mod is selected</ATC_Disabled_NoModSelected>
+  <ATC_Disabled_ApiBusy>API requests are still queued or active</ATC_Disabled_ApiBusy>
+  <ATC_Disabled_DllScanning>DLL batch analysis is running</ATC_Disabled_DllScanning>
+  <ATC_Disabled_ModNameTranslation>mod-name translation is running</ATC_Disabled_ModNameTranslation>
+  <ATC_Disabled_NotReady>the required conditions are not met</ATC_Disabled_NotReady>
+  <ATC_Disabled_NoActiveTask>there is no active translation or analysis task</ATC_Disabled_NoActiveTask>
+  <ATC_Disabled_WorkbenchBusy>the workbench is processing another operation</ATC_Disabled_WorkbenchBusy>
+  <ATC_Disabled_NoScanResult>scan the DLL first</ATC_Disabled_NoScanResult>
+  <ATC_Disabled_NoTranslatableEntries>no entry is currently marked for translation</ATC_Disabled_NoTranslatableEntries>
+  <ATC_Disabled_NoUnsavedChanges>there are no unsaved changes</ATC_Disabled_NoUnsavedChanges>
+  <ATC_StopAllTaskTooltip>Stops the entire active ATC task chain, including translation, Agent analysis, queued or active API requests, retry waits, and the legacy UI translation queue. RimWorld and other mods are not affected.</ATC_StopAllTaskTooltip>
+  <ATC_PolicyCloud_ServiceUpgradePending>The cloud decision cache is unavailable until the server deploys XML/DLL domain isolation and the schema v2 contract. Agent prediction remains available independently.</ATC_PolicyCloud_ServiceUpgradePending>
+  <ATC_PolicyCloud_StatusUnavailable>Cloud decision: awaiting service upgrade</ATC_PolicyCloud_StatusUnavailable>
+  <ATC_FilteredModsButton>{0} mods filtered | {1} force-included</ATC_FilteredModsButton>
+  <ATC_Filtered_Title>Filtered Mods ({0})</ATC_Filtered_Title>
+  <ATC_Filtered_Summary>See why a mod or some of its sources are excluded from translation. Force-included: {0}.</ATC_Filtered_Summary>
+  <ATC_Filtered_Search>Search mod, package ID, reason, or path...</ATC_Filtered_Search>
+  <ATC_Filtered_Refreshing>Checking mods: {0} / {1}</ATC_Filtered_Refreshing>
+  <ATC_Filtered_OpenFolder>Open Folder</ATC_Filtered_OpenFolder>
+  <ATC_Filtered_OpenFolderTip>Open this mod's root directory in File Explorer.</ATC_Filtered_OpenFolderTip>
+  <ATC_Filtered_ForceInclude>Force Include</ATC_Filtered_ForceInclude>
+  <ATC_Filtered_CancelForce>Cancel Force</ATC_Filtered_CancelForce>
+  <ATC_Filtered_ForceTip>Use Defs or Languages sources found outside the normal scan paths.</ATC_Filtered_ForceTip>
+  <ATC_Filtered_ForceUnavailableTip>No recognizable Defs or Languages XML was found.</ATC_Filtered_ForceUnavailableTip>
+  <ATC_Filtered_ForceTitle>Force Include for Translation</ATC_Filtered_ForceTitle>
+  <ATC_Filtered_ForceWarning>Force-include "{0}"?
+
+The XML found may not actually be loaded by RimWorld. It may belong to an old version or unused content. This can increase translation time and token usage, and the resulting translation may have no effect in game.</ATC_Filtered_ForceWarning>
+  <ATC_Filtered_ForceConfirm>Force Include Anyway</ATC_Filtered_ForceConfirm>
+  <ATC_Filtered_ForceEnabled>This mod is now force-included and will appear after the list refreshes.</ATC_Filtered_ForceEnabled>
+  <ATC_Filtered_ForceDisabled>Force inclusion was removed for this mod.</ATC_Filtered_ForceDisabled>
+  <ATC_Filtered_FolderMissing>The mod folder is missing or was moved.</ATC_Filtered_FolderMissing>
+  <ATC_Filtered_FolderOpenFailed>Could not open the mod folder: {0}</ATC_Filtered_FolderOpenFailed>
+  <ATC_Filtered_ReasonTool>Translator tool or translation pack; self-translation is disabled</ATC_Filtered_ReasonTool>
+  <ATC_Filtered_ReasonTranslationPatch>Detected as a translation patch for another mod</ATC_Filtered_ReasonTranslationPatch>
+  <ATC_Filtered_ReasonBlacklist>Blocked by the player's translation blacklist</ATC_Filtered_ReasonBlacklist>
+  <ATC_Filtered_ReasonMissingRoot>The mod root directory does not exist</ATC_Filtered_ReasonMissingRoot>
+  <ATC_Filtered_ReasonUnsupportedLayout>Sources were found outside RimWorld's currently loaded content paths</ATC_Filtered_ReasonUnsupportedLayout>
+  <ATC_Filtered_ReasonPartialSources>Some Defs or Languages sources are outside RimWorld's active content roots</ATC_Filtered_ReasonPartialSources>
+  <ATC_Filtered_ReasonNoSources>No Defs or Languages source containing XML was found</ATC_Filtered_ReasonNoSources>
+  <ATC_Filtered_ReasonForceIncluded>Force-included by the player</ATC_Filtered_ReasonForceIncluded>
+  <ATC_Filtered_ReasonScanFailed>Mod inspection failed: {0}</ATC_Filtered_ReasonScanFailed>
+  <ATC_Filtered_NoCandidatePaths>No usable source path was found</ATC_Filtered_NoCandidatePaths>
+  <ATC_Filtered_CandidatePaths>Candidate sources: {0}</ATC_Filtered_CandidatePaths>
+  <ATC_Filtered_CandidateHeader>Candidate sources found:</ATC_Filtered_CandidateHeader>
 </LanguageData>

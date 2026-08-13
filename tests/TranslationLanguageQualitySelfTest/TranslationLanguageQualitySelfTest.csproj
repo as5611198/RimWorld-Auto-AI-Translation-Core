@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>7.3</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\packages\Newtonsoft.Json.13.0.4\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Compile Include="Program.cs" />
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\Core\TargetLanguage.cs"
+             Link="TargetLanguage.cs" />
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\AI\LanguageDetector.cs"
+             Link="LanguageDetector.cs" />
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\AI\TranslationResultLanguagePolicy.cs"
+             Link="TranslationResultLanguagePolicy.cs" />
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\UI\TargetedHardcoded\HardcodedUiBuiltInDictionary.cs"
+             Link="HardcodedUiBuiltInDictionary.cs" />
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\Scanning\TranslationGeneratedOutputCleanup.cs"
+             Link="TranslationGeneratedOutputCleanup.cs" />
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\UI\Workbench\TranslationGeneratedOutputOwnership.cs"
+             Link="TranslationGeneratedOutputOwnership.cs" />
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\Scanning\Policy\*.cs"
+             Link="Policy\%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

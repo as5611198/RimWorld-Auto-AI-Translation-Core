@@ -187,6 +187,22 @@ namespace AutoTranslator_Core
 
         // 這個類別負責 ATCWeb回應 的主要流程與狀態。
         // EN: This class manages the main workflow and state for ATC_WebResponse.
+        public enum TranslationRequestFailureKind
+        {
+            None,
+            Cancelled,
+            LocalDispatch,
+            ResponseTimeout,
+            UnityTransportStall,
+            Http,
+            ConcurrencyLimit,
+            QuotaExhausted,
+            InvalidResponse,
+            Configuration,
+            BudgetDenied,
+            Transport
+        }
+
         public class ATC_WebResponse
         {
             // 這個欄位保存 IsSuccess 的執行狀態或快取資料。
@@ -201,6 +217,19 @@ namespace AutoTranslator_Core
             // 這個欄位保存 回應Body 的執行狀態或快取資料。
             // EN: This field stores response body runtime state or cached data.
             public string ResponseBody;
+            public bool BudgetDenied;
+            public string BudgetDenialReason;
+            public TranslationRequestFailureKind FailureKind;
+            public string FailureStage;
+            public int ItemCount;
+            public long SourceCharacters;
+            public long EstimatedInputTokens;
+            public int TimeoutSeconds;
+            public long RequestBodyBytes;
+            public long UploadedBytes;
+            public float UploadProgress;
+            public long DownloadedBytes;
+            public string UnityResult;
         }
 
     }

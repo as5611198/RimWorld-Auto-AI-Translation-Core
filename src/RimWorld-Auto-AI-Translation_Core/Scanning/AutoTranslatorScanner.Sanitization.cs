@@ -143,43 +143,9 @@ namespace AutoTranslator_Core
 
         private static bool ShouldTranslateGrammarRuleRightSide(string ruleName, string rightSide)
         {
-            string normalizedRuleName = (ruleName ?? "").Trim();
-            if (normalizedRuleName.Equals("start", StringComparison.OrdinalIgnoreCase) ||
-                normalizedRuleName.Equals("middle", StringComparison.OrdinalIgnoreCase) ||
-                normalizedRuleName.Equals("end", StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            string sample = NormalizeGrammarRightSideForDecision(rightSide);
-            if (sample.Length == 0) return false;
-            if (Regex.IsMatch(sample, @"^[A-Za-z]{1,2}-?$") && !HasEnglishSignal(sample)) return false;
-            if (Regex.IsMatch(sample, @"^[A-Za-z0-9_]+$") && sample.Contains("_")) return false;
-
-            CountResidualScripts(sample, out _, out _, out _, out _, out int latinCount, out int letterCount);
-            return (letterCount >= 3 && latinCount >= 3) || HasEnglishSignal(sample);
-        }
-
-
-        private static string NormalizeGrammarRightSideForDecision(string rightSide)
-        {
-            if (string.IsNullOrWhiteSpace(rightSide)) return "";
-
-            string sample = rightSide
-                .Replace("\\n", " ")
-                .Replace("\\r", " ")
-                .Replace("\\t", " ")
-                .Replace("\n", " ")
-                .Replace("\r", " ")
-                .Replace("\t", " ");
-
-            sample = Regex.Replace(sample, @"<[^>]+>", " ");
-            sample = ProtectedTokenRegex.Replace(sample, " ");
-            sample = Regex.Replace(sample, @"\$[A-Za-z0-9_]+|%[A-Za-z]", " ");
-            sample = Regex.Replace(sample, @"[_/\\]+", " ");
-            sample = Regex.Replace(sample, @"[^A-Za-z\u00C0-\u024F\s'\-]", " ");
-            sample = Regex.Replace(sample, @"\s+", " ");
-            return sample.Trim();
+            return TranslationPolicy.TranslationPolicyClassifier.ShouldTranslateGrammarRuleRightSide(
+                ruleName,
+                rightSide);
         }
 
 
@@ -277,6 +243,19 @@ namespace AutoTranslator_Core
             return false;
         }
 
+        private static bool HasTranslatableTitleTagMismatch(string translated, string original)
+        {
+            if (string.IsNullOrEmpty(original)) return false;
+
+            int originalCount = TranslatableTitleTagRegex.Matches(original).Count;
+            if (originalCount == 0) return false;
+
+            int translatedCount = string.IsNullOrEmpty(translated)
+                ? 0
+                : TranslatableTitleTagRegex.Matches(translated).Count;
+            return translatedCount != originalCount;
+        }
+
         private static bool RequiresProtectedTokenParity(string original)
         {
             return ProtectedTokenRegex.IsMatch(original ?? "") || FormatArgumentRegex.IsMatch(original ?? "");
@@ -316,206 +295,10 @@ namespace AutoTranslator_Core
         // EN: This method checks has likely english residual.
         private static bool HasLikelyEnglishResidual(string translated, string original)
         {
-            TargetLanguage targetLang = AutoTranslatorMod.Settings.TargetLang;
-            if (targetLang == TargetLanguage.English) return false;
-
-            string sample = NormalizeResidualLanguageSample(translated);
-            string sourceSample = NormalizeResidualLanguageSample(original);
-            if ((sample.Length < 2 || sourceSample.Length < 2) && !(HasEnglishSignal(sample) && HasEnglishSignal(sourceSample))) return false;
-            if (!HasTranslatableLatinSource(sourceSample)) return false;
-
-            CountResidualScripts(sample, out int hanCount, out int kanaCount, out int hangulCount, out int cyrillicCount, out int latinCount, out int letterCount);
-            bool shortEnglishSignal = HasEnglishSignal(sample) && HasEnglishSignal(sourceSample);
-            if ((letterCount < 3 || latinCount < 3) && !shortEnglishSignal) return false;
-            if (IsShortUppercaseToken(sample)) return false;
-
-            bool unchanged = string.Equals(sample, sourceSample, StringComparison.OrdinalIgnoreCase);
-            bool targetPresent = LanguageDetector.LooksLikeTargetLanguage(sample, targetLang);
-            int latinPercent = Percent(latinCount, letterCount);
-
-            if (IsLatinTargetLanguage(targetLang))
-            {
-                return unchanged && HasEnglishSignal(sample);
-            }
-
-            if (unchanged && (latinPercent >= 70 || HasEnglishSignal(sample)))
-            {
-                return true;
-            }
-
-            if (targetPresent && latinPercent < 45)
-            {
-                return false;
-            }
-
-            if (!targetPresent && latinPercent >= 80)
-            {
-                return true;
-            }
-
-            return latinPercent >= 65 && HasEnglishSignal(sample);
-        }
-
-
-        // 這個方法負責清理並標準化 Residual語言Sample 內容。
-        // EN: This method cleans and normalizes residual language sample.
-        private static string NormalizeResidualLanguageSample(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text)) return "";
-
-            if (TrySplitGrammarRule(text, out _, out string ruleName, out string rightSide))
-            {
-                if (!ShouldTranslateGrammarRuleRightSide(ruleName, rightSide)) return "";
-                text = rightSide;
-            }
-
-            string sample = text
-                .Replace("\\n", " ")
-                .Replace("\\r", " ")
-                .Replace("\\t", " ")
-                .Replace("\n", " ")
-                .Replace("\r", " ")
-                .Replace("\t", " ");
-
-            sample = Regex.Replace(sample, @"<[^>]+>", " ");
-            sample = ProtectedTokenRegex.Replace(sample, " ");
-            sample = Regex.Replace(sample, @"\$[A-Za-z0-9_]+|%[A-Za-z]", " ");
-            sample = Regex.Replace(sample, @"https?://\S+|[A-Za-z]:[\\/]\S+|[A-Za-z0-9_\-./\\]+\.(?:png|jpg|jpeg|dds|tex|wav|mp3|ogg|xml|txt|dll)\b", " ");
-            sample = Regex.Replace(sample, @"[_/\\]+", " ");
-            sample = Regex.Replace(sample, @"\s+", " ");
-            return sample.Trim();
-        }
-
-
-        // 這個方法負責判斷 HasTranslatableLatinSource 條件是否成立。
-        // EN: This method checks has translatable latin source.
-        private static bool HasTranslatableLatinSource(string sample)
-        {
-            CountResidualScripts(sample, out _, out _, out _, out _, out int latinCount, out int letterCount);
-            if (letterCount < 3 || latinCount < 3) return HasEnglishSignal(sample);
-            if (Regex.IsMatch(sample, @"^[A-Z0-9 .'\-]{2,6}$") && sample.ToUpperInvariant() == sample) return false;
-            return true;
-        }
-
-
-        // 這個方法負責判斷 HasEnglishSignal 條件是否成立。
-        // EN: This method checks has english signal.
-        private static bool HasEnglishSignal(string sample)
-        {
-            if (string.IsNullOrWhiteSpace(sample)) return false;
-            if (Regex.IsMatch(sample, @"(?<!\p{L})(the|and|for|with|from|this|that|your|you|not|can|will|when|while|after|before|into|has|have|are|was|were|is|of|to|in|on|a|an)(?!\p{L})", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
-            {
-                return true;
-            }
-
-            return Regex.IsMatch(sample, @"^[A-Za-z][A-Za-z '\-]{2,}$");
-        }
-
-
-        // 這個方法負責判斷 IsLatin目標語言 條件是否成立。
-        // EN: This method checks is latin target language.
-        private static bool IsLatinTargetLanguage(TargetLanguage targetLang)
-        {
-            return targetLang == TargetLanguage.French ||
-                   targetLang == TargetLanguage.German ||
-                   targetLang == TargetLanguage.Spanish ||
-                   targetLang == TargetLanguage.Italian ||
-                   targetLang == TargetLanguage.Polish ||
-                   targetLang == TargetLanguage.Portuguese ||
-                   targetLang == TargetLanguage.Turkish;
-        }
-
-
-        // 這個方法負責判斷 IsShortUppercaseToken 條件是否成立。
-        // EN: This method checks is short uppercase token.
-        private static bool IsShortUppercaseToken(string sample)
-        {
-            return Regex.IsMatch(sample, @"^[A-Z0-9]{2,6}$") && sample.ToUpperInvariant() == sample;
-        }
-
-
-        // 這個方法負責處理 CountResidualScripts 相關流程。
-        // EN: This method handles count residual scripts.
-        private static void CountResidualScripts(string text, out int hanCount, out int kanaCount, out int hangulCount, out int cyrillicCount, out int latinCount, out int letterCount)
-        {
-            hanCount = 0;
-            kanaCount = 0;
-            hangulCount = 0;
-            cyrillicCount = 0;
-            latinCount = 0;
-            letterCount = 0;
-
-            if (string.IsNullOrEmpty(text)) return;
-
-            foreach (char c in text)
-            {
-                if (!char.IsLetter(c)) continue;
-                letterCount++;
-
-                if (IsHan(c)) hanCount++;
-                else if (IsKana(c)) kanaCount++;
-                else if (IsHangul(c)) hangulCount++;
-                else if (IsCyrillic(c)) cyrillicCount++;
-                else if (IsLatin(c)) latinCount++;
-            }
-        }
-
-
-        // 這個方法負責判斷 IsHan 條件是否成立。
-        // EN: This method checks is han.
-        private static bool IsHan(char c)
-        {
-            return (c >= '\u3400' && c <= '\u4DBF')
-                || (c >= '\u4E00' && c <= '\u9FFF')
-                || (c >= '\uF900' && c <= '\uFAFF');
-        }
-
-
-        // 這個方法負責判斷 IsKana 條件是否成立。
-        // EN: This method checks is kana.
-        private static bool IsKana(char c)
-        {
-            return (c >= '\u3040' && c <= '\u30FF')
-                || (c >= '\u31F0' && c <= '\u31FF')
-                || (c >= '\uFF66' && c <= '\uFF9F');
-        }
-
-
-        // 這個方法負責判斷 IsHangul 條件是否成立。
-        // EN: This method checks is hangul.
-        private static bool IsHangul(char c)
-        {
-            return (c >= '\u1100' && c <= '\u11FF')
-                || (c >= '\u3130' && c <= '\u318F')
-                || (c >= '\uAC00' && c <= '\uD7AF');
-        }
-
-
-        // 這個方法負責判斷 IsCyrillic 條件是否成立。
-        // EN: This method checks is cyrillic.
-        private static bool IsCyrillic(char c)
-        {
-            return (c >= '\u0400' && c <= '\u04FF')
-                || (c >= '\u0500' && c <= '\u052F');
-        }
-
-
-        // 這個方法負責判斷 IsLatin 條件是否成立。
-        // EN: This method checks is latin.
-        private static bool IsLatin(char c)
-        {
-            return (c >= 'A' && c <= 'Z')
-                || (c >= 'a' && c <= 'z')
-                || (c >= '\u00C0' && c <= '\u024F');
-        }
-
-
-        // 這個方法負責處理 Percent 相關流程。
-        // EN: This method handles percent.
-        private static int Percent(int part, int total)
-        {
-            if (total <= 0) return 0;
-            return (int)((part * 100.0) / total);
+            return TranslationResultLanguagePolicy.HasLikelyEnglishResidual(
+                translated,
+                original,
+                AutoTranslatorMod.Settings.TargetLang);
         }
     }
 }

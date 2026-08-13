@@ -15,17 +15,10 @@ namespace AutoTranslator_Core
         // EN: This method handles test connection async.
         public static async Task<bool> TestConnectionAsync()
         {
-            Task<List<string>> testTask = TranslateBatchAsync(new List<string> { "Connection Test" });
-            int timeoutSeconds = Math.Max(15, Math.Min(45, AutoTranslatorMod.Settings.TimeoutSeconds + 5));
-            Task completedTask = await Task.WhenAny(testTask, Task.Delay(TimeSpan.FromSeconds(timeoutSeconds)));
-            if (completedTask != testTask)
-            {
-                AbortActiveTranslationRequests("Connection preflight timed out");
-                AutoTranslatorSettings.AddErrorLog(TranslateText("ATC_Error_TestConnectionTimeout", "API"));
-                return false;
-            }
-
-            var res = await testTask;
+            // TranslateBatchAsync owns the request lifecycle. Its response timeout starts
+            // only after SendWebRequest; an outer timeout would incorrectly count queue and
+            // main-thread dispatch time as network time.
+            var res = await TranslateBatchAsync(new List<string> { "Connection Test" });
             return res != null && res.Count > 0;
         }
 
@@ -33,7 +26,11 @@ namespace AutoTranslator_Core
         // EN: This method handles run connection test.
         public static void RunConnectionTest(ApiKeyConfig config)
         {
-            if (config == null || config.IsTesting) return;
+            if (config == null ||
+                config.IsTesting ||
+                AutoTranslatorSettings.IsRunning ||
+                HasOutstandingTranslationWork)
+                return;
             if (!config.Enabled) return;
             ATC_Dispatcher.EnsureAlive();
 
@@ -46,25 +43,10 @@ namespace AutoTranslator_Core
             {
                 try
                 {
-                    int timeoutSeconds = Math.Max(30, AutoTranslatorMod.Settings.TimeoutSeconds + 15);
-                    var testTask = TranslateBatchAsync(new List<string> { "Connection Test" }, config);
-                    var completedTask = await Task.WhenAny(testTask, Task.Delay(TimeSpan.FromSeconds(timeoutSeconds)));
-
-                    if (completedTask != testTask)
-                    {
-                        AbortActiveTranslationRequests("Connection test timed out");
-                        ATC_Dispatcher.RunOnMainThread(() =>
-                        {
-                            if (config.TestGeneration != testGeneration) return;
-                            AutoTranslatorSettings.AddErrorLog(TranslateText("ATC_Error_TestConnectionTimeout", config.Provider.ToString()));
-                            Verse.Messages.Message("ATC_Msg_TestFailed".Translate(config.Provider.ToString()), RimWorld.MessageTypeDefOf.RejectInput, false);
-                            config.IsTesting = false;
-                            config.TestStartedUtcTicks = 0L;
-                        });
-                        return;
-                    }
-
-                    var result = await testTask;
+                    // Do not wrap this in Task.WhenAny: queue/dispatch waiting is not an API
+                    // response timeout, and a connection test must never abort unrelated
+                    // translation requests globally.
+                    var result = await TranslateBatchAsync(new List<string> { "Connection Test" }, config);
                     ATC_Dispatcher.RunOnMainThread(() =>
                     {
                         if (config.TestGeneration != testGeneration) return;

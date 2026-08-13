@@ -36,8 +36,12 @@ namespace AutoTranslator_Core
         // 這個欄位保存 Selected模型 的執行狀態或快取資料。
         // EN: This field stores selected model runtime state or cached data.
         public string SelectedModel = "";
+        public StructuredOutputPreference StructuredOutput = StructuredOutputPreference.Auto;
+        public TranslationTaskTier TaskTier = TranslationTaskTier.Bulk;
 
         public List<string> FetchedModels = new List<string>();
+        [NonSerialized] public Dictionary<string, List<string>> FetchedModelSupportedParameters =
+            new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
         // 這個欄位保存 IsFetching 的執行狀態或快取資料。
         // EN: This method handles expose data.
@@ -81,9 +85,22 @@ namespace AutoTranslator_Core
             Scribe_Values.Look(ref Key, "Key", "");
             Scribe_Values.Look(ref CustomBaseUrl, "CustomBaseUrl", "");
             Scribe_Values.Look(ref SelectedModel, "SelectedModel", "");
+            Scribe_Values.Look(ref StructuredOutput, "StructuredOutput", StructuredOutputPreference.Auto);
+            Scribe_Values.Look(ref TaskTier, "TaskTier", TranslationTaskTier.Bulk);
             Scribe_Collections.Look(ref FetchedModels, "FetchedModels", LookMode.Value);
 
             if (FetchedModels == null) FetchedModels = new List<string>();
+            if (FetchedModelSupportedParameters == null)
+                FetchedModelSupportedParameters = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        public bool ModelSupportsParameter(string model, string parameter)
+        {
+            if (string.IsNullOrWhiteSpace(model) || string.IsNullOrWhiteSpace(parameter)) return false;
+            return FetchedModelSupportedParameters != null &&
+                   FetchedModelSupportedParameters.TryGetValue(model, out List<string> parameters) &&
+                   parameters != null &&
+                   parameters.Any(value => string.Equals(value, parameter, StringComparison.OrdinalIgnoreCase));
         }
     }
 }

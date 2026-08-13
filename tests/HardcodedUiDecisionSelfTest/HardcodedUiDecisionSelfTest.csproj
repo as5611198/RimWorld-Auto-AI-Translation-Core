@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>7.3</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>..\..\packages\Lib.Harmony.2.4.2\lib\net48\0Harmony.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\packages\Newtonsoft.Json.13.0.4\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Compile Include="Program.cs" />
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\UI\TargetedHardcoded\HardcodedUiPatchModels.cs" Link="HardcodedUiPatchModels.cs" />
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\UI\TargetedHardcoded\HardcodedUiMethodIdentity.cs" Link="HardcodedUiMethodIdentity.cs" />
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\UI\TargetedHardcoded\HardcodedUiDecisionModels.cs" Link="HardcodedUiDecisionModels.cs" />
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\UI\TargetedHardcoded\HardcodedUiDecisionStore.cs" Link="HardcodedUiDecisionStore.cs" />
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\UI\TargetedHardcoded\HardcodedUiBaselineDecisionAnalyzer.cs" Link="HardcodedUiBaselineDecisionAnalyzer.cs" />
+  </ItemGroup>
+</Project>

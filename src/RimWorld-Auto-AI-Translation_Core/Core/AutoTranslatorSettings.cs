@@ -18,6 +18,7 @@ namespace AutoTranslator_Core
     // EN: This class manages the main workflow and state for AutoTranslatorSettings.
     public class AutoTranslatorSettings : ModSettings
     {
+        public static readonly bool IsPolicyAnalysisCloudCacheAvailable = false;
         // 這個欄位保存 目標語言 的執行狀態或快取資料。
         // EN: This field stores target language runtime state or cached data.
         public TargetLanguage TargetLang = TargetLanguage.Traditional;
@@ -30,6 +31,26 @@ namespace AutoTranslator_Core
         // 這個欄位保存 MaxThreads 的執行狀態或快取資料。
         // EN: This field stores max threads runtime state or cached data.
         public int MaxThreads = 3;
+        public bool EnableTranslationPolicyAgent = false;
+        // Development diagnostics are intentionally opt-in: request lifecycle logs can be verbose.
+        public bool EnableDevelopmentDebugLogging = false;
+        public bool EnablePolicyAnalysisCloudCache = false;
+        public bool EnableTerminologyConsistency = false;
+        public List<string> TerminologyEnabledPackageIds = new List<string>();
+        public Dictionary<string, string> TerminologyGroupByPackageId =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        public string PolicyCloudContributorId = Guid.NewGuid().ToString("N");
+        public List<string> PolicyCloudDisabledPackageIds = new List<string>();
+        public string GlobalTranslationSourcePriority = TranslationSourcePriorityPolicy.DefaultOrder;
+        public Dictionary<string, string> ModTranslationSourcePriorityOverrides =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        public int PolicyAgentMaxCallsPerRun = 20;
+        public long PolicyAgentMaxEstimatedTokensPerRun = 200000L;
+        public int PolicyAgentMaxCallsPerMod = 20;
+        public int PolicyAgentMaxRetriesPerRequest = 0;
+        public bool EnableTranslationUsageBudget = true;
+        public long TranslationBudgetSourceCharactersPerRun = 900000L;
+        public long TranslationBudgetEstimatedTokensPerRun = 500000L;
         public List<ApiKeyConfig> ApiConfigs = new List<ApiKeyConfig>();
 
         // 這個欄位保存 CurrentProgress 的執行狀態或快取資料。
@@ -65,6 +86,18 @@ namespace AutoTranslator_Core
         // EN: This field stores log scroll pos runtime state or cached data.
         public static Vector2 logScrollPos = Vector2.zero;
         public static List<string> RuntimeLogs = new List<string>();
+        public static string AgentBatchProgressText = string.Empty;
+        public static float AgentBatchProgress = 0f;
+
+        private sealed class RuntimeStatusLogState
+        {
+            public string DisplayLine = string.Empty;
+            public DateTime LastRefreshUtc = DateTime.MinValue;
+            public string PendingMessage = string.Empty;
+        }
+
+        private static readonly Dictionary<string, RuntimeStatusLogState> RuntimeStatusLogs =
+            new Dictionary<string, RuntimeStatusLogState>(StringComparer.Ordinal);
 
         // 這個欄位保存 errorScrollPos 的執行狀態或快取資料。
         // EN: This field stores error scroll pos runtime state or cached data.
@@ -72,29 +105,114 @@ namespace AutoTranslator_Core
         public static List<string> ErrorLogs = new List<string>();
 
         public static readonly object logLock = new object();
+        private static readonly TranslationErrorAggregationTracker ErrorAggregationTracker =
+            new TranslationErrorAggregationTracker();
+        private static readonly Dictionary<string, string> AggregatedErrorDisplayLines =
+            new Dictionary<string, string>(StringComparer.Ordinal);
 
         // 這個欄位保存 IsCancellationRequested 的執行狀態或快取資料。
         // EN: This field stores is cancellation requested runtime state or cached data.
-        public static bool IsCancellationRequested = false;
+        public static volatile bool IsCancellationRequested = false;
+        private static int _pipelineCancellationGeneration;
+        private static readonly object PipelineStateLock = new object();
         // 這個欄位保存 IsRunning 的執行狀態或快取資料。
         // EN: This field stores is running runtime state or cached data.
-        public static bool IsRunning = false;
+        private static bool _isRunning;
+        public static bool IsRunning
+        {
+            get
+            {
+                lock (PipelineStateLock) return _isRunning;
+            }
+            set
+            {
+                lock (PipelineStateLock) _isRunning = value;
+            }
+        }
+
+        public static bool IsStopping
+        {
+            get
+            {
+                return IsCancellationRequested &&
+                    (IsRunning ||
+                     AutoTranslatorAPI.HasOutstandingTranslationWork ||
+                     UIInterceptor.HasOutstandingTranslationWork);
+            }
+        }
 
         // 這個方法負責送出 PipelineCancellation 請求。
         // EN: This method requests pipeline cancellation.
         public static void RequestPipelineCancellation()
         {
-            IsCancellationRequested = true;
-            IsSkipCurrentRequested = false;
+            bool needsStandaloneCompletionMonitor;
+            int cancellationGeneration;
+            lock (PipelineStateLock)
+            {
+                needsStandaloneCompletionMonitor = !IsRunning;
+                cancellationGeneration = ++_pipelineCancellationGeneration;
+                IsCancellationRequested = true;
+                IsSkipCurrentRequested = false;
+            }
+            UIInterceptor.CancelPendingTranslationWork();
             AutoTranslatorAPI.AbortActiveTranslationRequests("Pipeline cancellation requested");
+            if (needsStandaloneCompletionMonitor)
+                _ = MonitorStandaloneCancellationCompletionAsync(cancellationGeneration);
         }
 
         // 這個方法負責重置 PipelineCancellation 狀態。
         // EN: This method resets pipeline cancellation.
         public static void ResetPipelineCancellation()
         {
-            IsCancellationRequested = false;
-            IsSkipCurrentRequested = false;
+            lock (PipelineStateLock)
+            {
+                _pipelineCancellationGeneration++;
+                IsCancellationRequested = false;
+                IsSkipCurrentRequested = false;
+            }
+        }
+
+        private static async Task MonitorStandaloneCancellationCompletionAsync(
+            int cancellationGeneration)
+        {
+            await AutoTranslatorAPI.WaitForTranslationRequestDrainAsync();
+            await UIInterceptor.WaitForPendingTranslationWorkDrainAsync();
+            lock (PipelineStateLock)
+            {
+                if (_pipelineCancellationGeneration != cancellationGeneration ||
+                    !IsCancellationRequested ||
+                    IsRunning)
+                    return;
+
+                AddLog("🛑 " + AutoTranslatorAPI.TranslateText("ATC_StopCompleted"));
+            }
+        }
+
+        public static async Task CompleteTranslationPipelineAsync()
+        {
+            bool stoppedByUser;
+            while (true)
+            {
+                await AutoTranslatorAPI.WaitForTranslationRequestDrainAsync();
+                if (IsCancellationRequested)
+                    await UIInterceptor.WaitForPendingTranslationWorkDrainAsync();
+
+                bool mustDrainAgain;
+                lock (PipelineStateLock)
+                {
+                    stoppedByUser = IsCancellationRequested;
+                    mustDrainAgain = AutoTranslatorAPI.HasOutstandingTranslationWork ||
+                                     (stoppedByUser && UIInterceptor.HasOutstandingTranslationWork);
+                    if (!mustDrainAgain)
+                    {
+                        IsRunning = false;
+                        if (stoppedByUser)
+                            AddLog("⏹ " + AutoTranslatorAPI.TranslateText("ATC_StopCompleted"));
+                    }
+                }
+
+                if (!mustDrainAgain) break;
+            }
         }
 
         // 這個欄位保存 EnableUIInterceptor 的執行狀態或快取資料。
@@ -103,6 +221,8 @@ namespace AutoTranslator_Core
         // 這個欄位保存 EnableUINew翻譯 的執行狀態或快取資料。
         // EN: This field stores enable UI new translation runtime state or cached data.
         public bool EnableUINewTranslation = true;
+        // This opt-in prototype only applies explicitly approved targeted patches.
+        public bool EnableHardcodedUiPrototype = false;
         // 這個欄位保存 EnableUIErrorLogInterception 的執行狀態或快取資料。
         // EN: This field stores enable UI error log interception runtime state or cached data.
         public bool EnableUIErrorLogInterception = false;
@@ -186,6 +306,7 @@ namespace AutoTranslator_Core
         public Dictionary<string, string> ModLastVerifiedFingerprints = new Dictionary<string, string>();
         public List<string> TranslationBlacklist = new List<string>();
         public List<string> CloudDownloadBlacklist = new List<string>();
+        public List<string> ForceTranslationPackages = new List<string>();
         private static readonly object PackageBlacklistLock = new object();
 
         // 這個欄位保存 Filtered模組Count 的執行狀態或快取資料。
@@ -249,14 +370,57 @@ namespace AutoTranslator_Core
             return ContainsPackageId(CloudDownloadBlacklist, packageId);
         }
 
+        public bool IsPolicyCloudAccelerationDisabled(string packageId)
+        {
+            return ContainsPackageId(PolicyCloudDisabledPackageIds, packageId);
+        }
+
+        public bool IsTerminologyEnabledForPackage(string packageId)
+        {
+            return Terminology.TerminologyPackageSelection.IsSelected(
+                EnableTerminologyConsistency,
+                TerminologyEnabledPackageIds,
+                packageId);
+        }
+
+        public void SetTerminologyEnabledForPackage(string packageId, bool enabled)
+        {
+            SetPackageIdBlocked(TerminologyEnabledPackageIds, packageId, enabled);
+            if (!enabled && !string.IsNullOrWhiteSpace(packageId))
+                TerminologyGroupByPackageId.Remove(packageId.Trim().ToLowerInvariant());
+        }
+
+        public string GetTerminologyGroup(string packageId)
+        {
+            if (string.IsNullOrWhiteSpace(packageId) || TerminologyGroupByPackageId == null) return string.Empty;
+            return TerminologyGroupByPackageId.TryGetValue(packageId.Trim().ToLowerInvariant(), out string group)
+                ? (group ?? string.Empty).Trim()
+                : string.Empty;
+        }
+
+        public void SetTerminologyGroup(string packageId, string group)
+        {
+            if (string.IsNullOrWhiteSpace(packageId)) return;
+            string key = packageId.Trim().ToLowerInvariant();
+            string value = (group ?? string.Empty).Trim();
+            if (value.Length == 0) TerminologyGroupByPackageId.Remove(key);
+            else TerminologyGroupByPackageId[key] = value.Length > 80 ? value.Substring(0, 80) : value;
+        }
+
         public void SetTranslationBlacklisted(string packageId, bool blocked)
         {
             SetPackageIdBlocked(TranslationBlacklist, packageId, blocked);
+            AutoTranslatorMod.InvalidateValidModsCache();
         }
 
         public void SetCloudDownloadBlacklisted(string packageId, bool blocked)
         {
             SetPackageIdBlocked(CloudDownloadBlacklist, packageId, blocked);
+        }
+
+        public void SetPolicyCloudAccelerationDisabled(string packageId, bool disabled)
+        {
+            SetPackageIdBlocked(PolicyCloudDisabledPackageIds, packageId, disabled);
         }
 
         public void ClearPackageBlacklists()
@@ -266,6 +430,19 @@ namespace AutoTranslator_Core
                 TranslationBlacklist.Clear();
                 CloudDownloadBlacklist.Clear();
             }
+            AutoTranslatorMod.InvalidateValidModsCache();
+        }
+
+        public bool IsForceTranslationEnabled(string packageId)
+        {
+            return ContainsPackageId(ForceTranslationPackages, packageId);
+        }
+
+        public void SetForceTranslationEnabled(string packageId, bool enabled)
+        {
+            SetPackageIdBlocked(ForceTranslationPackages, packageId, enabled);
+            AutoTranslatorMod.InvalidateValidModsCache();
+            ModUpdateDetector.ClearStatusCache();
         }
 
         private static bool ContainsPackageId(List<string> packageIds, string packageId)
@@ -335,6 +512,121 @@ namespace AutoTranslator_Core
             });
         }
 
+        /// <summary>
+        /// Writes developer diagnostics to RimWorld's log and the persistent ATC log file.
+        /// Never pass API keys, authorization headers, request payloads, or unredacted URLs here.
+        /// </summary>
+        public static void AddDebugLog(string message)
+        {
+            if (AutoTranslatorMod.Settings == null ||
+                !AutoTranslatorMod.Settings.EnableDevelopmentDebugLogging)
+                return;
+
+            string line = "[DEBUG] " + (message ?? string.Empty);
+            Verse.Log.Message("[AutoTranslationCore] " + line);
+            lock (logLock)
+            {
+                WriteLogToFile(line);
+            }
+        }
+
+        internal static void AddAggregatedErrorLog(
+            string rootCauseKey,
+            string userMessage,
+            string developerDetail,
+            int affectedItems)
+        {
+            if (string.IsNullOrWhiteSpace(userMessage)) return;
+            TranslationErrorAggregateSnapshot aggregate = ErrorAggregationTracker.Record(
+                rootCauseKey,
+                affectedItems);
+            string displayMessage = userMessage;
+            if (aggregate.Occurrences > 1)
+            {
+                displayMessage += "\n" + "ATC_ErrorAggregate_Summary".Translate(
+                    aggregate.Occurrences,
+                    aggregate.AffectedItems);
+            }
+
+            lock (logLock)
+            {
+                if (AggregatedErrorDisplayLines.TryGetValue(
+                        aggregate.Key,
+                        out string previousLine))
+                    ErrorLogs.Remove(previousLine);
+
+                string line = $"[{DateTime.Now:HH:mm:ss}] {displayMessage}";
+                ErrorLogs.Add(line);
+                AggregatedErrorDisplayLines[aggregate.Key] = line;
+                while (ErrorLogs.Count > 100)
+                {
+                    string removed = ErrorLogs[0];
+                    ErrorLogs.RemoveAt(0);
+                    foreach (string key in AggregatedErrorDisplayLines
+                                 .Where(pair => string.Equals(pair.Value, removed, StringComparison.Ordinal))
+                                 .Select(pair => pair.Key)
+                                 .ToList())
+                        AggregatedErrorDisplayLines.Remove(key);
+                }
+                errorScrollPos.y = 99999f;
+                WriteLogToFile(
+                    "[ERROR DETAIL][" + aggregate.Key + "][" +
+                    aggregate.Occurrences + "] " +
+                    (string.IsNullOrWhiteSpace(developerDetail)
+                        ? userMessage
+                        : developerDetail));
+            }
+
+            if (aggregate.IsFirstOccurrence)
+            {
+                ATC_Dispatcher.RunOnMainThread(() => TryShowRejectMessage(userMessage));
+            }
+        }
+
+        public static bool UpdateRuntimeStatusLog(
+            string key,
+            string message,
+            int minimumRefreshSeconds,
+            bool forceRefresh = false)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                AddLog(message);
+                return true;
+            }
+
+            lock (logLock)
+            {
+                RuntimeStatusLogState state;
+                if (!RuntimeStatusLogs.TryGetValue(key, out state))
+                {
+                    state = new RuntimeStatusLogState();
+                    RuntimeStatusLogs[key] = state;
+                }
+
+                state.PendingMessage = message ?? string.Empty;
+                DateTime nowUtc = DateTime.UtcNow;
+                double elapsedSeconds = (nowUtc - state.LastRefreshUtc).TotalSeconds;
+                if (!forceRefresh &&
+                    state.LastRefreshUtc != DateTime.MinValue &&
+                    elapsedSeconds < Math.Max(0, minimumRefreshSeconds))
+                {
+                    return false;
+                }
+
+                if (!string.IsNullOrEmpty(state.DisplayLine))
+                    RuntimeLogs.Remove(state.DisplayLine);
+
+                string line = $"[{DateTime.Now:HH:mm:ss}] {state.PendingMessage}";
+                RuntimeLogs.Add(line);
+                if (RuntimeLogs.Count > 500) RuntimeLogs.RemoveAt(0);
+                state.DisplayLine = line;
+                state.LastRefreshUtc = nowUtc;
+                WriteLogToFile(line);
+                return true;
+            }
+        }
+
         // 這個方法負責嘗試執行 ShowRejectMessage 並回報是否成功。
         // EN: This method tries to show reject message and reports whether it succeeded.
         private static void TryShowRejectMessage(string msg)
@@ -372,9 +664,14 @@ namespace AutoTranslator_Core
             {
                 RuntimeLogs.Clear();
                 ErrorLogs.Clear();
+                RuntimeStatusLogs.Clear();
+                AgentBatchProgressText = string.Empty;
+                AgentBatchProgress = 0f;
+                AggregatedErrorDisplayLines.Clear();
                 logScrollPos = Vector2.zero;
                 errorScrollPos = Vector2.zero;
             }
+            ErrorAggregationTracker.Reset();
             try
             {
                 string path = Path.Combine(AutoTranslatorScanner.GetLocalPackPath(), "AutoTranslation_Log.txt");
@@ -394,10 +691,67 @@ namespace AutoTranslator_Core
             Scribe_Values.Look(ref OnlyScanActiveMods, "OnlyScanActiveMods", true);
             Scribe_Values.Look(ref EnableUIInterceptor, "EnableUIInterceptor", false);
             Scribe_Values.Look(ref EnableUINewTranslation, "EnableUINewTranslation", true);
+            Scribe_Values.Look(ref EnableHardcodedUiPrototype, "EnableHardcodedUiPrototype", false);
             Scribe_Values.Look(ref EnableUIErrorLogInterception, "EnableUIErrorLogInterception", false);
             Scribe_Values.Look(ref TranslateWorkbenchModNames, "TranslateWorkbenchModNames", false);
             Scribe_Values.Look(ref ShowWorldMainButton, "ShowWorldMainButton", true);
             Scribe_Values.Look(ref MaxThreads, "MaxThreads", 3);
+            Scribe_Values.Look(ref EnableTranslationPolicyAgent, "EnableTranslationPolicyAgent", false);
+            Scribe_Values.Look(ref EnableDevelopmentDebugLogging, "EnableDevelopmentDebugLogging", false);
+            Scribe_Values.Look(ref EnablePolicyAnalysisCloudCache, "EnablePolicyAnalysisCloudCache", false);
+            // The client implementation is retained, but the public service has not deployed the
+            // candidate-domain/schema-v2 contract yet. Never reactivate a value saved by an older build.
+            EnablePolicyAnalysisCloudCache = false;
+            Scribe_Values.Look(ref EnableTerminologyConsistency, "EnableTerminologyConsistency", false);
+            Scribe_Collections.Look(
+                ref TerminologyEnabledPackageIds,
+                "TerminologyEnabledPackageIds",
+                LookMode.Value);
+            NormalizePackageIdList(ref TerminologyEnabledPackageIds);
+            Scribe_Collections.Look(
+                ref TerminologyGroupByPackageId,
+                "TerminologyGroupByPackageId",
+                LookMode.Value,
+                LookMode.Value);
+            if (TerminologyGroupByPackageId == null)
+                TerminologyGroupByPackageId = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            Scribe_Values.Look(ref PolicyCloudContributorId, "PolicyCloudContributorId", string.Empty);
+            if (string.IsNullOrWhiteSpace(PolicyCloudContributorId))
+                PolicyCloudContributorId = Guid.NewGuid().ToString("N");
+            Scribe_Collections.Look(ref PolicyCloudDisabledPackageIds, "PolicyCloudDisabledPackageIds", LookMode.Value);
+            NormalizePackageIdList(ref PolicyCloudDisabledPackageIds);
+            Scribe_Values.Look(
+                ref GlobalTranslationSourcePriority,
+                "GlobalTranslationSourcePriority",
+                TranslationSourcePriorityPolicy.DefaultOrder);
+            Scribe_Collections.Look(
+                ref ModTranslationSourcePriorityOverrides,
+                "ModTranslationSourcePriorityOverrides",
+                LookMode.Value,
+                LookMode.Value);
+            if (ModTranslationSourcePriorityOverrides == null)
+                ModTranslationSourcePriorityOverrides = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            Scribe_Values.Look(ref PolicyAgentMaxCallsPerRun, "PolicyAgentMaxCallsPerRun", 20);
+            Scribe_Values.Look(ref PolicyAgentMaxEstimatedTokensPerRun, "PolicyAgentMaxEstimatedTokensPerRun", 200000L);
+            Scribe_Values.Look(ref PolicyAgentMaxCallsPerMod, "PolicyAgentMaxCallsPerMod", 20);
+            Scribe_Values.Look(ref PolicyAgentMaxRetriesPerRequest, "PolicyAgentMaxRetriesPerRequest", 0);
+            PolicyAgentMaxCallsPerRun = Math.Min(20, Math.Max(0, PolicyAgentMaxCallsPerRun));
+            PolicyAgentMaxEstimatedTokensPerRun = Math.Min(200000L, Math.Max(0L, PolicyAgentMaxEstimatedTokensPerRun));
+            PolicyAgentMaxCallsPerMod = Math.Min(20, Math.Max(0, PolicyAgentMaxCallsPerMod));
+            PolicyAgentMaxRetriesPerRequest = 0;
+            Scribe_Values.Look(ref EnableTranslationUsageBudget, "EnableTranslationUsageBudget", true);
+            Scribe_Values.Look(
+                ref TranslationBudgetSourceCharactersPerRun,
+                "TranslationBudgetSourceCharactersPerRun",
+                900000L);
+            TranslationBudgetSourceCharactersPerRun = Math.Min(
+                100000000L,
+                Math.Max(1000L, TranslationBudgetSourceCharactersPerRun));
+            // The UI exposes characters only. Internally 900,000 characters map to
+            // the agreed 500,000-token guardrail without requiring a price table.
+            TranslationBudgetEstimatedTokensPerRun = Math.Max(
+                1000L,
+                (TranslationBudgetSourceCharactersPerRun * 5L + 8L) / 9L);
             Scribe_Values.Look(ref ShowOriginalUI, "ShowOriginalUI", false);
             Scribe_Collections.Look(ref ApiConfigs, "ApiConfigs", LookMode.Deep);
             Scribe_Values.Look(ref TotalCharCount, "TotalCharCount", 0L);
@@ -409,8 +763,10 @@ namespace AutoTranslator_Core
             if (ModLastVerifiedFingerprints == null) ModLastVerifiedFingerprints = new Dictionary<string, string>();
             Scribe_Collections.Look(ref TranslationBlacklist, "TranslationBlacklist", LookMode.Value);
             Scribe_Collections.Look(ref CloudDownloadBlacklist, "CloudDownloadBlacklist", LookMode.Value);
+            Scribe_Collections.Look(ref ForceTranslationPackages, "ForceTranslationPackages", LookMode.Value);
             NormalizePackageIdList(ref TranslationBlacklist);
             NormalizePackageIdList(ref CloudDownloadBlacklist);
+            NormalizePackageIdList(ref ForceTranslationPackages);
 
             Scribe_Values.Look(ref TimeoutSeconds, "TimeoutSeconds", 60);
 
@@ -433,6 +789,11 @@ namespace AutoTranslator_Core
 
             if (Scribe.mode == LoadSaveMode.LoadingVars)
             {
+                // Global interception and targeted manifest patches are alternative
+                // runtime strategies. Preserve the established global mode when
+                // migrating an older configuration that accidentally enabled both.
+                if (EnableUIInterceptor && EnableHardcodedUiPrototype)
+                    EnableHardcodedUiPrototype = false;
                 if (ApiConfigs == null || ApiConfigs.Count == 0)
                 {
                     ApiConfigs = new List<ApiKeyConfig> { new ApiKeyConfig() };

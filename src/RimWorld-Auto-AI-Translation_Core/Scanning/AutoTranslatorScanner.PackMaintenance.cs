@@ -77,7 +77,7 @@ namespace AutoTranslator_Core
                                     NotifyTranslationFileChanged(oldFile);
                                     NotifyTranslationFileChanged(newFile);
                                 }
-                                AutoTranslatorSettings.AddLog("ATC_Log_MigrateSuccess".Translate(packageName, defType));
+                                AutoTranslatorSettings.AddLog(AutoTranslatorAPI.TranslateText("ATC_Log_MigrateSuccess", packageName, defType));
                             }
                         }
 
@@ -585,7 +585,8 @@ namespace AutoTranslator_Core
 
                 string fixedValue = SanitizeTranslationResult(pair.Value, sourceText);
                 if (string.Equals(fixedValue, pair.Value, StringComparison.Ordinal)) continue;
-                if (HasProtectedTokenMismatch(fixedValue, sourceText)) continue;
+                if (HasProtectedTokenMismatch(fixedValue, sourceText) ||
+                    HasTranslatableTitleTagMismatch(fixedValue, sourceText)) continue;
 
                 repaired[pair.Key] = fixedValue;
                 changed = true;

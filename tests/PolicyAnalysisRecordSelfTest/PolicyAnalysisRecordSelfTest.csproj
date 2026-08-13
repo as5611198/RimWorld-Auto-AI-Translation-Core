@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>7.3</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\Cloud\Models\PolicyAnalysisCandidateDomain.cs"
+             Link="PolicyAnalysisCandidateDomain.cs" />
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\Cloud\Models\PolicyAnalysisCloudRecord.cs"
+             Link="PolicyAnalysisCloudRecord.cs" />
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\Cloud\PolicyAnalysisRecordValidator.cs"
+             Link="PolicyAnalysisRecordValidator.cs" />
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\Scanning\Policy\TranslationPolicySourceFingerprint.cs"
+             Link="TranslationPolicySourceFingerprint.cs" />
+  </ItemGroup>
+</Project>

@@ -92,6 +92,11 @@ namespace AutoTranslator_Core
 
         internal static bool QueueForClassification(string text)
         {
+            // Emergency stop applies to the legacy UI interception pipeline as
+            // well.  Do not let render hooks refill the queue while the shared
+            // translation cancellation flag is waiting for the next explicit
+            // user action to reset it.
+            if (AutoTranslatorSettings.IsCancellationRequested) return false;
             if (System.Threading.Volatile.Read(ref _classificationApproxCount) >= MaxQueuedClassifications) return false;
             if (string.IsNullOrWhiteSpace(text) || text.Length < 2) return false;
             if (ShouldBypassUIPatchText(text)) return false;
@@ -124,6 +129,7 @@ namespace AutoTranslator_Core
 
         private static bool QueueForTranslationInternal(string text, bool consumeFrameBudget)
         {
+            if (AutoTranslatorSettings.IsCancellationRequested) return false;
             if (!AutoTranslatorMod.Settings.EnableUINewTranslation) return false;
             if (System.Threading.Volatile.Read(ref _queuedApproxCount) >= MaxQueuedTranslations) return false;
 
@@ -212,40 +218,69 @@ namespace AutoTranslator_Core
                 {
                     await Task.Delay(250, token);
 
-                    List<string> batch = new List<string>();
-                    while (batch.Count < 80 && ClassificationQueue.TryDequeue(out string text))
+                    if (AutoTranslatorSettings.IsCancellationRequested)
                     {
-                        System.Threading.Interlocked.Decrement(ref _classificationApproxCount);
-                        batch.Add(text);
+                        bool hadPendingClassifications =
+                            System.Threading.Volatile.Read(ref _classificationApproxCount) > 0 ||
+                            !PendingClassifications.IsEmpty;
+                        DiscardQueuedClassifications();
+                        if (hadPendingClassifications) ClearRenderDecisionCache();
+                        continue;
+                    }
+
+                    int batchGeneration;
+                    TargetLanguage batchTargetLanguage;
+                    List<string> batch = new List<string>();
+                    lock (_cachePersistenceLock)
+                    {
+                        batchGeneration = System.Threading.Volatile.Read(ref _uiLanguageGeneration);
+                        batchTargetLanguage = AutoTranslatorMod.Settings.TargetLang;
+                        while (batch.Count < 80 && ClassificationQueue.TryDequeue(out string text))
+                        {
+                            System.Threading.Interlocked.Decrement(ref _classificationApproxCount);
+                            batch.Add(text);
+                        }
                     }
 
                     if (batch.Count == 0) continue;
 
                     bool changedRenderDecision = false;
-                    foreach (string original in batch)
+                    lock (_cachePersistenceLock)
                     {
-                        string classificationKey = BuildCacheKey(original);
-                        try
+                        if (!IsUILanguageContextCurrent(batchGeneration, batchTargetLanguage))
                         {
-                            ClassifyUIRenderText(original);
-                            changedRenderDecision = true;
+                            foreach (string original in batch)
+                            {
+                                PendingClassifications.TryRemove(BuildCacheKey(batchTargetLanguage, original), out _);
+                            }
+                            continue;
                         }
-                        catch (Exception ex)
-                        {
-                            RememberRenderDecision(
-                                BuildRenderDecisionKey(original),
-                                UIRenderDecisionKind.Pending,
-                                null,
-                                DateTime.UtcNow.Ticks + TimeSpan.FromSeconds(3).Ticks);
-                            Log.Warning($"[AutoTranslationCore] UI classification failed: {ex.Message}");
-                        }
-                        finally
-                        {
-                            PendingClassifications.TryRemove(classificationKey, out _);
-                        }
-                    }
 
-                    if (changedRenderDecision) SaveCacheIfDue();
+                        foreach (string original in batch)
+                        {
+                            string classificationKey = BuildCacheKey(batchTargetLanguage, original);
+                            try
+                            {
+                                ClassifyUIRenderText(original);
+                                changedRenderDecision = true;
+                            }
+                            catch (Exception ex)
+                            {
+                                RememberRenderDecision(
+                                    BuildRenderDecisionKey(original),
+                                    UIRenderDecisionKind.Pending,
+                                    null,
+                                    DateTime.UtcNow.Ticks + TimeSpan.FromSeconds(3).Ticks);
+                                Log.Warning($"[AutoTranslationCore] UI classification failed: {ex.Message}");
+                            }
+                            finally
+                            {
+                                PendingClassifications.TryRemove(classificationKey, out _);
+                            }
+                        }
+
+                        if (changedRenderDecision) SaveCacheIfDue();
+                    }
                 }
                 catch (TaskCanceledException)
                 {
@@ -308,6 +343,13 @@ namespace AutoTranslator_Core
                 try
                 {
                     await Task.Delay(2000, token);
+                    if (AutoTranslatorSettings.IsCancellationRequested)
+                    {
+                        DiscardQueuedTranslations();
+                        SaveCacheIfDue();
+                        continue;
+                    }
+
                     if (!AutoTranslatorMod.Settings.EnableUINewTranslation)
                     {
                         DiscardQueuedTranslations();
@@ -317,41 +359,71 @@ namespace AutoTranslator_Core
 
                     if (TranslationQueue.Count > 0 && AutoTranslatorAPI.HasAnyReadyConfig())
                     {
+                        int batchGeneration;
+                        TargetLanguage batchTargetLanguage;
                         List<string> batch = new List<string>();
-                        while (batch.Count < 20 && TranslationQueue.TryDequeue(out string text))
+                        lock (_cachePersistenceLock)
                         {
-                            System.Threading.Interlocked.Decrement(ref _queuedApproxCount);
-                            batch.Add(text);
+                            batchGeneration = System.Threading.Volatile.Read(ref _uiLanguageGeneration);
+                            batchTargetLanguage = AutoTranslatorMod.Settings.TargetLang;
+                            while (!AutoTranslatorSettings.IsCancellationRequested &&
+                                   batch.Count < 20 &&
+                                   TranslationQueue.TryDequeue(out string text))
+                            {
+                                System.Threading.Interlocked.Decrement(ref _queuedApproxCount);
+                                batch.Add(text);
+                            }
+                            if (batch.Count > 0)
+                                System.Threading.Interlocked.Increment(ref _activeUiTranslationBatchCount);
                         }
                         if (batch.Count > 0)
                         {
-                            var translatedBatch = await AutoTranslatorAPI.TranslateBatchAsync(batch);
-                            if (translatedBatch != null && translatedBatch.Count == batch.Count)
+                            try
                             {
-                                bool hasNewCache = false;
-                                for (int i = 0; i < batch.Count; i++)
+                                var translatedBatch = await AutoTranslatorAPI.TranslateBatchAsync(batch);
+                                if (translatedBatch != null && translatedBatch.Count == batch.Count)
                                 {
-                                    string original = batch[i];
-                                    string originalCacheKey = BuildCacheKey(original);
-                                    string translated = SanitizeUITranslationResult(original, translatedBatch[i]);
-                                    if (!string.IsNullOrEmpty(translated) && original != translated)
+                                    lock (_cachePersistenceLock)
                                     {
-                                        Cache[originalCacheKey] = translated;
-                                        hasNewCache = true;
+                                        if (!IsUILanguageContextCurrent(batchGeneration, batchTargetLanguage))
+                                        {
+                                            continue;
+                                        }
+
+                                        bool hasNewCache = false;
+                                        for (int i = 0; i < batch.Count; i++)
+                                        {
+                                            string original = batch[i];
+                                            string originalCacheKey = BuildCacheKey(batchTargetLanguage, original);
+                                            string translated = SanitizeUITranslationResult(original, translatedBatch[i]);
+                                            if (!string.IsNullOrEmpty(translated) && original != translated)
+                                            {
+                                                Cache[originalCacheKey] = translated;
+                                                hasNewCache = true;
+                                            }
+                                            else
+                                            {
+                                                RememberIgnored(original);
+                                            }
+                                        }
+                                        if (hasNewCache) ClearRenderDecisionCache();
+                                        if (hasNewCache) MarkCacheDirty();
+                                        // Persist on the normal timer (and on shutdown)
+                                        // instead of parsing and rewriting the complete
+                                        // UI cache after every translation batch.
+                                        SaveCacheIfDue();
                                     }
-                                    else
-                                    {
-                                        RememberIgnored(original);
-                                    }
-                                    PendingTranslations.TryRemove(originalCacheKey, out _);
                                 }
-                                if (hasNewCache) ClearRenderDecisionCache();
-                                if (hasNewCache) _cacheDirty = true;
-                                SaveCacheIfDue(hasNewCache);
                             }
-                            else
+                            finally
                             {
-                                foreach (var t in batch) PendingTranslations.TryRemove(BuildCacheKey(t), out _);
+                                foreach (string original in batch)
+                                {
+                                    PendingTranslations.TryRemove(
+                                        BuildCacheKey(batchTargetLanguage, original),
+                                        out _);
+                                }
+                                System.Threading.Interlocked.Decrement(ref _activeUiTranslationBatchCount);
                             }
                         }
                     }
@@ -405,6 +477,50 @@ namespace AutoTranslator_Core
             else if (ClassificationQueue.IsEmpty)
             {
                 System.Threading.Interlocked.Exchange(ref _classificationApproxCount, 0);
+            }
+        }
+
+        /// <summary>
+        /// Reports upstream UI interception work that has not yet entered the
+        /// shared API request lifecycle.  Once a batch reaches the API, the
+        /// request activity tracker becomes the authoritative counter instead.
+        /// </summary>
+        public static bool HasOutstandingTranslationWork
+        {
+            get
+            {
+                return System.Threading.Volatile.Read(ref _activeUiTranslationBatchCount) > 0 ||
+                       GetQueueCount() > 0 ||
+                       GetPendingCount() > 0;
+            }
+        }
+
+        /// <summary>
+        /// Applies the shared emergency-stop boundary to both legacy UI queues.
+        /// An already completed network response may still be accepted by its
+        /// worker, but no queued or newly intercepted text may start a new batch.
+        /// </summary>
+        public static void CancelPendingTranslationWork()
+        {
+            lock (_cachePersistenceLock)
+            {
+                bool hadPendingClassifications =
+                    System.Threading.Volatile.Read(ref _classificationApproxCount) > 0 ||
+                    !PendingClassifications.IsEmpty;
+                DiscardQueuedClassifications();
+                DiscardQueuedTranslations();
+                PendingClassifications.Clear();
+                PendingTranslations.Clear();
+                if (hadPendingClassifications) ClearRenderDecisionCache();
+                SaveCacheIfDue();
+            }
+        }
+
+        public static async Task WaitForPendingTranslationWorkDrainAsync()
+        {
+            while (System.Threading.Volatile.Read(ref _activeUiTranslationBatchCount) > 0)
+            {
+                await Task.Delay(25);
             }
         }
     }

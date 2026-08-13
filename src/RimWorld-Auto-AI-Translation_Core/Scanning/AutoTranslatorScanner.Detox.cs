@@ -222,7 +222,7 @@ namespace AutoTranslator_Core
 
 
                     string logMsg = "ATC_Log_DetoxSuccess".CanTranslate()
-                        ? "ATC_Log_DetoxSuccess".Translate(fixedFiles, removedTags).ToString()
+                        ? AutoTranslatorAPI.TranslateText("ATC_Log_DetoxSuccess", fixedFiles, removedTags)
                         : $"[排毒系統] 修復了 {fixedFiles} 個檔案，切除 {removedTags} 個劇毒標籤！";
 
                     AutoTranslatorSettings.AddLog($"🛡️ {logMsg}");
@@ -334,7 +334,7 @@ namespace AutoTranslator_Core
                 if (fixedFiles > 0)
                 {
 
-                    AutoTranslatorSettings.AddLog($"🩺 [ATC System] " + "ATC_Log_AdvancedDetoxSuccess".Translate(removedTags, fixedFiles));
+                    AutoTranslatorSettings.AddLog($"🩺 [ATC System] " + AutoTranslatorAPI.TranslateText("ATC_Log_AdvancedDetoxSuccess", removedTags, fixedFiles));
                     Log.Message($"[AutoTranslationCore] Advanced Detox complete: Removed {removedTags} bad tags across {fixedFiles} files, saving player's API costs!");
                 }
             }
