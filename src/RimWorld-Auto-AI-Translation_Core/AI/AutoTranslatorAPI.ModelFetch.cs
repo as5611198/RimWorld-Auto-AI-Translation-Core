@@ -13,9 +13,6 @@ namespace AutoTranslator_Core
     // EN: This class manages the main workflow and state for AutoTranslatorAPI.
     public static partial class AutoTranslatorAPI
     {
-        // 這個常數定義 模型取得DispatchTimeoutMs 的固定值。
-        // EN: This constant defines the fixed value for model fetch dispatch timeout ms.
-        private const int ModelFetchDispatchTimeoutMs = 5000;
         // 這個常數定義 模型取得Max自動Retries 的固定值。
         // EN: This constant defines the fixed value for model fetch max auto retries.
         private const int ModelFetchMaxAutoRetries = 3;
@@ -39,12 +36,17 @@ namespace AutoTranslator_Core
         // EN: This method handles maintain model fetch state.
         public static void MaintainModelFetchState()
         {
-            if (AutoTranslatorMod.Settings?.ApiConfigs == null) return;
+            if (AutoTranslatorMod.Settings == null) return;
 
-            for (int i = 0; i < AutoTranslatorMod.Settings.ApiConfigs.Count; i++)
+            List<ApiKeyConfig> translationConfigs = AutoTranslatorMod.Settings.ApiConfigs;
+            if (translationConfigs != null)
             {
-                MaintainModelFetchState(AutoTranslatorMod.Settings.ApiConfigs[i]);
+                for (int i = 0; i < translationConfigs.Count; i++)
+                {
+                    MaintainModelFetchState(translationConfigs[i]);
+                }
             }
+
         }
 
         // 這個方法負責處理 Maintain模型取得狀態 相關流程。
@@ -52,16 +54,6 @@ namespace AutoTranslator_Core
         public static void MaintainModelFetchState(ApiKeyConfig config)
         {
             if (config == null) return;
-
-            if (config.IsFetching && config.FetchStartedUtcTicks > 0)
-            {
-                double elapsedSeconds = (DateTime.UtcNow.Ticks - config.FetchStartedUtcTicks) / (double)TimeSpan.TicksPerSecond;
-                if (elapsedSeconds > 45.0)
-                {
-                    ResetModelFetchState(config);
-                    AutoTranslatorSettings.AddErrorLog(TranslateText("ATC_Error_FetchModelsWatchdogReleased", config.Provider.ToString()));
-                }
-            }
 
             if (ShouldAutoFetchModels(config))
             {
@@ -78,10 +70,19 @@ namespace AutoTranslator_Core
 
             string fetchFingerprint = GetModelFetchFingerprint(config);
             return fetchFingerprint != config.lastFetchedKey &&
-                   CleanInput(config.Key).Length > 10 &&
+                   HasModelFetchCredential(config) &&
                    (string.IsNullOrEmpty(config.PendingFetchFingerprint) ||
                     config.PendingFetchFingerprint != fetchFingerprint ||
                     CanAutoRetryModelFetch(config, fetchFingerprint));
+        }
+
+        private static bool HasModelFetchCredential(ApiKeyConfig config)
+        {
+            if (config == null) return false;
+            if (CleanInput(config.Key).Length > 10) return true;
+
+            return config.Provider == TranslatorProvider.Custom_OpenAI &&
+                   !string.IsNullOrWhiteSpace(config.CustomBaseUrl);
         }
 
         // 這個方法負責處理 自動取得For設定 相關流程。
@@ -144,7 +145,7 @@ namespace AutoTranslator_Core
                 {
                     string apiKey = CleanInput(config.Key);
                     string baseUrl = GetBaseUrl(config);
-                    bool isGoogleRaw = (config.Provider == TranslatorProvider.Google && string.IsNullOrEmpty(config.CustomBaseUrl));
+                    bool isGoogleRaw = config.Provider == TranslatorProvider.Google;
                     string url = BuildModelsUrl(config, baseUrl, apiKey, isGoogleRaw);
 
                     int maxRetries = 2;
@@ -212,13 +213,14 @@ namespace AutoTranslator_Core
                             }
                         });
 
-                        var dispatchTask = await Task.WhenAny(dispatchStarted.Task, Task.Delay(ModelFetchDispatchTimeoutMs));
-                        if (dispatchTask != dispatchStarted.Task)
+                        // Main-thread dispatch waiting is not network time. Keep the model
+                        // lookup queued until Unity actually starts it, unless this fetch
+                        // generation is explicitly cancelled/reset.
+                        if (!await TranslationRequestSignalWaiter.WaitAsync(
+                                dispatchStarted.Task,
+                                () => config.FetchGeneration != fetchGeneration || !config.IsFetching))
                         {
-                            Verse.Log.Warning($"[AutoTranslationCore] Fetch Models dispatch timed out before UnityWebRequest started [{config.Provider}] URL: {url}");
-                            AutoTranslatorSettings.AddErrorLog(TranslateText("ATC_Error_FetchModelsDispatchTimeout", config.Provider.ToString()));
-                            ScheduleModelFetchRetry(config, fetchGeneration);
-                            break;
+                            return;
                         }
 
                         try
@@ -241,6 +243,7 @@ namespace AutoTranslator_Core
                             List<string> models = ParseModelList(resHolder.ResponseBody, isGoogleRaw);
                             if (models.Count > 0)
                             {
+                                CaptureModelCapabilities(config, resHolder.ResponseBody, isGoogleRaw);
                                 config.FetchedModels = models.OrderBy(x => x).ToList();
                                 if (string.IsNullOrEmpty(config.SelectedModel)) config.SelectedModel = config.FetchedModels[0];
                                 MarkModelFetchSuccess(config, fetchFingerprint);
@@ -317,6 +320,8 @@ namespace AutoTranslator_Core
             config.FetchRetryCount = 0;
             config.NextModelFetchRetryUtcTicks = 0L;
             if (clearModels) config.FetchedModels.Clear();
+            if (clearModels && config.FetchedModelSupportedParameters != null)
+                config.FetchedModelSupportedParameters.Clear();
         }
 
         // 這個方法負責建立 Models網址 所需資料。
@@ -347,6 +352,13 @@ namespace AutoTranslator_Core
 
         // 這個方法負責處理 Decode回應Body 相關流程。
         // EN: This method handles decode response body.
+        private static string SanitizeUrlForLog(string url)
+        {
+            if (string.IsNullOrEmpty(url)) return "";
+            int queryStart = url.IndexOf('?');
+            return queryStart >= 0 ? url.Substring(0, queryStart) : url;
+        }
+
         private static string DecodeResponseBody(byte[] rawData)
         {
             if (rawData == null || rawData.Length == 0) return "";
@@ -387,6 +399,38 @@ namespace AutoTranslator_Core
             }
 
             return list;
+        }
+
+        private static void CaptureModelCapabilities(
+            ApiKeyConfig config,
+            string rawResponse,
+            bool isGoogleRaw)
+        {
+            if (config == null) return;
+            config.FetchedModelSupportedParameters =
+                new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            if (isGoogleRaw || config.Provider != TranslatorProvider.OpenRouter) return;
+
+            try
+            {
+                JArray data = JObject.Parse(rawResponse ?? string.Empty)["data"] as JArray;
+                if (data == null) return;
+                foreach (JToken item in data)
+                {
+                    string id = item?["id"]?.ToString();
+                    if (string.IsNullOrWhiteSpace(id)) continue;
+                    List<string> parameters = (item["supported_parameters"] as JArray)?
+                        .Select(value => value?.ToString())
+                        .Where(value => !string.IsNullOrWhiteSpace(value))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList() ?? new List<string>();
+                    config.FetchedModelSupportedParameters[id] = parameters;
+                }
+            }
+            catch (Exception ex)
+            {
+                Verse.Log.Warning("[AutoTranslationCore] Could not read OpenRouter model capabilities: " + ex.Message);
+            }
         }
 
         // 這個方法負責標記 模型取得Success 狀態。

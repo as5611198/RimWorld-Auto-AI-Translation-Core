@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LanguageData>
-  <ATC_ModTitle>Інтелектуальна мережа перекладу на основі штучного інтелекту (AI Translation Network) V3.0</ATC_ModTitle>
+  <ATC_ModTitle>Інтелектуальна мережа перекладу на основі штучного інтелекту (AI Translation Network) V4.1 BETA</ATC_ModTitle>
   <ATC_TargetLang>Мова перекладу</ATC_TargetLang>
   <ATC_Lang_Traditional>Традиционный китайский (Traditional Chinese)</ATC_Lang_Traditional>
   <ATC_Lang_Simplified>Упрощенный китайский (Simplified Chinese)</ATC_Lang_Simplified>
@@ -58,6 +58,10 @@
   <ATC_Log_TaskError>[Error] Конвейер аварийно остановлен: {0}</ATC_Log_TaskError>
   <ATC_Log_Clean>[Clean] Линия остановлена, память очищена.</ATC_Log_Clean>
   <ATC_CancelRequested>Получена команда остановки. Экстренное торможение конвейера...</ATC_CancelRequested>
+  <ATC_Stopping>Остановка…</ATC_Stopping>
+  <ATC_StoppingStatus>Завершение запросов: в очереди {0} / активных {1} / повторов {2}</ATC_StoppingStatus>
+  <ATC_RequestActivityStatus>Фоновые запросы: в очереди {0} / активных {1} / повторов {2}</ATC_RequestActivityStatus>
+  <ATC_StopCompleted>Перевод полностью остановлен; запросов в очереди, активных и ожидающих повтора больше нет.</ATC_StopCompleted>
   <ATC_Log_FetchModelsSuccess>✅ Успешно получен список моделей для [{0}]!</ATC_Log_FetchModelsSuccess>
   <ATC_Log_FetchModelsFail>[System] Ошибка получения списка моделей, проверьте ключ.</ATC_Log_FetchModelsFail>
   <ATC_Log_AllTranslationWritten>[Success] Все переводы надежно сохранены в !Translation_AI_Pack!</ATC_Log_AllTranslationWritten>
@@ -75,8 +79,8 @@
   <ATC_FinishMessage_Title>Уведомление о завершении</ATC_FinishMessage_Title>
   <ATC_FinishMessage_OK>Понял! (OK)</ATC_FinishMessage_OK>
   <ATC_FinishMessage_Text>Перевод успешно завершен!\n【🪂 Успешный эирдроп в память】\nСистема напрямую загрузила свежий перевод в память игры через официальные механизмы!\nТеперь вы можете спокойно закрыть это окно и панель настроек. Предметы и технологии на экране мгновенно перевелись на выбранный вами язык!\n(Примечание: Реальная копия XML сгенерирована в фоне, но вам 【абсолютно не нужно】 включать её в списке модов! При следующем запуске система сама все незаметно подгрузит, избавив вас от конфликтов порядка загрузки! Приятной игры!)</ATC_FinishMessage_Text>
-  <ATC_Tutorial_FullText>【V3.0 Руководство пользователя: От халявы к содействию】\n1. ☁️ 【Сначала загляните в облако, не изобретайте велосипед】\nПеред началом перевода настоятельно рекомендуем зайти на вкладку 【Облачная мастерская】! Возможно, другие игроки или команды переводчиков уже загрузили готовый качественный русификатор. Скачивание в один клик позволит мгновенно насладиться переведенной игрой!\n\n2. ⚙️ 【Настройка API для перевода】\nЕсли нужного мода нет в облаке, выберите 【Целевой язык】 (поддерживаются русский, китайский, японский, английский и др.) и 【Провайдера】 (рекомендуются бесплатный Gemini или DeepSeek). Функция «Безлимитный магазин API» позволяет добавить несколько ключей по кнопке «+», и система будет автоматически чередовать их, выжимая бесплатные лимиты до капли!\n(После вставки ключа нажимать поиск не нужно — система подгрузит модели в фоновом режиме!)\n\n3. 🚀 【Перевод в один клик и эирдроп в память】\nУстановите количество потоков и нажмите 【🚀 Перевести все моды в один клик】 или используйте 【🎯 Перевод одного/нескольких модов】 для точечного удара. После завершения 【перезагружать игру абсолютно не нужно】! Функция «Эирдроп в память» мгновенно внедрит перевод прямо в процесс. Закройте панель, чтобы увидеть результат!\n\n4. 🔍 【Глобальный верстак и выгрузка в облако】\nЗаметили неточности в автопереводе? Перейдите на вкладку 【Глобальное редактирование】, найдите опечатки через мощный инструмент «Глобальный поиск текста» и исправьте их! После этого возвращайтесь в облачную мастерскую и загрузите свои исправления с тегом 【Ручной перевод (Manual)】, чтобы помочь сообществу!\n\n【Часто задаваемые вопросы (FAQ)】\nQ: Почему у меня нет кнопки «Удалить» в облачной мастерской?\nA: Чтобы защитить труды пользователей от случайного стирания, функция удаления доступна только администраторам и официальным командам с мастер-кодом. Обычные игроки могут спокойно загружать свои файлы — система бережно объединит версии и сохранит лучший вариант!\n\nQ: Что такое «Горячая перезагрузка инъекции»?\nA: Если вы опытный игрок и любите править XML-файлы вручную, то после сохранения изменений просто нажмите эту кнопку. Система мгновенно обновит кэш интерфейса и перезальет данные в память — результат виден за секунду!\n\nQ: Почему в логах горит красное предупреждение «Ожидание повтора»?\nA: Сервер API перегружен или временно ограничил частоту запросов! В мод встроен мощный механизм 【экспоненциальной задержки повторных попыток】. Если перевод в итоге продолжается успешно, просто наберитесь терпения~ (≧∀≦)ゞ\n\nQ: Локальный сервер (LM Studio / Ollama) выдает ошибку подключения.\nA: 1. Проверьте правильность поля «Свой URL API» (например, http://localhost:1234). За суффиксы не переживайте — система сама добавит /v1!\n2. Поле API Key не должно быть пустым! Для локальных серверов введите туда любые случайные символы.\n\nQ: Не будет ли тормозить динамический перехватчик интерфейса?\nA: Благодаря алгоритмам сверхбыстрого поиска за O(1) и встроенным предохранителям, даже при лавине ошибок игра будет выдавать стабильные 120 FPS. Однако помните, что этот режим перехватывает вообще все непереведенные строки на экране. Если у вас 【платный API】, используйте его осторожно, чтобы избежать огромных счетов!</ATC_Tutorial_FullText>
-  <ATC_UpdateLog_FullText>--- V3.0 Облачная мастерская и глобальный редактор ---\n• Новая 【Облачная мастерская】：Загрузка и скачивание локализаций в один клик. Поддерживаются три тега качества: «Профессиональный перевод», «Ручной перевод» и «ИИ-перевод». Встроены умная версионность 3-2-1, мягкое удаление и журнал изменений.\n• Улучшенный 【Глобальный верстак】：Добавлен фоновый несинхронный «Глобальный поиск текста» с динамической шкалой прогресса. Плавный поиск по кэшу и встроенным файлам даже при сотнях модов, фильтрация языков и переход к редактированию в один клик.\n• Обновление 【Сетевого уровня】：Переход на сетевой движок Unity (UnityWebRequest) с принудительным сжатием UTF-8. Полностью решены проблемы с кодировкой Windows, вызывавшие ошибки чтения и повреждения ZIP-архивов.\n• Внедрение 【Умной детоксикации】：Автоматическая фильтрация опасных переменных нижнего уровня и модов на лица (например, FaceDef). Покончено с багами искажения текстур персонажей! Автоочистка остаточных фейковых файлов переводов при запуске.\n\n--- V2.2 Стабильность подключения и архитектура ---\n• Оптимизация 【API-запросов】：Переписана базовая логика для лучшей совместимости с разными провайдерами ИИ и стабильного парсинга данных.\n• Внедрение 【Умного автоповтора】：При перегрузке серверов (HTTP 429) или сбоях связи (HTTP 500+) система автоматически выдерживает паузу перед повтором, предотвращая срыв перевода.\n• Новые 【Настройки тайм-аута и тестов】：Добавлены кнопка «Проверить связь» и ползунок времени ожидания (при выборе тяжелых рассуждающих моделей ИИ время ожидания увеличивается автоматически).\n• Улучшение 【Глобальных уведомлений】：Связующая технология UI позволяет выводить ошибки подключения или невалидные ключи прямо на игровой экран слева вверху. Больше не нужно постоянно открывать логи.\n\n--- V2.1 Комфорт перевода и обновления ---\n• Внедрение 【Экспорта пакета в один клик】：Возможность выгрузить готовый перевод мода на рабочий стол с водяным знаком машинного перевода для передачи автору оригинала или ручной доработки.\n• Новый 【Радар обновлений】：Система автоматически обнаруживает устаревшие или непереведенные моды.\n• Поддержка 【Автоматической замены】：При обновлении мода система сама сотрет старые файлы перевода и запустит процесс заново, сохраняя актуальность текстов.\n• Исправление 【Ошибки переноса строк】：Устранена проблема, из-за которой символы \n не переносили строку и ломали интерфейс.\n\n--- V2.0 Оптимизация производительности и рендеринг ---\n• Внедрение 【Мгновенного внедрения в память】：Результаты перевода пишутся сразу в память игры. Язык меняется мгновенно без перезапуска и конфликтов порядка загрузки модов.\n• Оптимизация 【Динамического перехватчика UI】：Переработана логика перехвата и кэширования, значительно снижено влияние на FPS.\n• Новое 【Горячее обновление】：Быстрое обновление кэша интерфейса после ручной правки XML без перезапуска игры.\n\n--- V1.0 Официальный релиз ---\n• Внедрение 【Динамического перехватчика интерфейса】：Перехват в реальном времени и перевод строк, пропущенных в статических файлах локализации.\n• Внедрение 【Двуязычного сопоставления】：Отображение оригинала при наведении мыши для удобного сравнения текстов.</ATC_UpdateLog_FullText>
+  <ATC_Tutorial_FullText>【V4.1 BETA Руководство пользователя: От халявы к содействию】\n1. ☁️ 【Сначала загляните в облако, не изобретайте велосипед】\nПеред началом перевода настоятельно рекомендуем зайти на вкладку 【Облачная мастерская】! Возможно, другие игроки или команды переводчиков уже загрузили готовый качественный русификатор. Скачивание в один клик позволит мгновенно насладиться переведенной игрой!\n\n2. ⚙️ 【Настройка API для перевода】\nЕсли нужного мода нет в облаке, выберите 【Целевой язык】 (поддерживаются русский, китайский, японский, английский и др.) и 【Провайдера】 (рекомендуются бесплатный Gemini или DeepSeek). Функция «Безлимитный магазин API» позволяет добавить несколько ключей по кнопке «+», и система будет автоматически чередовать их, выжимая бесплатные лимиты до капли!\n(После вставки ключа нажимать поиск не нужно — система подгрузит модели в фоновом режиме!)\n\n3. 🚀 【Перевод в один клик и эирдроп в память】\nУстановите количество потоков и нажмите 【🚀 Перевести все моды в один клик】 или используйте 【🎯 Перевод одного/нескольких модов】 для точечного удара. После завершения 【перезагружать игру абсолютно не нужно】! Функция «Эирдроп в память» мгновенно внедрит перевод прямо в процесс. Закройте панель, чтобы увидеть результат!\n\n4. 🔍 【Глобальный верстак и выгрузка в облако】\nЗаметили неточности в автопереводе? Перейдите на вкладку 【Глобальное редактирование】, найдите опечатки через мощный инструмент «Глобальный поиск текста» и исправьте их! После этого возвращайтесь в облачную мастерскую и загрузите свои исправления с тегом 【Ручной перевод (Manual)】, чтобы помочь сообществу!\n\n【Часто задаваемые вопросы (FAQ)】\nQ: Почему у меня нет кнопки «Удалить» в облачной мастерской?\nA: Чтобы защитить труды пользователей от случайного стирания, функция удаления доступна только администраторам и официальным командам с мастер-кодом. Обычные игроки могут спокойно загружать свои файлы — система бережно объединит версии и сохранит лучший вариант!\n\nQ: Что такое «Горячая перезагрузка инъекции»?\nA: Если вы опытный игрок и любите править XML-файлы вручную, то после сохранения изменений просто нажмите эту кнопку. Система мгновенно обновит кэш интерфейса и перезальет данные в память — результат виден за секунду!\n\nQ: Почему в логах горит красное предупреждение «Ожидание повтора»?\nA: Сервер API перегружен или временно ограничил частоту запросов! В мод встроен мощный механизм 【экспоненциальной задержки повторных попыток】. Если перевод в итоге продолжается успешно, просто наберитесь терпения~ (≧∀≦)ゞ\n\nQ: Локальный сервер (LM Studio / Ollama) выдает ошибку подключения.\nA: 1. Проверьте правильность поля «Свой URL API» (например, http://localhost:1234). За суффиксы не переживайте — система сама добавит /v1!\n2. Поле API Key не должно быть пустым! Для локальных серверов введите туда любые случайные символы.\n\nQ: Не будет ли тормозить динамический перехватчик интерфейса?\nA: Благодаря алгоритмам сверхбыстрого поиска за O(1) и встроенным предохранителям, даже при лавине ошибок игра будет выдавать стабильные 120 FPS. Однако помните, что этот режим перехватывает вообще все непереведенные строки на экране. Если у вас 【платный API】, используйте его осторожно, чтобы избежать огромных счетов!</ATC_Tutorial_FullText>
+  <ATC_UpdateLog_FullText>--- V4.1 BETA Сканирование модов и диагностика фильтрации ---\n• Исправлено распознавание пользовательских папок содержимого и Defs старых версий.\n• Добавлены подробности фильтрации: причина, кандидаты источников и кнопка открытия папки мода.\n• Добавлен безопасный принудительный перевод; неактивные источники старых версий и условный контент исключаются для экономии токенов.\n\n--- V4.0 BETA Облачная мастерская и глобальный редактор ---\n• Новая 【Облачная мастерская】：Загрузка и скачивание локализаций в один клик. Поддерживаются три тега качества: «Профессиональный перевод», «Ручной перевод» и «ИИ-перевод». Встроены умная версионность 3-2-1, мягкое удаление и журнал изменений.\n• Улучшенный 【Глобальный верстак】：Добавлен фоновый несинхронный «Глобальный поиск текста» с динамической шкалой прогресса. Плавный поиск по кэшу и встроенным файлам даже при сотнях модов, фильтрация языков и переход к редактированию в один клик.\n• Обновление 【Сетевого уровня】：Переход на сетевой движок Unity (UnityWebRequest) с принудительным сжатием UTF-8. Полностью решены проблемы с кодировкой Windows, вызывавшие ошибки чтения и повреждения ZIP-архивов.\n• Внедрение 【Умной детоксикации】：Автоматическая фильтрация опасных переменных нижнего уровня и модов на лица (например, FaceDef). Покончено с багами искажения текстур персонажей! Автоочистка остаточных фейковых файлов переводов при запуске.\n\n--- V2.2 Стабильность подключения и архитектура ---\n• Оптимизация 【API-запросов】：Переписана базовая логика для лучшей совместимости с разными провайдерами ИИ и стабильного парсинга данных.\n• Внедрение 【Умного автоповтора】：При перегрузке серверов (HTTP 429) или сбоях связи (HTTP 500+) система автоматически выдерживает паузу перед повтором, предотвращая срыв перевода.\n• Новые 【Настройки тайм-аута и тестов】：Добавлены кнопка «Проверить связь» и ползунок времени ожидания (при выборе тяжелых рассуждающих моделей ИИ время ожидания увеличивается автоматически).\n• Улучшение 【Глобальных уведомлений】：Связующая технология UI позволяет выводить ошибки подключения или невалидные ключи прямо на игровой экран слева вверху. Больше не нужно постоянно открывать логи.\n\n--- V2.1 Комфорт перевода и обновления ---\n• Внедрение 【Экспорта пакета в один клик】：Возможность выгрузить готовый перевод мода на рабочий стол с водяным знаком машинного перевода для передачи автору оригинала или ручной доработки.\n• Новый 【Радар обновлений】：Система автоматически обнаруживает устаревшие или непереведенные моды.\n• Поддержка 【Автоматической замены】：При обновлении мода система сама сотрет старые файлы перевода и запустит процесс заново, сохраняя актуальность текстов.\n• Исправление 【Ошибки переноса строк】：Устранена проблема, из-за которой символы \n не переносили строку и ломали интерфейс.\n\n--- V2.0 Оптимизация производительности и рендеринг ---\n• Внедрение 【Мгновенного внедрения в память】：Результаты перевода пишутся сразу в память игры. Язык меняется мгновенно без перезапуска и конфликтов порядка загрузки модов.\n• Оптимизация 【Динамического перехватчика UI】：Переработана логика перехвата и кэширования, значительно снижено влияние на FPS.\n• Новое 【Горячее обновление】：Быстрое обновление кэша интерфейса после ручной правки XML без перезапуска игры.\n\n--- V1.0 Официальный релиз ---\n• Внедрение 【Динамического перехватчика интерфейса】：Перехват в реальном времени и перевод строк, пропущенных в статических файлах локализации.\n• Внедрение 【Двуязычного сопоставления】：Отображение оригинала при наведении мыши для удобного сравнения текстов.</ATC_UpdateLog_FullText>
   <ATC_ApiConfigTitle>Настройки обоймы API-интерфейсов (Поддержка параллельного пула запросов)</ATC_ApiConfigTitle>
   <ATC_Provider>Провайдер</ATC_Provider>
   <ATC_CustomUrlOptional>(Свой BaseUrl, оставьте пустым для значения по умолчанию)</ATC_CustomUrlOptional>
@@ -85,8 +89,8 @@
   <ATC_FetchingModel>Поиск моделей...</ATC_FetchingModel>
   <ATC_NoModelWaitKey>Модель не выбрана (вставьте ключ для автопоиска)</ATC_NoModelWaitKey>
   <ATC_AddApiBtn>Добавить интерфейс API (Add API Interface)</ATC_AddApiBtn>
-  <ATC_EmergencyStop>Остановить перевод (Emergency Stop)</ATC_EmergencyStop>
-  <ATC_StartFullScan>Перевести все моды (Start Full Scan)</ATC_StartFullScan>
+  <ATC_EmergencyStop>Остановить перевод и анализ</ATC_EmergencyStop>
+  <ATC_StartFullScan>Перевести все моды</ATC_StartFullScan>
   <ATC_EmptyConfigWarning>Пожалуйста, настройте хотя бы один валидный профиль API!</ATC_EmptyConfigWarning>
   <ATC_MaxThreads>Количество потоков (Max Threads)</ATC_MaxThreads>
   <ATC_MaxThreadsTip>Рекомендуется: Кол-во активных интерфейсов x 3</ATC_MaxThreadsTip>
@@ -100,6 +104,72 @@
   <ATC_MultiSelect_Title>Выберите моды для перевода (можно несколько)</ATC_MultiSelect_Title>
   <ATC_MultiSelect_Search>Введите название мода для поиска...</ATC_MultiSelect_Search>
   <ATC_MultiSelect_Start>Начать перевод {0} выбранных модов</ATC_MultiSelect_Start>
+  <ATC_PolicyShadowRun_Button>Пробный запуск локальных правил ({0})</ATC_PolicyShadowRun_Button>
+  <ATC_PolicyShadowRun_Task>Выполняется пробный запуск локальных правил...</ATC_PolicyShadowRun_Task>
+  <ATC_PolicyShadowRun_Start>Пробный запуск локальных правил для {0} выбранных модов; предварительная оценка Agent не вызывается, переводы не записываются и не внедряются.</ATC_PolicyShadowRun_Start>
+  <ATC_PolicyPreflight_CloudStart>Синхронизация облачных решений для {0} выбранных модов; Agent не вызывается, переводы не записываются и не внедряются.</ATC_PolicyPreflight_CloudStart>
+  <ATC_PolicyPreflight_AgentStart>Предварительная оценка Agent для {0} выбранных модов; настроенная модель анализа будет вызвана, но переводы не записываются и не внедряются.</ATC_PolicyPreflight_AgentStart>
+  <ATC_PolicyPreflight_LaunchTrace>Трассировка задачи: запуск #{0}; источник={1}; режим={2}; модов={3}.</ATC_PolicyPreflight_LaunchTrace>
+  <ATC_Preflight_CloseRunningTitle>Выполняется задача умного перевода</ATC_Preflight_CloseRunningTitle>
+  <ATC_Preflight_CloseRunningConfirm>Закрытие окна также остановит текущую задачу. Остановить и закрыть?</ATC_Preflight_CloseRunningConfirm>
+  <ATC_Preflight_StopAndClose>Остановить и закрыть</ATC_Preflight_StopAndClose>
+  <ATC_Preflight_KeepOpen>Продолжить ожидание</ATC_Preflight_KeepOpen>
+  <ATC_PolicyShadowRun_Title>Результаты пробного запуска локальных правил</ATC_PolicyShadowRun_Title>
+  <ATC_PolicyShadowRun_Summary>Моды: {0}\nТексты-кандидаты: {1}\nРазрешено: {2}\nОтклонено: {3}\nНеоднозначно: {4}\nГруппы: {5}\nОценка запросов: {6}\nОценка входных токенов: {7}\nОценка выходных токенов: {8}\nОценка общего числа токенов: {9}\nФактические вызовы ИИ/API / израсходованные токены: 0 / 0\nВремя: {10}\nОтчёт: {11}\nЗаписи перевода / внедрения во время выполнения: 0 / 0</ATC_PolicyShadowRun_Summary>
+  <ATC_PolicyAgent_Enable>Включить прогноз Agent для неопределённых текстов (по умолчанию выключен)</ATC_PolicyAgent_Enable>
+  <ATC_PolicyAgent_SharedModelPoolNotice>Предварительная оценка Agent относится к стандартным задачам анализа. Сначала используется стандартная модель, затем точная и пакетная. Токены расходуются только на локально неопределённые элементы.</ATC_PolicyAgent_SharedModelPoolNotice>
+  <ATC_PolicyAgent_EnableTooltip>Классифицирует неоднозначные тексты перед переводом. DeepL не поддерживает классификацию; настройте поставщика ИИ-чата. При сбое сохраняется исходный текст.</ATC_PolicyAgent_EnableTooltip>
+  <ATC_PolicyAgent_MaxCallsPerRun>Мягкий порог вызовов агента на задачу перевода: {0}</ATC_PolicyAgent_MaxCallsPerRun>
+  <ATC_PolicyAgent_MaxEstimatedTokensPerRun>Мягкий порог оценки токенов на задачу перевода: {0}</ATC_PolicyAgent_MaxEstimatedTokensPerRun>
+  <ATC_PolicyAgent_MaxCallsPerMod>Мягкий порог вызовов агента на мод: {0}</ATC_PolicyAgent_MaxCallsPerMod>
+  <ATC_PolicyAgent_RetryNotice>Повторных попыток на запрос: {0}. Каждая попытка учитывается в мягких порогах вызовов и оценки токенов.</ATC_PolicyAgent_RetryNotice>
+  <ATC_PolicyAgent_ClearCache>Очистить кэш решений предварительной оценки Agent</ATC_PolicyAgent_ClearCache>
+  <ATC_PolicyAgent_CacheCleared>Кэш решений предварительной оценки Agent очищен.</ATC_PolicyAgent_CacheCleared>
+  <ATC_PolicyAgent_CacheClearFailed>Не удалось очистить кэш решений предварительной оценки Agent.</ATC_PolicyAgent_CacheClearFailed>
+  <ATC_PolicyAgent_NoProvider>Нет готового совместимого поставщика ИИ-предварительной оценки Agent. DeepL не классифицирует текст; неоднозначный текст останется без изменений.</ATC_PolicyAgent_NoProvider>
+  <ATC_PolicyAgent_BudgetExhausted>Предварительная оценка Agent остановлен на мягком пороге. Оставшийся неоднозначный текст останется без изменений.</ATC_PolicyAgent_BudgetExhausted>
+  <ATC_PolicyAgent_BudgetPrompt_Title>Подтверждение мягкого порога предварительной оценки Agent</ATC_PolicyAgent_BudgetPrompt_Title>
+  <ATC_PolicyAgent_BudgetPrompt_Message>Следующий запрос предварительной оценки Agent превысит мягкий порог.\nМод: {0}\nВызовы задачи: {1} -&gt; {2} (порог {3}); текущий мод: {4} -&gt; {5} (порог {6})\nОценка токенов: {7} -&gt; {8} (порог {9}){10}\nУже обнаружено и ожидает обработки неоднозначных групп: около {11}\nТип запроса: {12}\nПосле продолжения повторных запросов для этой задачи не будет; квота и тарификация поставщика остаются в силе.</ATC_PolicyAgent_BudgetPrompt_Message>
+  <ATC_PolicyAgent_BudgetPrompt_ReportedTokens>Токены, сообщённые поставщиком на данный момент (могут быть неполными): {0}</ATC_PolicyAgent_BudgetPrompt_ReportedTokens>
+  <ATC_PolicyAgent_BudgetPrompt_RequestNew>новый запрос</ATC_PolicyAgent_BudgetPrompt_RequestNew>
+  <ATC_PolicyAgent_BudgetPrompt_RequestRetry>повторная попытка</ATC_PolicyAgent_BudgetPrompt_RequestRetry>
+  <ATC_PolicyAgent_BudgetPrompt_Continue>Продолжить с Agent</ATC_PolicyAgent_BudgetPrompt_Continue>
+  <ATC_PolicyAgent_BudgetPrompt_LocalOnly>Остановить Agent и продолжить</ATC_PolicyAgent_BudgetPrompt_LocalOnly>
+  <ATC_PolicyAgent_BudgetPrompt_Cancel>Отменить перевод</ATC_PolicyAgent_BudgetPrompt_Cancel>
+  <ATC_PolicyAgent_BudgetPrompt_Waiting>Ожидание выбора на мягком пороге предварительной оценки Agent</ATC_PolicyAgent_BudgetPrompt_Waiting>
+  <ATC_PolicyAgent_BudgetPrompt_Notice>Перевод приостанавливается на мягком пороге. Продолжение снимает внутренние пороги и повторные запросы для этой задачи, но квота и тарификация поставщика остаются в силе.</ATC_PolicyAgent_BudgetPrompt_Notice>
+  <ATC_PolicyAgent_EmergencyLimitReached>Предварительная оценка Agent достиг технического предохранителя ({0} вызовов или {1} оценочных токенов) и отключён до конца этой задачи.</ATC_PolicyAgent_EmergencyLimitReached>
+  <ATC_PolicyAgent_LocalOnlySelected>Agent отключён до конца этой задачи; новый неоднозначный текст останется без изменений.</ATC_PolicyAgent_LocalOnlySelected>
+  <ATC_PolicyAgent_BatchSummary>Предварительная оценка [{0}]: локально разрешено {1}, локально отклонено {2}, разрешено агентом {3}, сохранён оригинал {4}.</ATC_PolicyAgent_BatchSummary>
+  <ATC_PolicyAgent_BatchProgress>Пакеты предварительной оценки Agent: ожидается {0}, обработано {1}, ошибок {2}, выполняется {3}.</ATC_PolicyAgent_BatchProgress>
+  <ATC_PolicyAgent_RunSummary>Итог предварительной оценки Agent: вызовы {0}, оценка токенов {1}, попадания в кэш {2}, локально разрешено {3}, локально отклонено {4}, разрешено агентом {5}, отклонено агентом {6}, требует проверки {7}, не разрешено {8}.</ATC_PolicyAgent_RunSummary>
+  <ATC_HardcodedUi_EnablePrototype>Включать жёстко заданный UI-текст из DLL</ATC_HardcodedUi_EnablePrototype>
+  <ATC_HardcodedUi_EnablePrototypeTooltip>Пробный и основной запуск автоматически анализируют UI-текст DLL загруженных модов. Статический анализ обрабатывает определённые случаи, предварительная оценка Agent — только неопределённые, а ручной выбор всегда имеет приоритет. Сторонние DLL не перезаписываются.</ATC_HardcodedUi_EnablePrototypeTooltip>
+  <ATC_HardcodedUi_Status>Перевод жёстко заданного UI из DLL: {0}</ATC_HardcodedUi_Status>
+  <ATC_HardcodedUi_ReloadManifest>Перезагрузить одобренный UI manifest</ATC_HardcodedUi_ReloadManifest>
+  <ATC_HardcodedUi_Conflict>Целевая замена DLL приостановлена, пока включён старый глобальный перехват UI.</ATC_HardcodedUi_Conflict>
+  <ATC_HardcodedUi_AutoAnalyzing>Анализ жёстко заданного UI-текста DLL…</ATC_HardcodedUi_AutoAnalyzing>
+  <ATC_HardcodedUi_AutoTranslating>Перевод подтверждённого UI-текста DLL…</ATC_HardcodedUi_AutoTranslating>
+  <ATC_HardcodedUi_AutoBatchFailed>Сбой пакета DLL для {0} ({1} записей); исходный текст сохранён.</ATC_HardcodedUi_AutoBatchFailed>
+  <ATC_HardcodedUi_AutoDone>Обработка UI DLL завершена для {0} модов; сохранено {1} новых переводов.</ATC_HardcodedUi_AutoDone>
+  <ATC_HardcodedUi_AutoFailed>Ошибка обработки UI DLL, но XML-перевод остаётся доступен. Подробности: {0}</ATC_HardcodedUi_AutoFailed>
+  <ATC_Workbench_SourceAll>Все ({0})</ATC_Workbench_SourceAll>
+  <ATC_Workbench_SourceXml>XML ({0})</ATC_Workbench_SourceXml>
+  <ATC_Workbench_SourceDll>DLL ({0})</ATC_Workbench_SourceDll>
+  <ATC_Workbench_DllLoadFailed>Не удалось загрузить записи DLL: {0}</ATC_Workbench_DllLoadFailed>
+  <ATC_Workbench_DllStaleManifest>{0} сохранённых переводов DLL больше не соответствуют текущей сборке, обычно после обновления Mod/DLL. Их применение остановлено. Проверьте новое сканирование и сохраните изменения, чтобы очистить устаревшие записи.</ATC_Workbench_DllStaleManifest>
+  <ATC_Workbench_DllSaved>Переводы и решения DLL сохранены; запрошена перезагрузка во время выполнения.</ATC_Workbench_DllSaved>
+  <ATC_Workbench_TranslateCurrentRange>Перевести диапазон ({0})</ATC_Workbench_TranslateCurrentRange>
+  <ATC_Workbench_TranslateCurrentRangeTip>Переводит все подходящие результаты текущего источника, категории и поиска. Существующие переводы пропускаются, автоматического сохранения нет.</ATC_Workbench_TranslateCurrentRangeTip>
+  <ATC_Workbench_CurrentRangeProgress>Перевод {0}/{1}</ATC_Workbench_CurrentRangeProgress>
+  <ATC_Workbench_CurrentRangeNothing>В текущем диапазоне нет подходящих непереведённых записей.</ATC_Workbench_CurrentRangeNothing>
+  <ATC_Workbench_CurrentRangeStarted>Начат перевод {0} записей.</ATC_Workbench_CurrentRangeStarted>
+  <ATC_Workbench_CurrentRangeDone>Переведено {0}/{1}. Проверьте результат и сохраните вручную.</ATC_Workbench_CurrentRangeDone>
+  <ATC_Workbench_CurrentRangeStopped>Остановлено после {0}/{1}. Готовые результаты оставлены несохранёнными для проверки.</ATC_Workbench_CurrentRangeStopped>
+  <ATC_Workbench_CurrentRangePartial>Переведено {0}/{1}; некоторые пакеты завершились с ошибкой: {2}</ATC_Workbench_CurrentRangePartial>
+  <ATC_Workbench_DllAdvanced>Подробности анализа DLL</ATC_Workbench_DllAdvanced>
+  <ATC_Workbench_DllAdvancedTip>Открывает отдельную мастерскую DLL с путями доказательств, предварительной оценкой Agent и расширенными решениями.</ATC_Workbench_DllAdvancedTip>
+  <ATC_Workbench_DllDecisionTip>Выберите «Переводить», «Не переводить» или «Восстановить автоматически». Ручной выбор всегда имеет приоритет.</ATC_Workbench_DllDecisionTip>
   <ATC_SubTask_AnalyzingDict>Анализ локальных текстов локализации...</ATC_SubTask_AnalyzingDict>
   <ATC_SubTask_BuildingDict>Сборка словаря: {0}</ATC_SubTask_BuildingDict>
   <ATC_SubTask_DictDone>Словарь успешно собран!</ATC_SubTask_DictDone>
@@ -115,6 +185,10 @@
   <ATC_One_click_chaos>Рандомный выбор</ATC_One_click_chaos>
   <ATC_Rickroll>Ни в коем случае не нажимайте сюда...</ATC_Rickroll>
   <ATC_SelectAll>Выбрать все</ATC_SelectAll>
+  <ATC_SelectUntranslated>Untranslated Mods Only</ATC_SelectUntranslated>
+  <ATC_SelectUntranslated_Checking>Checking translation status...</ATC_SelectUntranslated_Checking>
+  <ATC_SelectUntranslated_Result>Selected {0} untranslated mods; official base game and DLC packages were excluded.</ATC_SelectUntranslated_Result>
+  <ATC_SelectUntranslated_Failed>Could not check untranslated mods. See the developer log.</ATC_SelectUntranslated_Failed>
   <ATC_DeselectAll>Снять выделение</ATC_DeselectAll>
   <ATC_Log_UIInterceptorStarted>Динамический перехватчик интерфейса запущен! Инициализация кэша...</ATC_Log_UIInterceptorStarted>
   <ATC_Log_UICacheLoaded>Успешно загружено {0} строк жестко закодированного кэша UI!</ATC_Log_UICacheLoaded>
@@ -145,7 +219,7 @@
   <ATC_Log_EnglishResidualRejected>[Проверка] Остаток английского не исправлен после повторной попытки: {0}</ATC_Log_EnglishResidualRejected>
   <ATC_Log_ProtectedTokenMismatchRejected>[Проверка] Несовпадение защищённых token не исправлено после повторной попытки: {0}</ATC_Log_ProtectedTokenMismatchRejected>
   <ATC_Log_PlaceholderRepairSummary>[Проверка] Исправлено {0} placeholder token в {1} созданных файлах перевода.</ATC_Log_PlaceholderRepairSummary>
-  <ATC_Profile_Current>Текущий профиль：{0} строк в пакете, повторов формата {1}, минимум тайм-аута {2} с</ATC_Profile_Current>
+  <ATC_Profile_Current>Текущий профиль：{0} строк в пакете, повторов формата {1}, фактический тайм-аут {2} с</ATC_Profile_Current>
   <ATC_Profile_DeepSeek>DeepSeek：консервативные пакеты для снижения риска пустого или неверного JSON.</ATC_Profile_DeepSeek>
   <ATC_Profile_Google>Google/Gemini：стандартные пакеты для стабильного массового перевода.</ATC_Profile_Google>
   <ATC_Profile_DeepL>DeepL：защита XML-тегов без повторного разбора LLM JSON.</ATC_Profile_DeepL>
@@ -164,7 +238,7 @@
   <ATC_OriginalText>Оригинал</ATC_OriginalText>
   <ATC_Log_MemoryDropSuccess>[Эирдроп в память] Успешно внедрено {0} системных строк и {1} определений предметов!</ATC_Log_MemoryDropSuccess>
   <ATC_LogError_MemoryDropFailed>[Сбой эирдропа в память] {0}</ATC_LogError_MemoryDropFailed>
-  <ATC_Button_HotReload>Горячая инъекция в один клик (мгновенное обновление экрана без перезапуска!)</ATC_Button_HotReload>
+  <ATC_Button_HotReload>Горячая перезагрузка</ATC_Button_HotReload>
   <ATC_Message_HotReloadSuccess>🪂 [Эирдроп в память] Данные перевода успешно внедрены, кэш окон UI обновлен!</ATC_Message_HotReloadSuccess>
   <ATC_Log_HotReloadSuccess>🪂 [Эирдроп в память] Данные перевода внедрены в ядро, кэш окон UI полностью обновлен!</ATC_Log_HotReloadSuccess>
   <ATC_LogError_InvalidXmlKey>[XML Защитник] AI вернул ключ с недопустимыми символами, строка пропущена: {0}</ATC_LogError_InvalidXmlKey>
@@ -311,7 +385,7 @@
   <ATC_Log_RetryAttempt>Получен ответ HTTP {0}. Попытка восстановления связи №{1} (ожидание {2} мс)...</ATC_Log_RetryAttempt>
   <ATC_Log_RetryTimeout>Превышено время ожидания. Запуск восстановления №{0} (пауза {1} мс)...</ATC_Log_RetryTimeout>
   <ATC_Setting_Timeout>Макс. время ожидания API: {0} сек.</ATC_Setting_Timeout>
-  <ATC_Setting_Timeout_Tooltip>Если сервер не ответит за указанное время, запрос будет сброшен для повторной попытки. Рекомендуется: 60-120\n(При использовании тяжелых рассуждающих моделей фоновое время ожидания принудительно увеличивается до 300 сек.)</ATC_Setting_Timeout_Tooltip>
+  <ATC_Setting_Timeout_Tooltip>Фактический предел ожидания API для перевода, терминологии и предварительной оценки Agent. Если полный ответ не получен вовремя, запрос прерывается и регистрируется тайм-аут. Поставщик или модель больше не увеличивают значение скрыто. Рекомендуется: 60–120 с.</ATC_Setting_Timeout_Tooltip>
   <ATC_FilteredCodeOnly>Отсеяно {0} модов без локализации (содержат только исполняемый код).</ATC_FilteredCodeOnly>
   <ATC_FilteredModsCount>Отсеяно {0} модов без сканируемых источников перевода</ATC_FilteredModsCount>
   <ATC_Log_DeepL_EndpointDetected>✅ Эндпоинт DeepL［{0}］успешно подключен.</ATC_Log_DeepL_EndpointDetected>
@@ -417,8 +491,6 @@
   <ATC_Error_FetchModels_RateLimit>[{0}] Отказ подключения (429): слишком много запросов за короткий промежуток времени. Попробуйте позже.</ATC_Error_FetchModels_RateLimit>
   <ATC_Error_FetchModels_ServerError>[{0}] Внутренняя ошибка сервера ({1}). Нестабильное состояние хоста. Подробно: {2}</ATC_Error_FetchModels_ServerError>
   <ATC_Error_FetchModels_Unknown>[{0}] Неизвестная ошибка получения моделей ({1}). Лог: {2}</ATC_Error_FetchModels_Unknown>
-  <ATC_Error_FetchModelsDispatchTimeout>[{0}] Model lookup did not start in time. Please close and reopen the settings panel, or try again after the game finishes loading.</ATC_Error_FetchModelsDispatchTimeout>
-  <ATC_Error_FetchModelsWatchdogReleased>[{0}] Model lookup timed out; stuck fetching state was released. Please retry later or click Refetch Models.</ATC_Error_FetchModelsWatchdogReleased>
   <ATC_Lang_French>Французский (Français)</ATC_Lang_French>
   <ATC_Lang_German>Немецкий (Deutsch)</ATC_Lang_German>
   <ATC_Lang_Spanish>Испанский (Español)</ATC_Lang_Spanish>
@@ -448,6 +520,7 @@
   <ATC_Cloud_NoLog>Автор не оставил описания изменений для этой версии.</ATC_Cloud_NoLog>
   <ATC_UploadPreview_Title>Консоль верификации пакета перед загрузкой - {0}</ATC_UploadPreview_Title>
   <ATC_UploadPreview_Loading>Выполняется проверка кодировки XML и анализ безопасности данных. Пожалуйста, подождите...</ATC_UploadPreview_Loading>
+  <ATC_Workbench_Loading>Загружаются данные XML и DLL текущего мода. Пожалуйста, подождите...</ATC_Workbench_Loading>
   <ATC_Preview_ClickToSee>Выберите элемент слева для двуязычного сопоставления исправлений</ATC_Preview_ClickToSee>
   <ATC_Upload_LogLabel>Описание изменений (для информирования пользователей об обновлении):</ATC_Upload_LogLabel>
   <ATC_Upload_LogHint>Кратко опишите, что было исправлено в этой версии (например: исправлен шрифт оружия, убраны опечатки диалогов...)</ATC_Upload_LogHint>
@@ -587,4 +660,169 @@
   <ATC_Blacklist_DownloadSkipped>Облачная загрузка пропущена для заблокированного мода: {0}</ATC_Blacklist_DownloadSkipped>
   <ATC_Blacklist_DownloadBlockedStatus>Облачная загрузка заблокирована</ATC_Blacklist_DownloadBlockedStatus>
   <ATC_Cloud_Btn_BatchBestTip>Загружает только активные установленные моды, для которых уже есть подходящий перевод в облаке.</ATC_Cloud_Btn_BatchBestTip>
+  <ATC_UsageBudget_Enable>Ограничить расход для этой задачи перевода</ATC_UsageBudget_Enable>
+  <ATC_UsageBudget_EnableTooltip>Проверяет бюджет до отправки запроса и сохраняет готовые результаты при паузе.</ATC_UsageBudget_EnableTooltip>
+  <ATC_UsageBudget_Characters>Максимум исходных символов: {0}</ATC_UsageBudget_Characters>
+  <ATC_UsageBudget_Notice>Интерфейс использует символы. Токены оцениваются внутри; после увеличения бюджета задачу можно продолжить.</ATC_UsageBudget_Notice>
+  <ATC_StructuredOutput_Label>Structured output</ATC_StructuredOutput_Label>
+  <ATC_StructuredOutput_Tooltip>Auto selects the safest supported format. Unsupported manual overrides fail without an automatic paid retry.</ATC_StructuredOutput_Tooltip>
+  <ATC_StructuredOutput_Effective>Effective: {0}</ATC_StructuredOutput_Effective>
+  <ATC_StructuredOutput_Auto>Auto (recommended)</ATC_StructuredOutput_Auto>
+  <ATC_StructuredOutput_PromptOnly>Prompt only</ATC_StructuredOutput_PromptOnly>
+  <ATC_StructuredOutput_JsonObject>JSON object</ATC_StructuredOutput_JsonObject>
+  <ATC_StructuredOutput_JsonSchema>Strict JSON Schema</ATC_StructuredOutput_JsonSchema>
+  <ATC_StructuredOutput_GeminiSchema>Gemini response schema</ATC_StructuredOutput_GeminiSchema>
+  <ATC_StructuredOutput_StrictFunction>Strict function call</ATC_StructuredOutput_StrictFunction>
+  <ATC_StructuredOutput_Native>Provider native</ATC_StructuredOutput_Native>
+  <ATC_TaskTier_Label>Task workload tier</ATC_TaskTier_Label>
+  <ATC_TaskTier_Bulk>Bulk translation (required)</ATC_TaskTier_Bulk>
+  <ATC_TaskTier_Standard>Standard task</ATC_TaskTier_Standard>
+  <ATC_TaskTier_Precision>Small precision task</ATC_TaskTier_Precision>
+  <ATC_TaskTier_Tooltip>Bulk tasks only use Bulk models. Standard tasks fall back to Precision, then Bulk; Precision tasks fall back to Standard, then Bulk. Higher tiers never replace a missing Bulk model.</ATC_TaskTier_Tooltip>
+  <ATC_TaskTier_RequiresBulk>Configure and enable another Bulk translation model before assigning this API entry to an optional tier.</ATC_TaskTier_RequiresBulk>
+  <ATC_TranslationCache_Clear>Clear validated translation reuse cache</ATC_TranslationCache_Clear>
+  <ATC_TranslationCache_Cleared>Validated translation reuse cache cleared.</ATC_TranslationCache_Cleared>
+  <ATC_TranslationCache_ClearFailed>Could not clear the validated translation reuse cache.</ATC_TranslationCache_ClearFailed>
+  <ATC_PolicyCloud_Enable>Использовать облачный кэш решений (требуется поддержка сервера)</ATC_PolicyCloud_Enable>
+  <ATC_PolicyCloud_Tooltip>Облачные решения используются повторно только при точном совпадении источника и версий правил. Результаты не отправляются автоматически; добавление необходимо подтвердить в списке модов.</ATC_PolicyCloud_Tooltip>
+  <ATC_SourcePriority_Open>Configure translation source priority</ATC_SourcePriority_Open>
+  <ATC_SourcePriority_Title>Translation source priority</ATC_SourcePriority_Title>
+  <ATC_SourcePriority_Notice>Higher rows win when multiple valid translations exist. Every candidate still passes deterministic token, format, and target-language validation.</ATC_SourcePriority_Notice>
+  <ATC_SourcePriority_Global>Global default order</ATC_SourcePriority_Global>
+  <ATC_SourcePriority_ResetDefault>Restore recommended order</ATC_SourcePriority_ResetDefault>
+  <ATC_SourcePriority_NoMods>No installed mods</ATC_SourcePriority_NoMods>
+  <ATC_SourcePriority_UseOverride>Use a custom order for this mod</ATC_SourcePriority_UseOverride>
+  <ATC_SourcePriority_ModHint>Per-mod order overrides the global default only for the selected package.</ATC_SourcePriority_ModHint>
+  <ATC_SourcePriority_SaveClose>Save and close</ATC_SourcePriority_SaveClose>
+  <ATC_SourcePriority_UserManual>User manual edits</ATC_SourcePriority_UserManual>
+  <ATC_SourcePriority_ExternalHuman>Third-party human translation</ATC_SourcePriority_ExternalHuman>
+  <ATC_SourcePriority_ModNative>Mod built-in translation</ATC_SourcePriority_ModNative>
+  <ATC_SourcePriority_Cloud>Cloud translation</ATC_SourcePriority_Cloud>
+  <ATC_SourcePriority_Automatic>Automatic translation</ATC_SourcePriority_Automatic>
+  <ATC_Log_ApiConcurrencyRetry>[API recovery] The provider reported excessive concurrency or request rate. Subsequent requests are temporarily serialized. Retry {0}/{1} starts in {2} seconds.</ATC_Log_ApiConcurrencyRetry>
+  <ATC_Log_ApiConcurrencyRecovered>[API recovery] The request succeeded after concurrency was reduced. Requests will remain serialized briefly to avoid another limit.</ATC_Log_ApiConcurrencyRecovered>
+  <ATC_LogError_ApiConcurrencyExhausted>[API concurrency/rate limit] Concurrency was reduced and waits were extended, but the provider still rejected {0} retries. Original text was preserved. Retry later or lower Max Threads in API settings.</ATC_LogError_ApiConcurrencyExhausted>
+  <ATC_ApiFailureCategory_Quota>insufficient API balance or quota</ATC_ApiFailureCategory_Quota>
+  <ATC_ApiFailureCategory_Concurrency>API server concurrency or request-rate limit</ATC_ApiFailureCategory_Concurrency>
+  <ATC_ApiFailureCategory_LocalDispatch>the request was not sent because the game could not create the network request</ATC_ApiFailureCategory_LocalDispatch>
+  <ATC_ApiFailureCategory_ResponseTimeout>the request was sent, but no complete response arrived before the timeout</ATC_ApiFailureCategory_ResponseTimeout>
+  <ATC_ApiFailureCategory_ResponseTimeoutDuringUpload>тайм-аут наступил до завершения отправки тела запроса; вероятный этап — соединение, TLS, шлюз или загрузка тела</ATC_ApiFailureCategory_ResponseTimeoutDuringUpload>
+  <ATC_ApiFailureCategory_ResponseTimeoutAfterUpload>тело запроса полностью передано сетевому слою, но полный ответ не получен; вероятный этап — обработка сервером или получение ответа</ATC_ApiFailureCategory_ResponseTimeoutAfterUpload>
+  <ATC_ApiFailureCategory_UnityTransportStall>сетевой запрос Unity не завершился и за 15 секунд очистки после заданного тайм-аута; зависший транспорт был принудительно остановлен</ATC_ApiFailureCategory_UnityTransportStall>
+  <ATC_ApiFailureCategory_Http>the provider returned an HTTP error</ATC_ApiFailureCategory_Http>
+  <ATC_ApiFailureCategory_InvalidResponse>the provider responded, but the content was not a usable translation result</ATC_ApiFailureCategory_InvalidResponse>
+  <ATC_ApiFailureCategory_Configuration>no enabled API or model is available for this task tier</ATC_ApiFailureCategory_Configuration>
+  <ATC_ApiFailureCategory_BudgetDenied>the local usage limit configured for this translation run has been reached, so the task is paused</ATC_ApiFailureCategory_BudgetDenied>
+  <ATC_ApiFailureCategory_Cancelled>the request was cancelled by the user</ATC_ApiFailureCategory_Cancelled>
+  <ATC_ApiFailureCategory_Transport>the network connection or request transport failed</ATC_ApiFailureCategory_Transport>
+  <ATC_ApiResponse_None>no response</ATC_ApiResponse_None>
+  <ATC_LogError_ApiFailureUnknown>【{0}】 produced no usable translation. The original was preserved for retry. Check the API configuration, network, and provider status.</ATC_LogError_ApiFailureUnknown>
+  <ATC_LogError_ApiFailureDetailed>【{0}】 produced no usable translation. Failure type: {1}. The original was preserved and recorded for retry. [Developer details] {2}</ATC_LogError_ApiFailureDetailed>
+  <ATC_ErrorAggregate_Summary>Same root cause: {0} failed batches, {1} affected entries. Per-batch details remain in AutoTranslation_Log.txt.</ATC_ErrorAggregate_Summary>
+  <ATC_Terminology_Enable>Включить интеллектуальный анализ единообразия терминов</ATC_Terminology_Enable>
+  <ATC_Terminology_EnableTooltip>По умолчанию выключено. Анализируются только выбранные моды; может вызываться Agent терминов, что увеличит время и расход Token без полной гарантии качества.</ATC_Terminology_EnableTooltip>
+  <ATC_Terminology_Configure>Выбрать моды для анализа терминов ({0})</ATC_Terminology_Configure>
+  <ATC_Terminology_Title>Единообразие терминов: моды и общие группы</ATC_Terminology_Title>
+  <ATC_Terminology_Notice>Только отмеченные моды создают кандидаты или запросы Agent. Одна группа может совместно проверять и использовать термины; разные группы изолированы.</ATC_Terminology_Notice>
+  <ATC_Terminology_ModColumn>Активные моды, участвующие в анализе</ATC_Terminology_ModColumn>
+  <ATC_Terminology_GroupColumn>Общая группа терминов (необязательно)</ATC_Terminology_GroupColumn>
+  <ATC_Terminology_GroupHint>Например: серия Milira</ATC_Terminology_GroupHint>
+  <ATC_Terminology_SelectedCount>Выбрано модов: {0}. При выключенном общем переключателе анализ не выполняется.</ATC_Terminology_SelectedCount>
+  <ATC_Terminology_Review>Проверить термины ({0})</ATC_Terminology_Review>
+  <ATC_Terminology_ReviewTitle>Конфликты терминов и ручное подтверждение</ATC_Terminology_ReviewTitle>
+  <ATC_Terminology_ReviewNotice>Agent и автоматические данные создают только временные термины. Проверьте перевод и область перед подтверждением. Подтверждённые пользователем термины имеют высший приоритет.</ATC_Terminology_ReviewNotice>
+  <ATC_Terminology_Refresh>Обновить</ATC_Terminology_Refresh>
+  <ATC_Terminology_ReviewCount>Терминов на проверке: {0}</ATC_Terminology_ReviewCount>
+  <ATC_Terminology_Conflict>Конфликтующие переводы в одной области: {0}</ATC_Terminology_Conflict>
+  <ATC_Terminology_Target>Перевод</ATC_Terminology_Target>
+  <ATC_Terminology_Role>Роль</ATC_Terminology_Role>
+  <ATC_Terminology_Approve>Подтвердить</ATC_Terminology_Approve>
+  <ATC_Terminology_Reject>Отклонить</ATC_Terminology_Reject>
+  <ATC_Terminology_ScopeMod>Мод: {0}</ATC_Terminology_ScopeMod>
+  <ATC_Terminology_ScopeGroup>Группа: {0}</ATC_Terminology_ScopeGroup>
+  <ATC_Terminology_ScopeGlobal>Глобально</ATC_Terminology_ScopeGlobal>
+  <ATC_PolicyCloud_RuntimeUnavailable>Облачный кэш решений временно недоступен. Автоматически используются локальные правила и Agent; перевод продолжится.</ATC_PolicyCloud_RuntimeUnavailable>
+  <ATC_PolicyCloud_RuntimeRecovered>Облачный кэш решений снова доступен.</ATC_PolicyCloud_RuntimeRecovered>
+  <ATC_Stop>Остановить</ATC_Stop>
+  <ATC_Filter_AllTranslationStates>Перевод: все</ATC_Filter_AllTranslationStates>
+  <ATC_Filter_Translated>Перевод: переведено</ATC_Filter_Translated>
+  <ATC_Filter_Untranslated>Перевод: не переведено</ATC_Filter_Untranslated>
+  <ATC_Filter_UntranslatedIncludingDll>Перевод: не переведено (включая DLL)</ATC_Filter_UntranslatedIncludingDll>
+  <ATC_Filter_AllDecisions>Решение: все</ATC_Filter_AllDecisions>
+  <ATC_Filter_DecisionTranslate>Решение: переводить</ATC_Filter_DecisionTranslate>
+  <ATC_Filter_DecisionDoNotTranslate>Решение: не переводить</ATC_Filter_DecisionDoNotTranslate>
+  <ATC_Filter_DecisionUncertain>Решение: неясно</ATC_Filter_DecisionUncertain>
+  <ATC_Filter_VisibleCount>Показано записей: {0}</ATC_Filter_VisibleCount>
+  <ATC_HardcodedUi_ChangeDecision>Нажмите, чтобы изменить решение</ATC_HardcodedUi_ChangeDecision>
+  <ATC_HardcodedUi_BatchProgress>Анализ DLL {0}/{1}: {2}</ATC_HardcodedUi_BatchProgress>
+  <ATC_HardcodedUi_BatchProgressIdle>Анализ DLL ещё не запущен</ATC_HardcodedUi_BatchProgressIdle>
+  <ATC_HardcodedUi_BatchProgressDone>Анализ DLL завершён: модов {0}, кандидатов {1}</ATC_HardcodedUi_BatchProgressDone>
+  <ATC_HardcodedUi_BatchProgressStopped>Анализ DLL остановлен: завершено модов {0}</ATC_HardcodedUi_BatchProgressStopped>
+  <ATC_HardcodedUi_AnalyzeSelectedDll>Анализ выбранных DLL</ATC_HardcodedUi_AnalyzeSelectedDll>
+  <ATC_Disabled_DllFeatureOff>Анализ жёстко заданного UI в DLL не включён</ATC_Disabled_DllFeatureOff>
+  <ATC_PolicyPreflight_Finalizing>Результат готов; сохранение и очистка…</ATC_PolicyPreflight_Finalizing>
+  <ATC_HardcodedUi_RestoreModDefaults>Восстановить</ATC_HardcodedUi_RestoreModDefaults>
+  <ATC_HardcodedUi_RestoreModDefaultsConfirm>Удалить {1} ручных решений для «{0}» и восстановить автоматические решения?</ATC_HardcodedUi_RestoreModDefaultsConfirm>
+  <ATC_HardcodedUi_RestoreModDefaultsDone>Восстановлено ручных решений: {0}.</ATC_HardcodedUi_RestoreModDefaultsDone>
+  <ATC_HardcodedUi_NoModOverrides>Для этого мода нет решений, изменённых вручную</ATC_HardcodedUi_NoModOverrides>
+  <ATC_HardcodedUi_BatchScanStopped>Анализ DLL остановлен после {0} модов.</ATC_HardcodedUi_BatchScanStopped>
+  <ATC_DisabledReason>Недоступно: {0}</ATC_DisabledReason>
+  <ATC_Disabled_Stopping>выполняется остановка фоновых запросов</ATC_Disabled_Stopping>
+  <ATC_Disabled_TaskRunning>уже выполняется перевод или анализ</ATC_Disabled_TaskRunning>
+  <ATC_Disabled_StatusChecking>проверяется состояние перевода модов</ATC_Disabled_StatusChecking>
+  <ATC_Disabled_NoResult>результат пробного запуска ещё не создан</ATC_Disabled_NoResult>
+  <ATC_Disabled_AgentNotConfigured>не настроена модель для прогноза Agent</ATC_Disabled_AgentNotConfigured>
+  <ATC_Disabled_TranslationNotConfigured>не настроена модель перевода</ATC_Disabled_TranslationNotConfigured>
+  <ATC_Disabled_NoModSelected>мод не выбран</ATC_Disabled_NoModSelected>
+  <ATC_Disabled_ApiBusy>запросы API ещё ожидают или выполняются</ATC_Disabled_ApiBusy>
+  <ATC_Disabled_DllScanning>выполняется пакетный анализ DLL</ATC_Disabled_DllScanning>
+  <ATC_Disabled_ModNameTranslation>выполняется перевод названий модов</ATC_Disabled_ModNameTranslation>
+  <ATC_Disabled_NotReady>не выполнены необходимые условия</ATC_Disabled_NotReady>
+  <ATC_Disabled_NoActiveTask>нет активной задачи перевода или анализа</ATC_Disabled_NoActiveTask>
+  <ATC_Disabled_WorkbenchBusy>рабочая область занята другой операцией</ATC_Disabled_WorkbenchBusy>
+  <ATC_Disabled_NoScanResult>сначала просканируйте DLL</ATC_Disabled_NoScanResult>
+  <ATC_Disabled_NoTranslatableEntries>нет элементов, отмеченных для перевода</ATC_Disabled_NoTranslatableEntries>
+  <ATC_Disabled_NoUnsavedChanges>нет несохранённых изменений</ATC_Disabled_NoUnsavedChanges>
+  <ATC_StopAllTaskTooltip>Останавливает всю активную цепочку ATC: перевод, анализ Agent, ожидающие и активные запросы API, ожидание повторов и старую очередь UI-перевода. RimWorld и другие моды не затрагиваются.</ATC_StopAllTaskTooltip>
+  <ATC_PolicyCloud_ServiceUpgradePending>Облачный кэш решений недоступен до развёртывания на сервере разделения XML/DLL и контракта schema v2. Прогноз Agent можно использовать отдельно.</ATC_PolicyCloud_ServiceUpgradePending>
+  <ATC_PolicyCloud_StatusUnavailable>Облачное решение: ожидание обновления</ATC_PolicyCloud_StatusUnavailable>
+  <ATC_EnableDevelopmentDebugLogging>Включить отладочный журнал разработки (по умолчанию выключен)</ATC_EnableDevelopmentDebugLogging>
+  <ATC_EnableDevelopmentDebugLoggingTooltip>Записывает подробную диагностику жизненного цикла запросов в журнал RimWorld и AutoTranslation_Log.txt. Ключи API, заголовки авторизации и содержимое запросов не записываются.</ATC_EnableDevelopmentDebugLoggingTooltip>
+  <ATC_PolicyAgent_ApiTitle>Dedicated Policy Agent API</ATC_PolicyAgent_ApiTitle>
+  <ATC_PolicyAgent_ApiNotice>Use a separate provider, key, base URL, and model here. The Policy Agent never uses the translation API list.</ATC_PolicyAgent_ApiNotice>
+  <ATC_PolicyAgent_ApiEnabled>Enable this dedicated Agent API configuration</ATC_PolicyAgent_ApiEnabled>
+  <ATC_PolicyAgent_ApiReady>Dedicated Agent API is ready.</ATC_PolicyAgent_ApiReady>
+  <ATC_PolicyAgent_ApiIncomplete>Dedicated Agent API is incomplete; the Policy Agent will not use translation API keys.</ATC_PolicyAgent_ApiIncomplete>
+  <ATC_FilteredModsButton>Отфильтровано: {0} | принудительно: {1}</ATC_FilteredModsButton>
+  <ATC_Filtered_Title>Отфильтрованные моды ({0})</ATC_Filtered_Title>
+  <ATC_Filtered_Summary>Причины полного или частичного исключения модов из перевода. Принудительно включено: {0}.</ATC_Filtered_Summary>
+  <ATC_Filtered_Search>Поиск по моду, Package ID, причине или пути...</ATC_Filtered_Search>
+  <ATC_Filtered_Refreshing>Проверка модов: {0} / {1}</ATC_Filtered_Refreshing>
+  <ATC_Filtered_OpenFolder>Открыть папку</ATC_Filtered_OpenFolder>
+  <ATC_Filtered_OpenFolderTip>Открыть корневую папку мода в проводнике.</ATC_Filtered_OpenFolderTip>
+  <ATC_Filtered_ForceInclude>Включить принудительно</ATC_Filtered_ForceInclude>
+  <ATC_Filtered_CancelForce>Отменить</ATC_Filtered_CancelForce>
+  <ATC_Filtered_ForceTip>Использовать найденные Defs / Languages вне обычных путей сканирования.</ATC_Filtered_ForceTip>
+  <ATC_Filtered_ForceUnavailableTip>Распознаваемые XML Defs или Languages не найдены.</ATC_Filtered_ForceUnavailableTip>
+  <ATC_Filtered_ForceTitle>Принудительное включение в перевод</ATC_Filtered_ForceTitle>
+  <ATC_Filtered_ForceWarning>Принудительно включить «{0}»?
+
+Найденные XML могут не загружаться RimWorld и относиться к старой версии или неиспользуемому содержимому. Это увеличит время и расход токенов, а перевод может не появиться в игре.</ATC_Filtered_ForceWarning>
+  <ATC_Filtered_ForceConfirm>Все равно включить</ATC_Filtered_ForceConfirm>
+  <ATC_Filtered_ForceEnabled>Мод принудительно включен и появится после обновления списка.</ATC_Filtered_ForceEnabled>
+  <ATC_Filtered_ForceDisabled>Принудительное включение этого мода отменено.</ATC_Filtered_ForceDisabled>
+  <ATC_Filtered_FolderMissing>Папка мода отсутствует или перемещена.</ATC_Filtered_FolderMissing>
+  <ATC_Filtered_FolderOpenFailed>Не удалось открыть папку мода: {0}</ATC_Filtered_FolderOpenFailed>
+  <ATC_Filtered_ReasonTool>Инструмент перевода или языковой пакет; самоперевод отключен</ATC_Filtered_ReasonTool>
+  <ATC_Filtered_ReasonTranslationPatch>Определен как патч перевода для другого мода</ATC_Filtered_ReasonTranslationPatch>
+  <ATC_Filtered_ReasonBlacklist>Заблокирован списком исключений игрока</ATC_Filtered_ReasonBlacklist>
+  <ATC_Filtered_ReasonMissingRoot>Корневая папка мода не существует</ATC_Filtered_ReasonMissingRoot>
+  <ATC_Filtered_ReasonUnsupportedLayout>Источники найдены вне путей, загружаемых RimWorld</ATC_Filtered_ReasonUnsupportedLayout>
+  <ATC_Filtered_ReasonPartialSources>Некоторые источники Defs или Languages находятся вне активных путей содержимого RimWorld</ATC_Filtered_ReasonPartialSources>
+  <ATC_Filtered_ReasonNoSources>Не найдены Defs или Languages с XML</ATC_Filtered_ReasonNoSources>
+  <ATC_Filtered_ReasonForceIncluded>Принудительно включен игроком</ATC_Filtered_ReasonForceIncluded>
+  <ATC_Filtered_ReasonScanFailed>Ошибка проверки мода: {0}</ATC_Filtered_ReasonScanFailed>
+  <ATC_Filtered_NoCandidatePaths>Подходящий путь к источникам не найден</ATC_Filtered_NoCandidatePaths>
+  <ATC_Filtered_CandidatePaths>Возможные источники: {0}</ATC_Filtered_CandidatePaths>
+  <ATC_Filtered_CandidateHeader>Найденные возможные источники:</ATC_Filtered_CandidateHeader>
 </LanguageData>

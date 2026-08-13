@@ -345,16 +345,11 @@ namespace AutoTranslator_Core
                 end++;
             }
 
-            string version = candidate.Substring(0, end);
-            return version == "1.0" ||
-                   version == "1.1" ||
-                   version == "1.2" ||
-                   version == "1.3" ||
-                   version == "1.4" ||
-                   version == "1.5" ||
-                   version == "1.6"
-                ? version
-                : null;
+            string version = candidate.Substring(0, end).TrimEnd('.');
+            Version parsed;
+            if (!Version.TryParse(version, out parsed) || parsed.Major != 1 || parsed.Minor < 0 || parsed.Minor > 6)
+                return null;
+            return version;
         }
 
 
@@ -373,46 +368,415 @@ namespace AutoTranslator_Core
             if (string.IsNullOrWhiteSpace(rootDir)) return activeFolders;
 
             string modRoot = Path.GetFullPath(rootDir);
-            string loadFolderXml = Path.Combine(modRoot, "LoadFolders.xml");
-
-            if (File.Exists(loadFolderXml))
+            bool selectedManifestBranch;
+            if (TryParseLoadFolders(modRoot, out activeFolders, out selectedManifestBranch) &&
+                activeFolders.Count > 0)
             {
-                try
-                {
-                    XmlDocument doc = new XmlDocument();
-                    doc.Load(loadFolderXml);
-
-                    string[] versionsToCheck = GetCurrentLoadFolderVersions();
-                    foreach (string ver in versionsToCheck)
-                    {
-                        XmlNode verNode = doc.SelectSingleNode($"//loadFolders/{ver}");
-                        if (verNode != null)
-                        {
-                            foreach (XmlNode li in verNode.ChildNodes)
-                            {
-                                if (li.Name == "li" && !string.IsNullOrWhiteSpace(li.InnerText))
-                                {
-                                    string relativePath = li.InnerText.Trim().Replace('/', '\\');
-                                    string folderPath = relativePath == "\\" || relativePath == ""
-                                        ? modRoot
-                                        : Path.Combine(modRoot, relativePath);
-
-                                    if (Directory.Exists(folderPath)) activeFolders.Add(folderPath);
-                                }
-                            }
-                            if (activeFolders.Count > 0) break;
-                        }
-                    }
-                }
-                catch { }
+                return activeFolders;
             }
 
-            if (activeFolders.Count == 0)
+            activeFolders.Clear();
+            if (Directory.Exists(modRoot))
             {
                 activeFolders.Add(modRoot);
             }
 
-            return activeFolders.Distinct().ToList();
+            return activeFolders.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        private static bool TryParseLoadFolders(
+            string modRoot,
+            out List<string> activeFolders,
+            out bool selectedManifestBranch)
+        {
+            activeFolders = new List<string>();
+            selectedManifestBranch = false;
+            if (string.IsNullOrWhiteSpace(modRoot)) return false;
+
+            string loadFolderXml = Path.Combine(modRoot, "LoadFolders.xml");
+            if (!File.Exists(loadFolderXml)) return false;
+
+            if (TryResolveNativeLoadFolders(modRoot, out activeFolders, out selectedManifestBranch))
+            {
+                return true;
+            }
+
+            try
+            {
+                XmlDocument doc = new XmlDocument { XmlResolver = null };
+                doc.Load(loadFolderXml);
+                XmlNode rootNode = doc.DocumentElement;
+                if (rootNode == null || !rootNode.Name.Equals("loadFolders", StringComparison.OrdinalIgnoreCase))
+                    return false;
+
+                XmlNode selectedNode = SelectLoadFoldersVersionNode(rootNode);
+                if (selectedNode == null) return false;
+                selectedManifestBranch = true;
+
+                foreach (XmlNode li in selectedNode.ChildNodes.Cast<XmlNode>().Reverse())
+                {
+                    if (li.NodeType != XmlNodeType.Element ||
+                        !li.Name.Equals("li", StringComparison.OrdinalIgnoreCase) ||
+                        string.IsNullOrWhiteSpace(li.InnerText) ||
+                        !ShouldUseLoadFolderEntry(li))
+                    {
+                        continue;
+                    }
+
+                    string relativePath = li.InnerText.Trim().Replace('/', Path.DirectorySeparatorChar);
+                    string folderPath = relativePath == Path.DirectorySeparatorChar.ToString() || relativePath == ""
+                        ? modRoot
+                        : Path.Combine(modRoot, relativePath);
+                    if (Directory.Exists(folderPath)) activeFolders.Add(NormalizeCachePath(folderPath));
+                }
+
+                activeFolders = activeFolders
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                return true;
+            }
+            catch
+            {
+                activeFolders.Clear();
+                selectedManifestBranch = false;
+                return false;
+            }
+        }
+
+        private static bool TryResolveNativeLoadFolders(
+            string modRoot,
+            out List<string> activeFolders,
+            out bool selectedManifestBranch)
+        {
+            activeFolders = new List<string>();
+            selectedManifestBranch = false;
+            try
+            {
+                ModMetaData metadata = ModLister.AllInstalledMods.FirstOrDefault(mod =>
+                    mod != null && mod.RootDir != null && PathsEqual(mod.RootDir.FullName, modRoot));
+                if (metadata == null || metadata.loadFolders == null) return false;
+
+                List<string> definedVersions = metadata.loadFolders.DefinedVersions() ?? new List<string>();
+                string currentVersionText = VersionControl.CurrentVersionString;
+                bool selectedBranch = HasExactLoadFolderVersion(definedVersions, currentVersionText);
+                List<LoadFolder> selected = selectedBranch
+                    ? metadata.LoadFoldersForVersion(currentVersionText)
+                    : null;
+                if (!selectedBranch)
+                {
+                    Version current = VersionControl.CurrentVersion;
+                    string nearest = definedVersions
+                        .Where(version => !string.IsNullOrWhiteSpace(version) &&
+                                          !version.Equals("default", StringComparison.OrdinalIgnoreCase))
+                        .Select(version => new { Text = version, Parsed = TryParseLoadFolderVersion(version) })
+                        .Where(item => item.Parsed != null && item.Parsed <= current)
+                        .OrderByDescending(item => item.Parsed)
+                        .Select(item => item.Text)
+                        .FirstOrDefault();
+                    if (!string.IsNullOrEmpty(nearest))
+                    {
+                        selected = metadata.LoadFoldersForVersion(nearest);
+                        selectedBranch = true;
+                    }
+                }
+                if (!selectedBranch && definedVersions.Any(
+                    version => version.Equals("default", StringComparison.OrdinalIgnoreCase)))
+                {
+                    selected = metadata.LoadFoldersForVersion("default");
+                    selectedBranch = true;
+                }
+                if (!selectedBranch) return false;
+
+                selectedManifestBranch = true;
+                foreach (LoadFolder loadFolder in (selected ?? new List<LoadFolder>()).AsEnumerable().Reverse())
+                {
+                    if (loadFolder == null || !loadFolder.ShouldLoad) continue;
+
+                    string relative = (loadFolder.folderName ?? "").Trim().Replace('/', Path.DirectorySeparatorChar);
+                    string fullPath = relative == Path.DirectorySeparatorChar.ToString() || relative == ""
+                        ? modRoot
+                        : Path.Combine(modRoot, relative);
+                    if (Directory.Exists(fullPath)) activeFolders.Add(NormalizeCachePath(fullPath));
+                }
+
+                activeFolders = activeFolders
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                return true;
+            }
+            catch
+            {
+                activeFolders.Clear();
+                selectedManifestBranch = false;
+                return false;
+            }
+        }
+
+        private static bool HasExactLoadFolderVersion(
+            IEnumerable<string> definedVersions,
+            string currentVersion)
+        {
+            string currentText = GetStrictLoadFolderVersionText(currentVersion);
+            if (string.IsNullOrEmpty(currentText) || TryParseLoadFolderVersion(currentText) == null)
+                return false;
+
+            return (definedVersions ?? Enumerable.Empty<string>()).Any(version =>
+            {
+                string definedText = GetStrictLoadFolderVersionText(version);
+                return !string.IsNullOrEmpty(definedText) &&
+                       TryParseLoadFolderVersion(definedText) != null &&
+                       string.Equals(definedText, currentText, StringComparison.OrdinalIgnoreCase);
+            });
+        }
+
+        private static Version TryParseLoadFolderVersion(string value)
+        {
+            string candidate = GetStrictLoadFolderVersionText(value);
+            if (string.IsNullOrEmpty(candidate)) return null;
+            Version parsed;
+            return Version.TryParse(candidate, out parsed) ? parsed : null;
+        }
+
+        private static string GetStrictLoadFolderVersionText(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return null;
+            string candidate = value.Trim();
+            if (candidate.StartsWith("v", StringComparison.OrdinalIgnoreCase)) candidate = candidate.Substring(1);
+            return candidate;
+        }
+
+        private static XmlNode SelectLoadFoldersVersionNode(XmlNode rootNode)
+        {
+            Version current;
+            try
+            {
+                current = VersionControl.CurrentVersion;
+            }
+            catch
+            {
+                if (!Version.TryParse(CurrentRimWorldVersion, out current)) return null;
+            }
+            string exactVersion;
+            try
+            {
+                exactVersion = VersionControl.CurrentVersionString;
+            }
+            catch
+            {
+                exactVersion = CurrentRimWorldVersion;
+            }
+
+            XmlNode exact = null;
+            XmlNode nearest = null;
+            Version nearestVersion = null;
+            XmlNode defaultNode = null;
+
+            foreach (XmlNode child in rootNode.ChildNodes)
+            {
+                if (child.NodeType != XmlNodeType.Element) continue;
+                if (child.Name.Equals("default", StringComparison.OrdinalIgnoreCase))
+                {
+                    defaultNode = child;
+                    continue;
+                }
+
+                string versionText = GetStrictLoadFolderVersionText(child.Name);
+                Version candidate = TryParseLoadFolderVersion(child.Name);
+                if (candidate == null) continue;
+                if (string.Equals(versionText, exactVersion, StringComparison.OrdinalIgnoreCase))
+                {
+                    exact = child;
+                    break;
+                }
+                if (candidate > current || (nearestVersion != null && candidate <= nearestVersion)) continue;
+                nearest = child;
+                nearestVersion = candidate;
+            }
+
+            return exact ?? nearest ?? defaultNode;
+        }
+
+        private static bool ShouldUseLoadFolderEntry(XmlNode li)
+        {
+            try
+            {
+                string anyActive = GetXmlAttribute(li, "IfModActive");
+                if (!string.IsNullOrWhiteSpace(anyActive) && !IsAnyListedModActive(anyActive)) return false;
+
+#if !RIMWORLD_1_5
+                string allActive = GetXmlAttribute(li, "IfModActiveAll");
+                if (!string.IsNullOrWhiteSpace(allActive) && !AreAllListedModsActive(allActive)) return false;
+#endif
+
+                string notActive = GetXmlAttribute(li, "IfModNotActive");
+                if (!string.IsNullOrWhiteSpace(notActive) && IsAnyListedModActive(notActive)) return false;
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static string GetXmlAttribute(XmlNode node, string name)
+        {
+            if (node == null || node.Attributes == null) return "";
+            XmlAttribute attribute = node.Attributes.Cast<XmlAttribute>()
+                .FirstOrDefault(candidate => candidate.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+            return attribute != null ? attribute.Value ?? "" : "";
+        }
+
+        private static bool IsAnyListedModActive(string packageIds)
+        {
+            if (string.IsNullOrWhiteSpace(packageIds)) return false;
+            List<string> ids = packageIds
+                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(id => id.Trim())
+                .Where(id => id.Length > 0)
+                .ToList();
+#if RIMWORLD_1_5
+            return ModLister.AnyFromListActive(ids);
+#else
+            return ModLister.AnyModActiveNoSuffix(ids);
+#endif
+        }
+
+#if !RIMWORLD_1_5
+        private static bool AreAllListedModsActive(string packageIds)
+        {
+            if (string.IsNullOrWhiteSpace(packageIds)) return true;
+            List<string> ids = packageIds
+                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(id => id.Trim())
+                .Where(id => id.Length > 0)
+                .ToList();
+            return ModLister.AllModsActiveNoSuffix(ids);
+        }
+#endif
+
+        private static List<string> ResolveContentRootsForScanning(
+            string packageId,
+            string rootDir,
+            out bool usedRunningModRoots)
+        {
+            usedRunningModRoots = false;
+            List<string> result = new List<string>();
+            if (string.IsNullOrWhiteSpace(rootDir)) return result;
+
+            string modRoot = NormalizeCachePath(rootDir);
+            try
+            {
+                bool matchedRunningMod = false;
+                foreach (ModContentPack content in LoadedModManager.RunningModsListForReading)
+                {
+                    if (content == null) continue;
+
+                    bool rootMatches = PathsEqual(content.RootDir, modRoot);
+                    if (!rootMatches) continue;
+                    matchedRunningMod = true;
+
+                    if (content.foldersToLoadDescendingOrder != null)
+                    {
+                        foreach (string folder in content.foldersToLoadDescendingOrder)
+                        {
+                            if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder)) continue;
+                            result.Add(NormalizeCachePath(folder));
+                        }
+                    }
+
+                    usedRunningModRoots = true;
+                    break;
+                }
+
+                if (matchedRunningMod) usedRunningModRoots = true;
+            }
+            catch
+            {
+                result.Clear();
+                usedRunningModRoots = false;
+            }
+
+            if (!usedRunningModRoots)
+            {
+                result = ResolveFallbackContentRoots(modRoot);
+            }
+
+            return result
+                .Where(Directory.Exists)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static List<string> ResolveFallbackContentRoots(string modRoot)
+        {
+            List<string> parsed;
+            bool selectedManifestBranch;
+            if (TryParseLoadFolders(modRoot, out parsed, out selectedManifestBranch) &&
+                selectedManifestBranch)
+            {
+                return parsed;
+            }
+
+            List<string> result = new List<string>();
+            string fallbackVersionRoot = FindBestFallbackVersionRoot(modRoot);
+            if (!string.IsNullOrEmpty(fallbackVersionRoot)) result.Add(fallbackVersionRoot);
+
+            string commonRoot = Path.Combine(modRoot, "Common");
+            if (Directory.Exists(commonRoot)) result.Add(commonRoot);
+            if (Directory.Exists(modRoot)) result.Add(modRoot);
+
+            return result
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static string FindBestFallbackVersionRoot(string modRoot)
+        {
+            if (string.IsNullOrWhiteSpace(modRoot) || !Directory.Exists(modRoot)) return null;
+
+            Version current;
+            try
+            {
+                current = VersionControl.CurrentVersion;
+            }
+            catch
+            {
+                if (!Version.TryParse(CurrentRimWorldVersion, out current)) return null;
+            }
+
+            string bestPath = null;
+            Version bestVersion = null;
+            try
+            {
+                foreach (string directory in Directory.GetDirectories(modRoot, "*", SearchOption.TopDirectoryOnly))
+                {
+                    Version candidate = TryParseLoadFolderVersion(Path.GetFileName(directory));
+                    if (candidate == null) continue;
+                    if (candidate > current || (bestVersion != null && candidate <= bestVersion)) continue;
+
+                    bestVersion = candidate;
+                    bestPath = NormalizeCachePath(directory);
+                }
+            }
+            catch { }
+
+            return bestPath;
+        }
+
+        private static bool PathsEqual(string left, string right)
+        {
+            if (string.IsNullOrWhiteSpace(left) || string.IsNullOrWhiteSpace(right)) return false;
+            try
+            {
+                return string.Equals(
+                    NormalizeCachePath(left).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                    NormalizeCachePath(right).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                    StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
         }
 
 
@@ -441,15 +805,207 @@ namespace AutoTranslator_Core
         public static bool HasScannableTranslationSources(ModMetaData mod)
         {
             if (mod == null) return false;
-            return GetAllEffectiveLangPaths(mod).Count > 0 ||
-                   GetAllEffectiveDefsPaths(mod).Count > 0;
+            return HasUsableTranslationSources(GetModPathIndex(mod));
         }
 
         public static bool HasScannableTranslationSources(string packageId, string rootDir)
         {
             if (string.IsNullOrWhiteSpace(rootDir)) return false;
-            return GetAllEffectiveLangPaths(packageId, rootDir).Count > 0 ||
-                   GetAllEffectiveDefsPaths(packageId, rootDir).Count > 0;
+            return HasUsableTranslationSources(GetModPathIndex(packageId, rootDir));
+        }
+
+        internal static bool HasScannableTranslationSourcesNormally(string packageId, string rootDir)
+        {
+            if (string.IsNullOrWhiteSpace(rootDir)) return false;
+            ModPathIndexCacheEntry index = GetModPathIndex(packageId, rootDir, false);
+            return HasUsableTranslationSources(index);
+        }
+
+        private static bool HasUsableTranslationSources(ModPathIndexCacheEntry index)
+        {
+            if (index == null) return false;
+            return index.EffectiveDefsPaths.Any(ContainsXmlFiles) ||
+                   index.EffectiveLangPaths.Any(ContainsAnyTranslationLanguageSource);
+        }
+
+        internal static List<string> GetForceTranslationCandidatePaths(string rootDir)
+        {
+            List<string> result = new List<string>();
+            result.AddRange(DiscoverForceTranslationCandidateDefsPaths(rootDir));
+            result.AddRange(DiscoverForceTranslationCandidateLangPaths(rootDir));
+            return FilterEligibleForceTranslationCandidatePaths(rootDir, result);
+        }
+
+        private static List<string> GetForceTranslationCandidateDefsPaths(string rootDir)
+        {
+            return FilterEligibleForceTranslationCandidatePaths(
+                rootDir,
+                DiscoverForceTranslationCandidateDefsPaths(rootDir));
+        }
+
+        private static List<string> DiscoverForceTranslationCandidateDefsPaths(string rootDir)
+        {
+            List<string> result = new List<string>();
+            if (string.IsNullOrWhiteSpace(rootDir) || !Directory.Exists(rootDir)) return result;
+
+            AddDefsRootsFrom(rootDir, rootDir, result, true);
+            return result
+                .Where(path => ContainsXmlFiles(path))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static List<string> GetForceTranslationCandidateLangPaths(string rootDir)
+        {
+            return FilterEligibleForceTranslationCandidatePaths(
+                rootDir,
+                DiscoverForceTranslationCandidateLangPaths(rootDir));
+        }
+
+        private static List<string> DiscoverForceTranslationCandidateLangPaths(string rootDir)
+        {
+            List<string> result = new List<string>();
+            if (string.IsNullOrWhiteSpace(rootDir) || !Directory.Exists(rootDir)) return result;
+
+            AddLanguageRootsFrom(rootDir, rootDir, result, true);
+            return result
+                .Where(ContainsAnyTranslationLanguageSource)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static List<string> FilterEligibleForceTranslationCandidatePaths(
+            string rootDir,
+            IEnumerable<string> candidates)
+        {
+            List<string> result = new List<string>();
+            if (string.IsNullOrWhiteSpace(rootDir) || candidates == null || !Directory.Exists(rootDir))
+                return result;
+
+            string modRoot = NormalizeCachePath(rootDir)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            bool usedRunningModRoots;
+            List<string> activeContentRoots = ResolveContentRootsForScanning(
+                "",
+                modRoot,
+                out usedRunningModRoots);
+            List<string> inactiveManifestRoots = GetInactiveManifestContentRoots(
+                modRoot,
+                activeContentRoots);
+
+            foreach (string candidate in candidates)
+            {
+                if (!IsEligibleForceTranslationCandidate(
+                    modRoot,
+                    candidate,
+                    activeContentRoots,
+                    inactiveManifestRoots))
+                {
+                    continue;
+                }
+
+                result.Add(NormalizeCachePath(candidate));
+            }
+
+            return result.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        private static bool IsEligibleForceTranslationCandidate(
+            string modRoot,
+            string candidate,
+            List<string> activeContentRoots,
+            List<string> inactiveManifestRoots)
+        {
+            if (string.IsNullOrWhiteSpace(modRoot) || string.IsNullOrWhiteSpace(candidate)) return false;
+
+            string normalizedCandidate = NormalizeCachePath(candidate)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            if (!IsSameOrAncestorPath(modRoot, normalizedCandidate)) return false;
+
+            if ((inactiveManifestRoots ?? new List<string>()).Any(
+                inactiveRoot => IsSameOrAncestorPath(inactiveRoot, normalizedCandidate)))
+            {
+                return false;
+            }
+
+            string relative = normalizedCandidate.Substring(modRoot.Length)
+                .TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            if (relative.Length == 0) return true;
+
+            int separator = relative.IndexOfAny(new[]
+            {
+                Path.DirectorySeparatorChar,
+                Path.AltDirectorySeparatorChar
+            });
+            string topFolder = separator >= 0 ? relative.Substring(0, separator) : relative;
+            bool isReservedContentBranch =
+                topFolder.Equals("Common", StringComparison.OrdinalIgnoreCase) ||
+                TryParseLoadFolderVersion(topFolder) != null;
+            if (!isReservedContentBranch) return true;
+
+            string reservedRoot = NormalizeCachePath(Path.Combine(modRoot, topFolder));
+            return (activeContentRoots ?? new List<string>()).Any(
+                activeRoot => PathsEqual(activeRoot, reservedRoot));
+        }
+
+        private static List<string> GetInactiveManifestContentRoots(
+            string modRoot,
+            List<string> activeContentRoots)
+        {
+            List<string> result = new List<string>();
+            string manifestPath = Path.Combine(modRoot ?? "", "LoadFolders.xml");
+            if (!File.Exists(manifestPath)) return result;
+
+            try
+            {
+                XmlDocument doc = new XmlDocument { XmlResolver = null };
+                doc.Load(manifestPath);
+                foreach (XmlNode li in doc.GetElementsByTagName("li"))
+                {
+                    if (li == null || string.IsNullOrWhiteSpace(li.InnerText)) continue;
+
+                    string relative = li.InnerText.Trim().Replace('/', Path.DirectorySeparatorChar);
+                    string declaredRoot = relative == Path.DirectorySeparatorChar.ToString() || relative == ""
+                        ? modRoot
+                        : NormalizeCachePath(Path.Combine(modRoot, relative));
+                    bool containsActiveRoot = (activeContentRoots ?? new List<string>()).Any(
+                        activeRoot => IsSameOrAncestorPath(declaredRoot, activeRoot));
+                    if (!containsActiveRoot) result.Add(declaredRoot);
+                }
+            }
+            catch
+            {
+                return new List<string>();
+            }
+
+            return result.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        private static bool ContainsAnyTranslationLanguageSource(string languageRoot)
+        {
+            if (string.IsNullOrWhiteSpace(languageRoot) || !Directory.Exists(languageRoot)) return false;
+            try
+            {
+                return Directory.GetDirectories(languageRoot).Any(ContainsTranslationXmlFiles);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static void AddDirectLanguageRoot(string contentRoot, List<string> result)
+        {
+            if (string.IsNullOrWhiteSpace(contentRoot) || result == null) return;
+            string direct = Path.Combine(contentRoot, "Languages");
+            if (Directory.Exists(direct)) result.Add(direct);
+        }
+
+        private static void AddDirectDefsRoot(string contentRoot, List<string> result)
+        {
+            if (string.IsNullOrWhiteSpace(contentRoot) || result == null) return;
+            string direct = Path.Combine(contentRoot, "Defs");
+            if (Directory.Exists(direct)) result.Add(direct);
         }
 
         private static void AddLanguageRootsFrom(string root, string modRoot, List<string> result)
@@ -682,12 +1238,21 @@ namespace AutoTranslator_Core
 
         private static void AddDefsRootsFrom(string root, string modRoot, List<string> result)
         {
+            AddDefsRootsFrom(root, modRoot, result, false);
+        }
+
+        private static void AddDefsRootsFrom(
+            string root,
+            string modRoot,
+            List<string> result,
+            bool includeOldVersionPaths)
+        {
             if (string.IsNullOrEmpty(root) || string.IsNullOrEmpty(modRoot) || result == null || !Directory.Exists(root)) return;
 
             try
             {
                 string direct = Path.Combine(root, "Defs");
-                if (Directory.Exists(direct) && !IsOldVersionPath(modRoot, direct))
+                if (Directory.Exists(direct) && (includeOldVersionPaths || !IsOldVersionPath(modRoot, direct)))
                 {
                     result.Add(direct);
                 }
@@ -695,7 +1260,7 @@ namespace AutoTranslator_Core
                 var dirs = Directory.GetDirectories(root, "Defs", SearchOption.AllDirectories);
                 foreach (var dir in dirs)
                 {
-                    if (!IsOldVersionPath(modRoot, dir)) result.Add(dir);
+                    if (includeOldVersionPaths || !IsOldVersionPath(modRoot, dir)) result.Add(dir);
                 }
             }
             catch { }

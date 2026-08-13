@@ -102,6 +102,7 @@ namespace AutoTranslator_Core
             IEnumerable<ModMetaData> mods = ModLister.AllInstalledMods
                 .Where(mod => mod != null &&
                               !string.IsNullOrWhiteSpace(mod.PackageId) &&
+                              !AutoTranslatorScanner.IsOfficialBaseGameOrDlcPackage(mod.PackageId) &&
                               !string.Equals(mod.PackageId, "auto.aitranslation.core", StringComparison.OrdinalIgnoreCase));
             if (search.Length > 0)
             {

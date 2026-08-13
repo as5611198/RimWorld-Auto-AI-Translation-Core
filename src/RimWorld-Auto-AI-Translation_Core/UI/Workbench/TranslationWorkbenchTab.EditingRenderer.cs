@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using Verse;
 using static AutoTranslator_Core.DeleteTranslationWindow;
+using AutoTranslator_Core.TargetedHardcodedUi;
 // 這個檔案負責 翻譯工作台分頁編輯繪製 相關邏輯，支援 Auto Translation Core 的執行流程。
 // EN: This file contains translation workbench tab editing renderer support code.
 
@@ -27,7 +28,7 @@ namespace AutoTranslator_Core
                         : "ATC_Workbench_BackToList".Translate().ToString();
                     if (Verse.Widgets.ButtonText(backBtnRect, "🔙 " + backLabel))
                     {
-                        if (_isSavingModifications) return;
+                        if (_isSavingModifications || _isTranslatingCurrentRange) return;
                         ReturnToWorkbenchModList();
                         return;
                     }
@@ -38,66 +39,13 @@ namespace AutoTranslator_Core
                     if (_isLoading)
                     {
                         Verse.Text.Anchor = UnityEngine.TextAnchor.MiddleCenter;
-                        Verse.Widgets.Label(new UnityEngine.Rect(leftOutRect.x, leftOutRect.y + 50f, leftOutRect.width, 100f), "🔄 " + "ATC_UploadPreview_Loading".Translate());
+                        Verse.Widgets.Label(new UnityEngine.Rect(leftOutRect.x, leftOutRect.y + 50f, leftOutRect.width, 100f), "🔄 " + "ATC_Workbench_Loading".Translate());
                         Verse.Text.Anchor = UnityEngine.TextAnchor.UpperLeft;
                     }
                     else
                     {
                         UnityEngine.Rect catOutRect = new UnityEngine.Rect(leftOutRect.x, leftOutRect.y + 50f, leftOutRect.width, leftOutRect.height - 50f);
-                        UnityEngine.Rect catViewRect = new UnityEngine.Rect(0, 0, catOutRect.width - 20f, (_categorizedData.Count + 1) * WorkbenchCategoryRowHeight);
-                        Verse.Widgets.BeginScrollView(catOutRect, ref _catListScroll, catViewRect);
-                        try
-                        {
-                            float curY = 0f;
-                            UnityEngine.Rect allRowRect = new UnityEngine.Rect(5f, curY, catViewRect.width - 5f, 30f);
-                            if (IsAllWorkbenchCategoriesSelected()) Verse.Widgets.DrawHighlightSelected(allRowRect);
-                            else Verse.Widgets.DrawHighlightIfMouseover(allRowRect);
-                            if (Verse.Widgets.ButtonInvisible(allRowRect))
-                            {
-                                _selectedCategory = AllWorkbenchCategoriesView;
-                                _itemScroll = UnityEngine.Vector2.zero;
-                                InvalidateVisibleItemCache();
-                            }
-                            int totalEntries = _categorizedData.Values.Where(items => items != null).Sum(items => items.Count);
-                            string allCategoriesLabel = "ATC_Workbench_AllCategories".Translate(totalEntries).ToString();
-                            Verse.Text.WordWrap = false;
-                            Verse.Widgets.Label(allRowRect, allCategoriesLabel);
-                            Verse.Text.WordWrap = true;
-                            if (UnityEngine.GUI.skin.label.CalcSize(new UnityEngine.GUIContent(allCategoriesLabel)).x > allRowRect.width)
-                            {
-                                TooltipHandler.TipRegion(allRowRect, allCategoriesLabel);
-                            }
-                            curY += WorkbenchCategoryRowHeight;
-
-                            foreach (var category in _categorizedData.Keys)
-                            {
-                                UnityEngine.Rect rowRect = new UnityEngine.Rect(5f, curY, catViewRect.width - 5f, 30f);
-                                if (_selectedCategory == category) Verse.Widgets.DrawHighlightSelected(rowRect);
-                                else Verse.Widgets.DrawHighlightIfMouseover(rowRect);
-
-                        if (Verse.Widgets.ButtonInvisible(rowRect))
-                        {
-                            _selectedCategory = category;
-                            _itemScroll = UnityEngine.Vector2.zero;
-                            InvalidateVisibleItemCache();
-                        }
-
-                                string categoryLabel = $"{category} ({_categorizedData[category].Count})";
-                                Verse.Text.WordWrap = false;
-                                Verse.Widgets.Label(rowRect, categoryLabel);
-                                Verse.Text.WordWrap = true;
-                                if (UnityEngine.GUI.skin.label.CalcSize(new UnityEngine.GUIContent(categoryLabel)).x > rowRect.width)
-                                {
-                                    TooltipHandler.TipRegion(rowRect, categoryLabel);
-                                }
-                                curY += WorkbenchCategoryRowHeight;
-                            }
-                        }
-                        finally
-                        {
-                            Verse.Text.WordWrap = true;
-                            Verse.Widgets.EndScrollView();
-                        }
+                        DrawWorkbenchSourceTree(catOutRect);
                     }
 
                     UnityEngine.Rect headerRect = new UnityEngine.Rect(rightOutRect.x + 10f, rightOutRect.y + 5f, rightOutRect.width - 20f, 30f);
@@ -108,7 +56,7 @@ namespace AutoTranslator_Core
                     bool compactEditingToolbar = rightOutRect.width < 430f;
                     float itemSearchWidth = compactEditingToolbar
                         ? Mathf.Max(60f, rightOutRect.width - 160f)
-                        : rightOutRect.width - 275f;
+                        : rightOutRect.width - 535f;
                     UnityEngine.Rect itemSearchRect = new UnityEngine.Rect(rightOutRect.x + 10f, rightOutRect.y + 40f, itemSearchWidth, 30f);
                     string newSearchText = Verse.Widgets.TextField(itemSearchRect, _itemSearchText);
                     if (!string.Equals(newSearchText, _itemSearchText, StringComparison.Ordinal))
@@ -124,13 +72,59 @@ namespace AutoTranslator_Core
                         UnityEngine.GUI.color = UnityEngine.Color.white;
                     }
 
+                    Rect itemTranslationFilterRect = compactEditingToolbar
+                        ? new Rect(rightOutRect.x + 10f, rightOutRect.y + 97f, 160f, 22f)
+                        : new Rect(itemSearchRect.xMax + 8f, rightOutRect.y + 40f, 122f, 30f);
+                    string itemTranslationFilterLabel = _workbenchItemTranslationFilter == WorkbenchItemTranslationFilter.Translated
+                        ? "ATC_Filter_Translated".Translate().ToString()
+                        : _workbenchItemTranslationFilter == WorkbenchItemTranslationFilter.Untranslated
+                            ? "ATC_Filter_Untranslated".Translate().ToString()
+                            : "ATC_Filter_AllTranslationStates".Translate().ToString();
+                    if (Widgets.ButtonText(itemTranslationFilterRect, itemTranslationFilterLabel))
+                    {
+                        Find.WindowStack.Add(new FloatMenu(new List<FloatMenuOption>
+                        {
+                            new FloatMenuOption("ATC_Filter_AllTranslationStates".Translate(), () => SetWorkbenchItemTranslationFilter(WorkbenchItemTranslationFilter.All)),
+                            new FloatMenuOption("ATC_Filter_Translated".Translate(), () => SetWorkbenchItemTranslationFilter(WorkbenchItemTranslationFilter.Translated)),
+                            new FloatMenuOption("ATC_Filter_Untranslated".Translate(), () => SetWorkbenchItemTranslationFilter(WorkbenchItemTranslationFilter.Untranslated))
+                        }));
+                    }
+
+                    UnityEngine.Rect translateRangeBtnRect = compactEditingToolbar
+                        ? new UnityEngine.Rect(rightOutRect.x + 125f, rightOutRect.y + 73f, rightOutRect.width - 135f, 22f)
+                        : new UnityEngine.Rect(rightOutRect.xMax - 385f, rightOutRect.y + 40f, 120f, 30f);
+                    List<WorkbenchItem> currentRangeTargets = _isLoading
+                        ? new List<WorkbenchItem>()
+                        : GetCurrentRangeTranslationTargets();
+                    bool canTranslateRange = !_isTranslatingCurrentRange && !_isSavingModifications &&
+                                             !AutoTranslatorSettings.IsRunning &&
+                                             !AutoTranslatorAPI.HasOutstandingTranslationWork &&
+                                             currentRangeTargets.Count > 0;
+                    GUI.color = canTranslateRange ? new Color(0.55f, 0.9f, 0.75f) : Color.gray;
+                    string rangeLabel = _isTranslatingCurrentRange
+                        ? "ATC_Workbench_CurrentRangeProgress".Translate(_currentRangeTranslated, _currentRangeTotal).ToString()
+                        : "ATC_Workbench_TranslateCurrentRange".Translate(currentRangeTargets.Count).ToString();
+                    if (Widgets.ButtonText(translateRangeBtnRect, rangeLabel) && canTranslateRange)
+                        StartTranslateCurrentWorkbenchRange();
+                    TooltipHandler.TipRegion(translateRangeBtnRect, "ATC_Workbench_TranslateCurrentRangeTip".Translate());
+                    AddWorkbenchDisabledReasonTooltip(
+                        translateRangeBtnRect,
+                        !canTranslateRange,
+                        AutoTranslatorSettings.IsRunning
+                            ? "ATC_Disabled_TaskRunning".Translate().ToString()
+                            : AutoTranslatorAPI.HasOutstandingTranslationWork
+                                ? "ATC_Disabled_ApiBusy".Translate().ToString()
+                                : currentRangeTargets.Count == 0
+                                    ? "ATC_Disabled_NoTranslatableEntries".Translate().ToString()
+                                    : "ATC_Disabled_WorkbenchBusy".Translate().ToString());
+
                     UnityEngine.Rect batchReplaceBtnRect = compactEditingToolbar
                         ? new UnityEngine.Rect(rightOutRect.x + 10f, rightOutRect.y + 73f, 110f, 22f)
                         : new UnityEngine.Rect(rightOutRect.xMax - 255f, rightOutRect.y + 40f, 110f, 30f);
-                    GUI.color = _isSavingModifications ? UnityEngine.Color.gray : new UnityEngine.Color(0.7f, 0.85f, 1f);
+                    GUI.color = _isSavingModifications || _isTranslatingCurrentRange ? UnityEngine.Color.gray : new UnityEngine.Color(0.7f, 0.85f, 1f);
                     if (Verse.Widgets.ButtonText(batchReplaceBtnRect, "ATC_Workbench_BatchReplaceBtn".Translate()))
                     {
-                        if (!_isSavingModifications)
+                        if (!_isSavingModifications && !_isTranslatingCurrentRange)
                         {
                             Find.WindowStack.Add(new Window_WorkbenchBatchReplace());
                         }
@@ -139,10 +133,14 @@ namespace AutoTranslator_Core
                     {
                         TooltipHandler.TipRegion(batchReplaceBtnRect, "ATC_Workbench_BatchReplaceTip".Translate());
                     }
+                    AddWorkbenchDisabledReasonTooltip(
+                        batchReplaceBtnRect,
+                        _isSavingModifications || _isTranslatingCurrentRange,
+                        "ATC_Disabled_WorkbenchBusy".Translate().ToString());
 
                     UnityEngine.Rect saveBtnRect = new UnityEngine.Rect(rightOutRect.xMax - 140f, rightOutRect.y + 40f, 130f, 30f);
                     bool hasUnsavedChanges = HasUnsavedWorkbenchChanges();
-                    UnityEngine.GUI.color = _isSavingModifications
+                    UnityEngine.GUI.color = _isSavingModifications || _isTranslatingCurrentRange
                         ? UnityEngine.Color.gray
                         : (hasUnsavedChanges ? new UnityEngine.Color(0.4f, 1f, 0.4f) : new UnityEngine.Color(0.45f, 0.45f, 0.45f));
                     string saveLabel = _isSavingModifications
@@ -150,56 +148,74 @@ namespace AutoTranslator_Core
                         : (hasUnsavedChanges ? "ATC_Workbench_SaveBtn".Translate().ToString() : "ATC_Workbench_SaveSynced".Translate().ToString());
                     if (Verse.Widgets.ButtonText(saveBtnRect, "💾 " + saveLabel))
                     {
-                        if (_isSavingModifications || !hasUnsavedChanges) return;
-                        SaveModifications();
+                        if (_isSavingModifications || _isTranslatingCurrentRange || !hasUnsavedChanges) return;
+                        SaveWorkbenchChanges();
                     }
+                    AddWorkbenchDisabledReasonTooltip(
+                        saveBtnRect,
+                        _isSavingModifications || _isTranslatingCurrentRange || !hasUnsavedChanges,
+                        _isSavingModifications || _isTranslatingCurrentRange
+                            ? "ATC_Disabled_WorkbenchBusy".Translate().ToString()
+                            : "ATC_Disabled_NoUnsavedChanges".Translate().ToString());
                     UnityEngine.GUI.color = UnityEngine.Color.white;
 
                     UnityEngine.Rect statusLineRect = compactEditingToolbar
-                        ? new UnityEngine.Rect(rightOutRect.x + 125f, rightOutRect.y + 73f, rightOutRect.width - 135f, 20f)
+                        ? new UnityEngine.Rect(rightOutRect.x + 178f, rightOutRect.y + 97f, rightOutRect.width - 188f, 20f)
                         : new UnityEngine.Rect(rightOutRect.x + 10f, rightOutRect.y + 73f, rightOutRect.width - 20f, 20f);
                     DrawWorkbenchStatusLine(statusLineRect, hasUnsavedChanges);
 
                     float manualButtonGap = 6f;
                     float manualButtonWidth = (rightOutRect.width - 20f - manualButtonGap * 2f) / 3f;
-                    float manualButtonY = rightOutRect.y + 97f;
+                    float manualButtonY = rightOutRect.y + (compactEditingToolbar ? 121f : 97f);
                     Rect exportOriginalRect = new Rect(rightOutRect.x + 10f, manualButtonY, manualButtonWidth, 28f);
                     Rect importEditedRect = new Rect(exportOriginalRect.xMax + manualButtonGap, manualButtonY, manualButtonWidth, 28f);
                     Rect openWorkspaceRect = new Rect(importEditedRect.xMax + manualButtonGap, manualButtonY, manualButtonWidth, 28f);
 
-                    bool canUseManualXml = !_isLoading && !_isSavingModifications && !_isManualXmlBusy &&
+                    bool showManualXml = _selectedWorkbenchSource == WorkbenchSourceKind.Xml;
+                    bool canUseManualXml = showManualXml && !_isLoading && !_isSavingModifications && !_isManualXmlBusy &&
                                            !string.IsNullOrEmpty(_selectedCategory);
-                    GUI.color = canUseManualXml ? new Color(0.62f, 0.84f, 1f) : Color.gray;
-                    if (Widgets.ButtonText(exportOriginalRect, "ATC_Workbench_ExportOriginalXml".Translate()) && canUseManualXml)
+                    if (showManualXml)
                     {
-                        ExportCurrentWorkbenchOriginalXml();
-                    }
-                    TooltipHandler.TipRegion(exportOriginalRect, "ATC_Workbench_ExportOriginalXmlTip".Translate());
+                        GUI.color = canUseManualXml ? new Color(0.62f, 0.84f, 1f) : Color.gray;
+                        if (Widgets.ButtonText(exportOriginalRect, "ATC_Workbench_ExportOriginalXml".Translate()) && canUseManualXml)
+                            ExportCurrentWorkbenchOriginalXml();
+                        TooltipHandler.TipRegion(exportOriginalRect, "ATC_Workbench_ExportOriginalXmlTip".Translate());
+                        AddWorkbenchDisabledReasonTooltip(exportOriginalRect, !canUseManualXml, "ATC_Disabled_WorkbenchBusy".Translate().ToString());
 
-                    GUI.color = canUseManualXml ? new Color(0.62f, 0.92f, 0.72f) : Color.gray;
-                    if (Widgets.ButtonText(importEditedRect, "ATC_Workbench_ImportEditedXml".Translate()) && canUseManualXml)
-                    {
-                        ImportCurrentWorkbenchManualXml();
-                    }
-                    TooltipHandler.TipRegion(importEditedRect, "ATC_Workbench_ImportEditedXmlTip".Translate());
+                        GUI.color = canUseManualXml ? new Color(0.62f, 0.92f, 0.72f) : Color.gray;
+                        if (Widgets.ButtonText(importEditedRect, "ATC_Workbench_ImportEditedXml".Translate()) && canUseManualXml)
+                            ImportCurrentWorkbenchManualXml();
+                        TooltipHandler.TipRegion(importEditedRect, "ATC_Workbench_ImportEditedXmlTip".Translate());
+                        AddWorkbenchDisabledReasonTooltip(importEditedRect, !canUseManualXml, "ATC_Disabled_WorkbenchBusy".Translate().ToString());
 
-                    GUI.color = !_isManualXmlBusy ? Color.white : Color.gray;
-                    if (Widgets.ButtonText(openWorkspaceRect, "ATC_Workbench_OpenWorkspace".Translate()) && !_isManualXmlBusy)
-                    {
-                        OpenCurrentWorkbenchWorkspace();
+                        GUI.color = !_isManualXmlBusy ? Color.white : Color.gray;
+                        if (Widgets.ButtonText(openWorkspaceRect, "ATC_Workbench_OpenWorkspace".Translate()) && !_isManualXmlBusy)
+                            OpenCurrentWorkbenchWorkspace();
+                        TooltipHandler.TipRegion(openWorkspaceRect, "ATC_Workbench_OpenWorkspaceTip".Translate());
+                        AddWorkbenchDisabledReasonTooltip(openWorkspaceRect, _isManualXmlBusy, "ATC_Disabled_WorkbenchBusy".Translate().ToString());
                     }
-                    TooltipHandler.TipRegion(openWorkspaceRect, "ATC_Workbench_OpenWorkspaceTip".Translate());
+                    else if (_selectedWorkbenchSource == WorkbenchSourceKind.Dll)
+                    {
+                        GUI.color = Color.white;
+                        if (Widgets.ButtonText(exportOriginalRect, "ATC_Workbench_DllAdvanced".Translate()))
+                            Find.WindowStack.Add(new Window_HardcodedUiWorkbench(_editingMod));
+                        TooltipHandler.TipRegion(exportOriginalRect, "ATC_Workbench_DllAdvancedTip".Translate());
+                    }
                     GUI.color = Color.white;
 
-                    Verse.Widgets.DrawLineHorizontal(rightOutRect.x, rightOutRect.y + 131f, rightOutRect.width);
+                    float itemAreaTop = manualButtonY + 39f;
+                    Verse.Widgets.DrawLineHorizontal(rightOutRect.x, itemAreaTop - 5f, rightOutRect.width);
 
                     if (!_isLoading && !string.IsNullOrEmpty(_selectedCategory) &&
-                        (IsAllWorkbenchCategoriesSelected() || _categorizedData.ContainsKey(_selectedCategory)))
+                        (_selectedWorkbenchSource == WorkbenchSourceKind.All ||
+                         IsAllWorkbenchCategoriesSelected() ||
+                         (_selectedWorkbenchSource == WorkbenchSourceKind.Xml && _categorizedData.ContainsKey(_selectedCategory)) ||
+                         (_selectedWorkbenchSource == WorkbenchSourceKind.Dll && _dllCategorizedData.ContainsKey(_selectedCategory))))
                     {
                         var items = GetVisibleItemsForCurrentCategory(GetCurrentWorkbenchSourceItems());
 
                         float rowHeight = WorkbenchItemRowHeight;
-                        UnityEngine.Rect itemsOutRect = new UnityEngine.Rect(rightOutRect.x, rightOutRect.y + 136f, rightOutRect.width, rightOutRect.height - 136f);
+                        UnityEngine.Rect itemsOutRect = new UnityEngine.Rect(rightOutRect.x, itemAreaTop, rightOutRect.width, rightOutRect.yMax - itemAreaTop);
                         UnityEngine.Rect itemsViewRect = new UnityEngine.Rect(0, 0, itemsOutRect.width - 20f, items.Count * rowHeight);
                         int firstVisible = Mathf.Max(0, Mathf.FloorToInt(_itemScroll.y / rowHeight) - 2);
                         int lastVisible = Mathf.Min(items.Count - 1, Mathf.CeilToInt((_itemScroll.y + itemsOutRect.height) / rowHeight) + 2);
@@ -224,8 +240,9 @@ namespace AutoTranslator_Core
 
                                 Verse.Text.Font = Verse.GameFont.Tiny;
                                 UnityEngine.GUI.color = UnityEngine.Color.gray;
-                                string rowTitle = IsAllWorkbenchCategoriesSelected()
-                                    ? $"[{itemCategory}] {item.Key}"
+                                string sourceLabel = item.Source == WorkbenchSourceKind.Dll ? "DLL" : "XML";
+                                string rowTitle = _selectedWorkbenchSource == WorkbenchSourceKind.All || IsAllWorkbenchCategoriesSelected()
+                                    ? $"[{sourceLabel}/{itemCategory}] {item.Key}"
                                     : item.Key;
                                 bool retainedEditedItem = IsRetainedEditedWorkbenchItem(item);
                                 string mismatchSearchText = isFocusedItem && _activeWorkbenchFocus != null
@@ -245,21 +262,36 @@ namespace AutoTranslator_Core
                                 Verse.Text.WordWrap = true;
 
                                 UnityEngine.Rect correctionBtnRect = new UnityEngine.Rect(itemRect.xMax - 112f, itemRect.y, 108f, 22f);
-                                UnityEngine.GUI.color = new UnityEngine.Color(0.55f, 0.85f, 1f);
-                                if (Verse.Widgets.ButtonText(correctionBtnRect, "ATC_Correction_RowBtn".Translate()))
+                                if (item.Source == WorkbenchSourceKind.Xml)
                                 {
-                                    Find.WindowStack.Add(new Window_CorrectionSubmit(
-                                        _editingMod,
-                                        itemCategory,
-                                        item.Key,
-                                        item.OriginalText,
-                                        item.OriginalTranslatedText ?? "",
-                                        item.TranslatedText ?? ""));
+                                    UnityEngine.GUI.color = new UnityEngine.Color(0.55f, 0.85f, 1f);
+                                    if (Verse.Widgets.ButtonText(correctionBtnRect, "ATC_Correction_RowBtn".Translate()))
+                                    {
+                                        Find.WindowStack.Add(new Window_CorrectionSubmit(
+                                            _editingMod,
+                                            itemCategory,
+                                            item.Key,
+                                            item.OriginalText,
+                                            item.OriginalTranslatedText ?? "",
+                                            item.TranslatedText ?? ""));
+                                    }
+                                    UnityEngine.GUI.color = UnityEngine.Color.gray;
+                                    if (Mouse.IsOver(correctionBtnRect))
+                                        TooltipHandler.TipRegion(correctionBtnRect, "ATC_Correction_RowBtnTip".Translate());
                                 }
-                                UnityEngine.GUI.color = UnityEngine.Color.gray;
-                                if (Mouse.IsOver(correctionBtnRect))
+                                else
                                 {
-                                    TooltipHandler.TipRegion(correctionBtnRect, "ATC_Correction_RowBtnTip".Translate());
+                                    HardcodedUiDecisionRecord decision = item.DllDecision;
+                                    string decisionLabel = GetWorkbenchDllDecisionLabel(decision) +
+                                        (decision != null && decision.UserOverride != HardcodedUiUserOverride.None ? " *" : string.Empty);
+                                    UnityEngine.GUI.color = decision != null && decision.EffectiveDecision == HardcodedUiAutomaticDecision.Translate
+                                        ? new Color(0.55f, 0.9f, 0.65f)
+                                        : decision != null && decision.EffectiveDecision == HardcodedUiAutomaticDecision.DoNotTranslate
+                                            ? new Color(1f, 0.55f, 0.55f)
+                                            : new Color(1f, 0.82f, 0.35f);
+                                    if (Widgets.ButtonText(correctionBtnRect, decisionLabel) && !_isSavingModifications)
+                                        OpenDllWorkbenchDecisionMenu(item);
+                                    TooltipHandler.TipRegion(correctionBtnRect, "ATC_Workbench_DllDecisionTip".Translate());
                                 }
 
                                 UnityEngine.Rect revertBtnRect = new UnityEngine.Rect(correctionBtnRect.x - 86f, itemRect.y, 78f, 22f);
@@ -280,7 +312,7 @@ namespace AutoTranslator_Core
                                     TooltipHandler.TipRegion(copyOriginalBtnRect, "ATC_Workbench_CopyOriginalTip".Translate());
                                 }
 
-                                bool canTranslateOriginal = hasOriginalText && !item.IsTranslatingOriginal && !_isSavingModifications;
+                                bool canTranslateOriginal = hasOriginalText && !item.IsTranslatingOriginal && !_isSavingModifications && !_isTranslatingCurrentRange;
                                 UnityEngine.GUI.color = canTranslateOriginal ? new UnityEngine.Color(0.55f, 0.9f, 0.75f) : UnityEngine.Color.gray;
                                 string translateOriginalLabel = item.IsTranslatingOriginal
                                     ? "ATC_Workbench_TranslateOriginalBusy".Translate().ToString()
@@ -326,7 +358,7 @@ namespace AutoTranslator_Core
 
 
                                 string newText = item.TranslatedText ?? "";
-                                if (_isSavingModifications)
+                                if (_isSavingModifications || _isTranslatingCurrentRange)
                                 {
                                     Verse.Widgets.Label(transRect, newText);
                                 }
@@ -339,6 +371,7 @@ namespace AutoTranslator_Core
                                 if (newText != item.TranslatedText)
                                 {
                                     item.TranslatedText = newText;
+                                    MarkDllWorkbenchItemAsTranslated(item);
                                     RefreshWorkbenchItemModifiedState(item);
                                     _retainedEditedCategory = itemCategory;
                                     _retainedEditedKey = item.Key ?? "";
@@ -354,10 +387,122 @@ namespace AutoTranslator_Core
                     }
             }
 
+            private static void DrawWorkbenchSourceTree(Rect outRect)
+            {
+                int rows = 3 +
+                           (_xmlSourceExpanded ? _categorizedData.Count : 0) +
+                           (_dllSourceExpanded ? _dllCategorizedData.Count : 0);
+                Rect viewRect = new Rect(0f, 0f, outRect.width - 20f, rows * WorkbenchCategoryRowHeight + 4f);
+                Widgets.BeginScrollView(outRect, ref _catListScroll, viewRect);
+                try
+                {
+                    float y = 0f;
+                    int xmlCount = _categorizedData.Values.Where(items => items != null).Sum(items => items.Count);
+                    int dllCount = _dllCategorizedData.Values.Where(items => items != null).Sum(items => items.Count);
+                    DrawWorkbenchTreeRow(
+                        new Rect(5f, y, viewRect.width - 5f, 30f),
+                        "ATC_Workbench_SourceAll".Translate(xmlCount + dllCount).ToString(),
+                        _selectedWorkbenchSource == WorkbenchSourceKind.All,
+                        () => SelectWorkbenchTreeNode(WorkbenchSourceKind.All, AllWorkbenchCategoriesView));
+                    y += WorkbenchCategoryRowHeight;
+
+                    DrawWorkbenchTreeRow(
+                        new Rect(5f, y, viewRect.width - 5f, 30f),
+                        (_xmlSourceExpanded ? "▼ " : "▶ ") + "ATC_Workbench_SourceXml".Translate(xmlCount),
+                        _selectedWorkbenchSource == WorkbenchSourceKind.Xml && IsAllWorkbenchCategoriesSelected(),
+                        () =>
+                        {
+                            bool rootAlreadySelected =
+                                _selectedWorkbenchSource == WorkbenchSourceKind.Xml &&
+                                IsAllWorkbenchCategoriesSelected();
+                            _xmlSourceExpanded = rootAlreadySelected
+                                ? !_xmlSourceExpanded
+                                : true;
+                            SelectWorkbenchTreeNode(WorkbenchSourceKind.Xml, AllWorkbenchCategoriesView);
+                        });
+                    y += WorkbenchCategoryRowHeight;
+                    if (_xmlSourceExpanded)
+                    {
+                        foreach (KeyValuePair<string, List<WorkbenchItem>> category in _categorizedData
+                                     .OrderBy(pair => pair.Key, StringComparer.CurrentCultureIgnoreCase))
+                        {
+                            string captured = category.Key;
+                            DrawWorkbenchTreeRow(
+                                new Rect(23f, y, viewRect.width - 23f, 30f),
+                                captured + " (" + (category.Value?.Count ?? 0) + ")",
+                                _selectedWorkbenchSource == WorkbenchSourceKind.Xml &&
+                                string.Equals(_selectedCategory, captured, StringComparison.OrdinalIgnoreCase),
+                                () => SelectWorkbenchTreeNode(WorkbenchSourceKind.Xml, captured));
+                            y += WorkbenchCategoryRowHeight;
+                        }
+                    }
+
+                    DrawWorkbenchTreeRow(
+                        new Rect(5f, y, viewRect.width - 5f, 30f),
+                        (_dllSourceExpanded ? "▼ " : "▶ ") + "ATC_Workbench_SourceDll".Translate(dllCount),
+                        _selectedWorkbenchSource == WorkbenchSourceKind.Dll && IsAllWorkbenchCategoriesSelected(),
+                        () =>
+                        {
+                            bool rootAlreadySelected =
+                                _selectedWorkbenchSource == WorkbenchSourceKind.Dll &&
+                                IsAllWorkbenchCategoriesSelected();
+                            _dllSourceExpanded = rootAlreadySelected
+                                ? !_dllSourceExpanded
+                                : true;
+                            SelectWorkbenchTreeNode(WorkbenchSourceKind.Dll, AllWorkbenchCategoriesView);
+                        });
+                    y += WorkbenchCategoryRowHeight;
+                    if (_dllSourceExpanded)
+                    {
+                        foreach (KeyValuePair<string, List<WorkbenchItem>> category in _dllCategorizedData
+                                     .OrderBy(pair => pair.Key, StringComparer.CurrentCultureIgnoreCase))
+                        {
+                            string captured = category.Key;
+                            DrawWorkbenchTreeRow(
+                                new Rect(23f, y, viewRect.width - 23f, 30f),
+                                captured + " (" + (category.Value?.Count ?? 0) + ")",
+                                _selectedWorkbenchSource == WorkbenchSourceKind.Dll &&
+                                string.Equals(_selectedCategory, captured, StringComparison.OrdinalIgnoreCase),
+                                () => SelectWorkbenchTreeNode(WorkbenchSourceKind.Dll, captured));
+                            y += WorkbenchCategoryRowHeight;
+                        }
+                    }
+                }
+                finally
+                {
+                    Text.WordWrap = true;
+                    Widgets.EndScrollView();
+                }
+            }
+
+            private static void DrawWorkbenchTreeRow(Rect rect, string label, bool selected, Action onClick)
+            {
+                if (selected) Widgets.DrawHighlightSelected(rect);
+                else Widgets.DrawHighlightIfMouseover(rect);
+                if (Widgets.ButtonInvisible(rect)) onClick?.Invoke();
+                Text.WordWrap = false;
+                Widgets.Label(rect, label ?? string.Empty);
+                Text.WordWrap = true;
+                if (GUI.skin.label.CalcSize(new GUIContent(label ?? string.Empty)).x > rect.width)
+                    TooltipHandler.TipRegion(rect, label ?? string.Empty);
+            }
+
+            private static void SelectWorkbenchTreeNode(WorkbenchSourceKind source, string category)
+            {
+                _selectedWorkbenchSource = source;
+                _selectedCategory = category ?? AllWorkbenchCategoriesView;
+                _itemScroll = Vector2.zero;
+                InvalidateVisibleItemCache();
+            }
+
             private static void ReturnToWorkbenchModList()
             {
                 _editingMod = null;
                 _categorizedData.Clear();
+                _dllCategorizedData.Clear();
+                _dllScanResult = null;
+                _dllStaleSavedEntryCount = 0;
+                _selectedWorkbenchSource = WorkbenchSourceKind.Xml;
                 _selectedCategory = "";
                 _activeWorkbenchFocus = null;
                 _pendingWorkbenchFocus = null;
@@ -383,7 +528,7 @@ namespace AutoTranslator_Core
                     }
                 }
 
-                return false;
+                return HasUnsavedDllWorkbenchChanges();
             }
 
             private static bool IsFocusedWorkbenchItem(WorkbenchItem item)
@@ -426,7 +571,9 @@ namespace AutoTranslator_Core
                 }
                 else if (string.IsNullOrWhiteSpace(status) && hasUnsavedChanges)
                 {
-                    status = "ATC_Workbench_UnsavedChanges".Translate().ToString();
+                    status = _dllStaleSavedEntryCount > 0
+                        ? "ATC_Workbench_DllStaleManifest".Translate(_dllStaleSavedEntryCount).ToString()
+                        : "ATC_Workbench_UnsavedChanges".Translate().ToString();
                 }
                 else if (string.IsNullOrWhiteSpace(status) && _activeWorkbenchFocus != null && _activeWorkbenchFocus.FromGlobalSearch)
                 {
@@ -468,7 +615,26 @@ namespace AutoTranslator_Core
                 string sourceText = (item.OriginalText ?? "").Trim();
                 if (string.IsNullOrWhiteSpace(sourceText)) return;
 
-                if (AutoTranslatorSettings.IsRunning)
+                TargetLanguage targetLanguage = AutoTranslatorMod.Settings.TargetLang;
+                if (item.Source == WorkbenchSourceKind.Dll &&
+                    item.DllDecision?.EffectiveDecision == HardcodedUiAutomaticDecision.Translate &&
+                    HardcodedUiBuiltInDictionary.TryTranslate(
+                        sourceText,
+                        item.DllDecision.SemanticRole,
+                        targetLanguage,
+                        out string dictionaryValue))
+                {
+                    item.TranslatedText = dictionaryValue;
+                    MarkDllWorkbenchItemAsTranslated(item);
+                    RefreshWorkbenchItemModifiedState(item);
+                    _categorizedDataVersion++;
+                    InvalidateVisibleItemCache();
+                    SetWorkbenchStatus("ATC_Workbench_TranslateOriginalDone".Translate().ToString());
+                    return;
+                }
+
+                if (AutoTranslatorSettings.IsRunning ||
+                    AutoTranslatorAPI.HasOutstandingTranslationWork)
                 {
                     Verse.Messages.Message("ATC_Workbench_TranslateOriginalBusyGlobal".Translate(), MessageTypeDefOf.RejectInput, false);
                     return;
@@ -482,7 +648,6 @@ namespace AutoTranslator_Core
 
                 item.IsTranslatingOriginal = true;
                 SetWorkbenchStatus("ATC_Workbench_TranslateOriginalStarted".Translate().ToString());
-                TargetLanguage targetLanguage = AutoTranslatorMod.Settings.TargetLang;
                 AutoTranslatorSettings.ResetPipelineCancellation();
 
                 Task.Run(async () =>
@@ -495,13 +660,25 @@ namespace AutoTranslator_Core
                         List<string> result = await AutoTranslatorAPI.TranslateBatchAsync(
                             new List<string> { sourceText },
                             suppressFinalParseError: true);
-                        if (result != null && result.Count == 1)
+                        string accepted = string.Empty;
+                        string failureReason = string.Empty;
+                        string failureDetail = string.Empty;
+                        bool acceptedResult = result != null && result.Count == 1 &&
+                            AutoTranslatorScanner.TryAcceptTranslatedValue(
+                                result[0],
+                                sourceText,
+                                out accepted,
+                                out failureReason,
+                                out failureDetail);
+                        if (acceptedResult)
                         {
-                            translated = (result[0] ?? "").Trim();
+                            translated = accepted;
                         }
                         else
                         {
-                            error = "empty result";
+                            error = result == null || result.Count != 1
+                                ? "empty result"
+                                : failureReason + ": " + failureDetail;
                         }
                     }
                     catch (Exception ex)
@@ -532,6 +709,7 @@ namespace AutoTranslator_Core
                         }
 
                         item.TranslatedText = translated;
+                        MarkDllWorkbenchItemAsTranslated(item);
                         RefreshWorkbenchItemModifiedState(item);
                         _retainedEditedCategory = GetWorkbenchItemCategory(item);
                         _retainedEditedKey = item.Key ?? "";
@@ -540,6 +718,19 @@ namespace AutoTranslator_Core
                         SetWorkbenchStatus("ATC_Workbench_TranslateOriginalDone".Translate().ToString());
                     });
                 });
+            }
+
+            private static void SetWorkbenchItemTranslationFilter(WorkbenchItemTranslationFilter value)
+            {
+                _workbenchItemTranslationFilter = value;
+                _itemScroll = Vector2.zero;
+                InvalidateVisibleItemCache();
+            }
+
+            private static void AddWorkbenchDisabledReasonTooltip(Rect rect, bool disabled, string reason)
+            {
+                if (!disabled || string.IsNullOrWhiteSpace(reason)) return;
+                TooltipHandler.TipRegion(rect, "ATC_DisabledReason".Translate(reason));
             }
         }
 }

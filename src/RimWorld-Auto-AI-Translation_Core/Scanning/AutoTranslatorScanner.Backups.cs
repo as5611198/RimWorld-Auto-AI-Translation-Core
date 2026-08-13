@@ -104,7 +104,7 @@ namespace AutoTranslator_Core
                 meta.TargetModVersion = RimWorld.VersionControl.CurrentVersionStringWithoutBuild;
 
                 File.WriteAllText(metaPath, JsonConvert.SerializeObject(meta, Newtonsoft.Json.Formatting.Indented));
-                AutoTranslatorSettings.AddLog("📝 " + "ATC_Log_MetaUpdated".Translate(newAiCount));
+                AutoTranslatorSettings.AddLog("📝 " + AutoTranslatorAPI.TranslateText("ATC_Log_MetaUpdated", newAiCount));
 
 
             }
@@ -166,7 +166,7 @@ namespace AutoTranslator_Core
                     zipFiles[i].Delete();
                 }
 
-                AutoTranslatorSettings.AddLog("📦 " + "ATC_Log_BackupSuccess".Translate(string.IsNullOrWhiteSpace(modName) ? packageId : modName));
+                AutoTranslatorSettings.AddLog("📦 " + AutoTranslatorAPI.TranslateText("ATC_Log_BackupSuccess", string.IsNullOrWhiteSpace(modName) ? packageId : modName));
             }
             catch (Exception ex)
             {
@@ -187,7 +187,7 @@ namespace AutoTranslator_Core
 
             if (result.DeletedFiles > 0)
             {
-                AutoTranslatorSettings.AddLog("ATC_ClearCacheSuccess".Translate(result.DeletedFiles));
+                AutoTranslatorSettings.AddLog(AutoTranslatorAPI.TranslateText("ATC_ClearCacheSuccess", result.DeletedFiles));
                 Log.Message($"[AutoTranslationCore] Auto-cleared {result.DeletedFiles} old files for updated mods (Backup created).");
             }
 
@@ -336,7 +336,7 @@ namespace AutoTranslator_Core
 
                 if (logResult && result.DeletedFiles > 0)
                 {
-                    string logMsg = "ATC_Log_DeleteTransSuccess".Translate(result.RequestedMods, result.DeletedFiles);
+                    string logMsg = AutoTranslatorAPI.TranslateText("ATC_Log_DeleteTransSuccess", result.RequestedMods, result.DeletedFiles);
                     AutoTranslatorSettings.AddLog(logMsg);
                     Log.Message($"[AutoTranslationCore] {logMsg}");
                 }
@@ -344,7 +344,7 @@ namespace AutoTranslator_Core
             catch (Exception ex)
             {
                 result.Errors.Add(ex.Message);
-                AutoTranslatorSettings.AddErrorLog("ATC_Message_DeleteTransError".Translate(ex.Message));
+                AutoTranslatorSettings.AddErrorLog(AutoTranslatorAPI.TranslateText("ATC_Message_DeleteTransError", ex.Message));
                 Log.Warning($"[AutoTranslationCore] Delete local translations failed: {ex}");
             }
 

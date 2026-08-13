@@ -77,7 +77,8 @@ namespace AutoTranslator_Core
         public static ProviderRuntimeProfile GetCurrentRuntimeProfile()
         {
             ApiKeyConfig config = AutoTranslatorMod.Settings.ApiConfigs
-                .FirstOrDefault(IsConfigReady);
+                .FirstOrDefault(candidate =>
+                    IsConfigReady(candidate) && candidate.TaskTier == TranslationTaskTier.Bulk);
             if (config == null)
             {
                 return new ProviderRuntimeProfile { BatchSize = 32, FormatRetries = 1, TimeoutFloorSeconds = 90, QualityHintKey = "ATC_Profile_Default" };
@@ -117,7 +118,7 @@ namespace AutoTranslator_Core
                 else
                 {
 
-                    Log.Warning($"[AutoTranslationCore] " + "ATC_Warning_InvalidUrlFallback".Translate(custom));
+                    Log.Warning($"[AutoTranslationCore] " + TranslateText("ATC_Warning_InvalidUrlFallback", custom));
                     return custom;
                 }
             }

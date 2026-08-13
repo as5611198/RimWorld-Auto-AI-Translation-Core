@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using Verse;
 using static AutoTranslator_Core.DeleteTranslationWindow;
+using AutoTranslator_Core.TargetedHardcodedUi;
 // 這個檔案負責翻譯工作台分頁的入口與狀態切換。
 // EN: This file owns the entry point and state switching for the translation workbench tab.
 
@@ -23,6 +24,9 @@ namespace AutoTranslator_Core
             public class WorkbenchItem
             {
                 public string Category;
+                public WorkbenchSourceKind Source = WorkbenchSourceKind.Xml;
+                public HardcodedUiPatchEntry DllEntry;
+                public HardcodedUiDecisionRecord DllDecision;
                 // 這個欄位保存 Key 的執行狀態或快取資料。
                 // EN: This field stores key runtime state or cached data.
                 public string Key;
@@ -97,13 +101,20 @@ namespace AutoTranslator_Core
             private static int _lastStablePackageHashGeneration = -1;
 
             private static Dictionary<string, List<WorkbenchItem>> _categorizedData = new Dictionary<string, List<WorkbenchItem>>();
+            private static Dictionary<string, List<WorkbenchItem>> _dllCategorizedData = new Dictionary<string, List<WorkbenchItem>>();
+            private static HardcodedUiScanResult _dllScanResult;
+            private static int _dllStaleSavedEntryCount;
             private const string AllWorkbenchCategoriesView = "__ATC_ALL_CATEGORIES__";
+            private static WorkbenchSourceKind _selectedWorkbenchSource = WorkbenchSourceKind.Xml;
+            private static bool _xmlSourceExpanded = true;
+            private static bool _dllSourceExpanded = true;
             // 這個欄位保存 selectedCategory 的執行狀態或快取資料。
             // EN: This field stores selected category runtime state or cached data.
             private static string _selectedCategory = "";
             // 這個欄位保存 item搜尋Text 的執行狀態或快取資料。
             // EN: This field stores item search text runtime state or cached data.
             private static string _itemSearchText = "";
+            private static WorkbenchItemTranslationFilter _workbenchItemTranslationFilter;
             // 這個欄位保存 catListScroll 的執行狀態或快取資料。
             // EN: This field stores cat list scroll runtime state or cached data.
             private static UnityEngine.Vector2 _catListScroll = UnityEngine.Vector2.zero;
@@ -140,6 +151,7 @@ namespace AutoTranslator_Core
             private static List<WorkbenchItem> _cachedVisibleItems = null;
             private static string _cachedVisibleCategory = "";
             private static string _cachedVisibleSearchText = "";
+            private static WorkbenchItemTranslationFilter _cachedVisibleTranslationFilter;
             private static string _cachedVisibleFocusCategory = "";
             private static string _cachedVisibleFocusKey = "";
             private static string _cachedVisibleRetainedCategory = "";
@@ -147,14 +159,26 @@ namespace AutoTranslator_Core
             private static int _cachedVisibleSourceCount = -1;
             private static int _categorizedDataVersion = 0;
             private static int _cachedVisibleDataVersion = -1;
+            private static WorkbenchSourceKind _cachedVisibleSource = WorkbenchSourceKind.Xml;
+
+            private enum WorkbenchItemTranslationFilter
+            {
+                All,
+                Translated,
+                Untranslated
+            }
             private static List<WorkbenchItem> _cachedAllCategoryItems = null;
             private static int _cachedAllCategoryItemsDataVersion = -1;
+            private static WorkbenchSourceKind _cachedAllCategoryItemsSource = WorkbenchSourceKind.Xml;
             private static WorkbenchFocusRequest _pendingWorkbenchFocus = null;
             private static WorkbenchFocusRequest _activeWorkbenchFocus = null;
             private static string _retainedEditedCategory = "";
             private static string _retainedEditedKey = "";
             private static string _workbenchStatusText = "";
             private static float _workbenchStatusUntilTime = 0f;
+            private static bool _isTranslatingCurrentRange = false;
+            private static int _currentRangeTranslated = 0;
+            private static int _currentRangeTotal = 0;
             // 這個欄位保存 global搜尋語言Filter 的執行狀態或快取資料。
             // EN: This field stores global search language filter runtime state or cached data.
             private static TargetLanguage? _globalSearchLangFilter = null;
@@ -181,6 +205,7 @@ namespace AutoTranslator_Core
 
             private class WorkbenchFocusRequest
             {
+                public WorkbenchSourceKind Source = WorkbenchSourceKind.Xml;
                 public string Category;
                 public string Key;
                 public string SearchText;
@@ -254,6 +279,13 @@ namespace AutoTranslator_Core
                 public ModUpdateDetector.SourceFingerprintSnapshot SourceFingerprint;
                 public string Error;
             }
+
+            public enum WorkbenchSourceKind
+            {
+                All,
+                Xml,
+                Dll
+            }
             // 這個方法負責繪製 Editor分頁 介面。
             // EN: This method draws editor tab.
             public static void DrawEditorTab(Verse.Listing_Standard l, UnityEngine.Rect viewRect)
@@ -265,7 +297,7 @@ namespace AutoTranslator_Core
                 }
                 InitTranslatedModsCache();
 
-                float contentHeight = 600f;
+                float contentHeight = Mathf.Max(500f, viewRect.height - 10f);
                 float leftWidth = Mathf.Min(360f, viewRect.width * 0.36f);
                 float spacing = 15f;
                 float rightWidth = viewRect.width - leftWidth - spacing;

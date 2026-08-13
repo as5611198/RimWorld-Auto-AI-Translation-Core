@@ -99,6 +99,7 @@ namespace AutoTranslator_Core
             private static void InvalidateVisibleItemCache()
             {
                 _cachedVisibleItems = null;
+                _cachedVisibleSource = WorkbenchSourceKind.Xml;
                 _cachedVisibleCategory = "";
                 _cachedVisibleSearchText = "";
                 _cachedVisibleFocusCategory = "";
@@ -118,7 +119,8 @@ namespace AutoTranslator_Core
 
             private static bool IsWorkbenchCategoryVisible(string category)
             {
-                return IsAllWorkbenchCategoriesSelected() ||
+                return _selectedWorkbenchSource == WorkbenchSourceKind.All ||
+                       (_selectedWorkbenchSource == WorkbenchSourceKind.Xml && IsAllWorkbenchCategoriesSelected()) ||
                        string.Equals(_selectedCategory ?? "", category ?? "", StringComparison.OrdinalIgnoreCase);
             }
 
@@ -130,23 +132,47 @@ namespace AutoTranslator_Core
 
             private static List<WorkbenchItem> GetCurrentWorkbenchSourceItems()
             {
+                if (_selectedWorkbenchSource == WorkbenchSourceKind.All)
+                {
+                    if (_cachedAllCategoryItems != null &&
+                        _cachedAllCategoryItemsDataVersion == _categorizedDataVersion &&
+                        _cachedAllCategoryItemsSource == WorkbenchSourceKind.All)
+                        return _cachedAllCategoryItems;
+
+                    _cachedAllCategoryItems = _categorizedData
+                        .SelectMany(pair => pair.Value ?? new List<WorkbenchItem>())
+                        .Concat(_dllCategorizedData.SelectMany(pair => pair.Value ?? new List<WorkbenchItem>()))
+                        .Where(item => item != null)
+                        .ToList();
+                    _cachedAllCategoryItemsDataVersion = _categorizedDataVersion;
+                    _cachedAllCategoryItemsSource = WorkbenchSourceKind.All;
+                    return _cachedAllCategoryItems;
+                }
+
+                Dictionary<string, List<WorkbenchItem>> source =
+                    _selectedWorkbenchSource == WorkbenchSourceKind.Dll
+                        ? _dllCategorizedData
+                        : _categorizedData;
                 if (!IsAllWorkbenchCategoriesSelected())
                 {
-                    return _categorizedData.TryGetValue(_selectedCategory ?? "", out List<WorkbenchItem> categoryItems) && categoryItems != null
+                    return source.TryGetValue(_selectedCategory ?? "", out List<WorkbenchItem> categoryItems) && categoryItems != null
                         ? categoryItems
                         : new List<WorkbenchItem>();
                 }
 
-                if (_cachedAllCategoryItems != null && _cachedAllCategoryItemsDataVersion == _categorizedDataVersion)
+                if (_cachedAllCategoryItems != null &&
+                    _cachedAllCategoryItemsDataVersion == _categorizedDataVersion &&
+                    _cachedAllCategoryItemsSource == _selectedWorkbenchSource)
                 {
                     return _cachedAllCategoryItems;
                 }
 
-                _cachedAllCategoryItems = _categorizedData
+                _cachedAllCategoryItems = source
                     .SelectMany(pair => pair.Value ?? new List<WorkbenchItem>())
                     .Where(item => item != null)
                     .ToList();
                 _cachedAllCategoryItemsDataVersion = _categorizedDataVersion;
+                _cachedAllCategoryItemsSource = _selectedWorkbenchSource;
                 return _cachedAllCategoryItems;
             }
 
@@ -161,9 +187,11 @@ namespace AutoTranslator_Core
                 string retainedKey = _retainedEditedKey ?? "";
                 if (_cachedVisibleItems != null &&
                     _cachedVisibleDataVersion == _categorizedDataVersion &&
+                    _cachedVisibleSource == _selectedWorkbenchSource &&
                     _cachedVisibleSourceCount == sourceItems.Count &&
                     string.Equals(_cachedVisibleCategory, _selectedCategory ?? "", StringComparison.Ordinal) &&
                     string.Equals(_cachedVisibleSearchText, searchText, StringComparison.Ordinal) &&
+                    _cachedVisibleTranslationFilter == _workbenchItemTranslationFilter &&
                     string.Equals(_cachedVisibleFocusCategory, focusCategory, StringComparison.Ordinal) &&
                     string.Equals(_cachedVisibleFocusKey, focusKey, StringComparison.Ordinal) &&
                     string.Equals(_cachedVisibleRetainedCategory, retainedCategory, StringComparison.Ordinal) &&
@@ -186,6 +214,20 @@ namespace AutoTranslator_Core
                         .ThenBy(entry => entry.Index)
                         .Select(entry => entry.Item)
                         .ToList();
+                }
+
+                if (_workbenchItemTranslationFilter != WorkbenchItemTranslationFilter.All)
+                {
+                    _cachedVisibleItems = _cachedVisibleItems.Where(item =>
+                    {
+                        string translatedText = (item?.TranslatedText ?? string.Empty).Trim();
+                        string originalText = (item?.OriginalText ?? string.Empty).Trim();
+                        bool translated = translatedText.Length > 0 &&
+                                          !string.Equals(translatedText, originalText, StringComparison.Ordinal);
+                        return _workbenchItemTranslationFilter == WorkbenchItemTranslationFilter.Translated
+                            ? translated
+                            : !translated;
+                    }).ToList();
                 }
 
                 if (_activeWorkbenchFocus != null &&
@@ -220,7 +262,9 @@ namespace AutoTranslator_Core
                 }
 
                 _cachedVisibleCategory = _selectedCategory ?? "";
+                _cachedVisibleSource = _selectedWorkbenchSource;
                 _cachedVisibleSearchText = searchText;
+                _cachedVisibleTranslationFilter = _workbenchItemTranslationFilter;
                 _cachedVisibleFocusCategory = focusCategory;
                 _cachedVisibleFocusKey = focusKey;
                 _cachedVisibleRetainedCategory = retainedCategory;
@@ -293,7 +337,8 @@ namespace AutoTranslator_Core
                 string searchLower = snapshotSearchText.ToLowerInvariant();
                 string targetFolderFilter = langFilter.HasValue ? AutoTranslatorScanner.GetFolderNameByLanguage(langFilter.Value) : null;
                 List<GlobalSearchModSnapshot> activeMods = Verse.ModLister.AllInstalledMods
-                    .Where(m => m != null && m.Active)
+                    .Where(m => m != null && m.Active &&
+                                !AutoTranslatorScanner.IsOfficialBaseGameOrDlcPackage(m.PackageId))
                     .Select(m => new GlobalSearchModSnapshot
                     {
                         Mod = m,

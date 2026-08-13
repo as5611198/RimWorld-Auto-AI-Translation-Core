@@ -154,7 +154,7 @@ namespace AutoTranslator_Core
                 return;
             }
 
-            AutoTranslatorSettings.AddLog("🩺 " + "ATC_Log_ValidationSummary".Translate(
+            AutoTranslatorSettings.AddLog("🩺 " + AutoTranslatorAPI.TranslateText("ATC_Log_ValidationSummary",
                 snapshot.NewlineFixed,
                 snapshot.RulePrefixFixed,
                 snapshot.TokenFixed,

@@ -380,7 +380,8 @@ namespace AutoTranslator_Core
                 return _cachedModSelectionList;
             }
 
-            IEnumerable<ModMetaData> allMods = validMods.Where(m => m != null);
+            IEnumerable<ModMetaData> allMods = validMods.Where(m =>
+                m != null && !AutoTranslatorScanner.IsOfficialBaseGameOrDlcPackage(m.PackageId));
 
             if (_showOnlyTranslated)
             {

@@ -33,7 +33,7 @@ namespace AutoTranslator_Core
             string replacementText,
             bool caseSensitive)
         {
-            if (_editingMod == null || _isLoading || _isSavingModifications || string.IsNullOrEmpty(findText)) return 0;
+            if (_editingMod == null || _isLoading || _isSavingModifications || _isTranslatingCurrentRange || string.IsNullOrEmpty(findText)) return 0;
 
             int changed = 0;
             string lastCategory = "";
@@ -46,6 +46,7 @@ namespace AutoTranslator_Core
                 if (string.Equals(current, replaced, StringComparison.Ordinal)) continue;
 
                 item.TranslatedText = replaced;
+                MarkDllWorkbenchItemAsTranslated(item);
                 RefreshWorkbenchItemModifiedState(item);
                 lastCategory = GetWorkbenchItemCategory(item);
                 lastKey = item.Key ?? "";
@@ -70,14 +71,11 @@ namespace AutoTranslator_Core
             switch (scope)
             {
                 case WorkbenchBatchReplaceScope.AllCategories:
-                    targets = _categorizedData.SelectMany(pair => pair.Value ?? new List<WorkbenchItem>());
+                    targets = _categorizedData.SelectMany(pair => pair.Value ?? new List<WorkbenchItem>())
+                        .Concat(_dllCategorizedData.SelectMany(pair => pair.Value ?? new List<WorkbenchItem>()));
                     break;
                 case WorkbenchBatchReplaceScope.CurrentCategory:
-                    targets = IsAllWorkbenchCategoriesSelected()
-                        ? _categorizedData.SelectMany(pair => pair.Value ?? new List<WorkbenchItem>())
-                        : (_categorizedData.TryGetValue(_selectedCategory ?? "", out List<WorkbenchItem> categoryItems)
-                            ? categoryItems ?? new List<WorkbenchItem>()
-                            : new List<WorkbenchItem>());
+                    targets = GetCurrentWorkbenchSourceItems();
                     break;
                 default:
                     targets = GetVisibleItemsForCurrentCategory(GetCurrentWorkbenchSourceItems())

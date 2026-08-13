@@ -16,10 +16,40 @@ namespace AutoTranslator_Core
         // 這個常數定義 TraditionalChars 的固定值。
         // EN: This constant defines the fixed value for traditional chars.
         private const string TraditionalChars = "\u5011\u9019\u500B\u55CE\u6C92\u89BA\u63DB\u8B8A\u73FE\u898B\u89C0\u8AAA\u8A71\u8A9E\u8AB0\u5C08\u696D\u6B72\u723A\u7BC0\u5EE0\u5EE3\u968A\u6B78\u8ECA\u6771\u8FB2\u96DE\u9D28\u5CF6\u9CE5\u9B5A\u9F8D\u9EA5\u9F9C\u6230\u64CA\u6BBA\u985E\u6A23\u8A2D\u5099\u76E1\u9084\u61C9\u8B93\u904E\u767C\u958B\u7E3D\u98A8\u6A5F\u96FB\u6C23\u9801\u98DB\u9580\u7DB2\u7DDA\u5716\u9AD4\u982D\u5BE6\u83EF\u55AE\u9577\u7576\u66F8\u5831\u6703\u611B\u5F9E\u773E\u96D9\u7DB2\u6A02\u6A39\u96A8\u5FA9\u9435\u91AB\u85E5\u7378\u50B7\u9748\u64CA\u69CD\u528D\u88DD\u8B77\u8F15\u91CD\u7121\u7522\u8655\u5C07";
-        private static readonly HashSet<char> SimpOnlyChars = new HashSet<char>(SimplifiedChars.ToCharArray());
-        private static readonly HashSet<char> TradOnlyChars = new HashSet<char>(TraditionalChars.ToCharArray());
         private static readonly Dictionary<char, char> TradToSimpChars = BuildCharMap(TraditionalChars, SimplifiedChars, GetSupplementalTradToSimpPairs());
         private static readonly Dictionary<char, char> SimpToTradChars = BuildCharMap(SimplifiedChars, TraditionalChars, GetSupplementalSimpToTradPairs());
+        private static readonly HashSet<char> SimpOnlyChars = BuildVariantCharacterSet(
+            SimplifiedChars,
+            SimpToTradChars.Keys,
+            TraditionalChars,
+            TradToSimpChars.Keys);
+        private static readonly HashSet<char> TradOnlyChars = BuildVariantCharacterSet(
+            TraditionalChars,
+            TradToSimpChars.Keys,
+            SimplifiedChars,
+            SimpToTradChars.Keys);
+        private static readonly string[,] SimplifiedToTraditionalTerms =
+        {
+            { "信息", "訊息" },
+            { "防御", "防禦" },
+            { "炮手", "砲手" },
+            { "炮塔", "砲塔" },
+            { "火炮", "火砲" },
+            { "炮彈", "砲彈" },
+            { "薯片", "洋芋片" },
+            { "大檐帽", "大簷帽" }
+        };
+        private static readonly string[,] TraditionalToSimplifiedTerms =
+        {
+            { "訊息", "信息" },
+            { "防禦", "防御" },
+            { "砲手", "炮手" },
+            { "砲塔", "炮塔" },
+            { "火砲", "火炮" },
+            { "砲彈", "炮弹" },
+            { "洋芋片", "薯片" },
+            { "大簷帽", "大檐帽" }
+        };
 
         // 這個方法負責處理 LooksLikeSimplified 相關流程。
         // EN: This method handles looks like simplified.
@@ -37,6 +67,19 @@ namespace AutoTranslator_Core
             return tradCount > 0 && tradCount >= simpCount;
         }
 
+        public static bool HasWrongChineseVariant(string text, TargetLanguage targetLang)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return false;
+            if (targetLang != TargetLanguage.Traditional && targetLang != TargetLanguage.Simplified)
+                return false;
+
+            CountChineseVariants(text, out int simpCount, out int tradCount);
+            if (targetLang == TargetLanguage.Traditional)
+                return simpCount > 0;
+
+            return tradCount > 0;
+        }
+
         // 這個方法負責清理並標準化 ChineseVariant 內容。
         // EN: This method cleans and normalizes chinese variant.
         public static string NormalizeChineseVariant(string text, TargetLanguage targetLang)
@@ -44,18 +87,21 @@ namespace AutoTranslator_Core
             if (string.IsNullOrEmpty(text)) return text;
             if (targetLang != TargetLanguage.Simplified && targetLang != TargetLanguage.Traditional) return text;
 
+            string source = targetLang == TargetLanguage.Simplified
+                ? NormalizeChineseRegionalTerms(text, TraditionalToSimplifiedTerms)
+                : text;
             Dictionary<char, char> map = targetLang == TargetLanguage.Simplified ? TradToSimpChars : SimpToTradChars;
             StringBuilder result = null;
 
-            for (int i = 0; i < text.Length; i++)
+            for (int i = 0; i < source.Length; i++)
             {
-                char c = text[i];
+                char c = source[i];
                 if (map.TryGetValue(c, out char replacement))
                 {
                     if (result == null)
                     {
-                        result = new StringBuilder(text.Length);
-                        result.Append(text, 0, i);
+                        result = new StringBuilder(source.Length);
+                        result.Append(source, 0, i);
                     }
                     result.Append(replacement);
                 }
@@ -65,7 +111,20 @@ namespace AutoTranslator_Core
                 }
             }
 
-            return result == null ? text : result.ToString();
+            string normalized = result == null ? source : result.ToString();
+            return targetLang == TargetLanguage.Traditional
+                ? NormalizeChineseRegionalTerms(normalized, SimplifiedToTraditionalTerms)
+                : normalized;
+        }
+
+        private static string NormalizeChineseRegionalTerms(string text, string[,] replacements)
+        {
+            string normalized = text;
+            for (int i = 0; i < replacements.GetLength(0); i++)
+            {
+                normalized = normalized.Replace(replacements[i, 0], replacements[i, 1]);
+            }
+            return normalized;
         }
 
         public static bool LooksLikePlaceholderTranslation(string text, TargetLanguage targetLang)
@@ -382,6 +441,26 @@ namespace AutoTranslator_Core
             return map;
         }
 
+        private static HashSet<char> BuildVariantCharacterSet(
+            string baseCharacters,
+            IEnumerable<char> supplementalCharacters,
+            string oppositeBaseCharacters,
+            IEnumerable<char> oppositeSupplementalCharacters)
+        {
+            var result = new HashSet<char>(baseCharacters.ToCharArray());
+            if (supplementalCharacters != null)
+            {
+                foreach (char character in supplementalCharacters)
+                    result.Add(character);
+            }
+
+            result.ExceptWith(oppositeBaseCharacters.ToCharArray());
+            if (oppositeSupplementalCharacters != null)
+                result.ExceptWith(oppositeSupplementalCharacters);
+
+            return result;
+        }
+
         // 這個方法負責取得 SupplementalTradToSimpPairs 資料。
         // EN: This method gets supplemental trad to simp pairs.
         private static Dictionary<char, char> GetSupplementalTradToSimpPairs()
@@ -420,7 +499,45 @@ namespace AutoTranslator_Core
                 {'頂','顶'}, {'項','项'}, {'順','顺'}, {'領','领'}, {'頭','头'}, {'顯','显'}, {'類','类'},
                 {'飛','飞'}, {'飢','饥'}, {'飯','饭'}, {'飲','饮'}, {'飼','饲'}, {'體','体'}, {'驗','验'},
                 {'驅','驱'}, {'驚','惊'}, {'髒','脏'}, {'鬥','斗'}, {'魚','鱼'}, {'鳥','鸟'}, {'鳴','鸣'},
-                {'鹽','盐'}, {'點','点'}, {'黨','党'}, {'齒','齿'}, {'齡','龄'}, {'龍','龙'}
+                {'鹽','盐'}, {'點','点'}, {'黨','党'}, {'齒','齿'}, {'齡','龄'}, {'龍','龙'},
+                {'騎','骑'}, {'衝','冲'}, {'鋒','锋'}, {'並','并'}, {'範','范'}, {'達','达'},
+                {'對','对'}, {'組','组'}, {'鷂','鹞'}, {'睞','睐'},
+                {'儲','储'}, {'遠','远'}, {'減','减'}, {'錘','锤'}, {'躍','跃'}, {'圓','圆'},
+                {'鐮','镰'}, {'匯','汇'}, {'漿','浆'}, {'毀','毁'}, {'積','积'}, {'額','额'},
+                {'擋','挡'}, {'蓮','莲'}, {'艦','舰'}, {'脈','脉'}, {'癱','瘫'}, {'瘓','痪'},
+                {'較','较'}, {'拋','抛'}, {'暫','暂'}, {'遲','迟'}, {'暈','晕'}, {'極','极'},
+                {'著','着'}, {'陸','陆'},
+                {'團','团'}, {'進','进'}, {'動','动'}, {'爐','炉'}, {'讀','读'}, {'閱','阅'},
+                {'連','连'}, {'攜','携'}, {'帶','带'}, {'續','续'}, {'陽','阳'}, {'畢','毕'},
+                {'軍','军'}, {'傳','传'}, {'運','运'}, {'輔','辅'}, {'卻','却'}, {'獨','独'},
+                {'來','来'}, {'揮','挥'}, {'輝','辉'}, {'陣','阵'}, {'終','终'}, {'熱','热'},
+                {'掛','挂'}, {'響','响'}, {'鏡','镜'}, {'結','结'}, {'執','执'}, {'樞','枢'},
+                {'燒','烧'}, {'襯','衬'}, {'滯','滞'}, {'寬','宽'}, {'調','调'}, {'堅','坚'},
+                {'價','价'}, {'飾','饰'}, {'簡','简'}, {'煉','炼'}, {'獵','猎'}, {'別','别'},
+                {'導','导'}, {'負','负'}, {'勢','势'}, {'預','预'}, {'蓋','盖'}, {'攔','拦'},
+                {'狀','状'}, {'絨','绒'}, {'擲','掷'}, {'潔','洁'}, {'縮','缩'}, {'雖','虽'},
+                {'儀','仪'}, {'啟','启'}, {'師','师'}, {'輻','辐'}, {'創','创'}, {'韌','韧'},
+                {'兩','两'}, {'賴','赖'}, {'諧','谐'}, {'計','计'}, {'鍛','锻'}, {'爾','尔'},
+                {'訊','讯'}, {'閒','闲'}, {'貴','贵'}, {'責','责'}, {'嘗','尝'}, {'羅','罗'},
+                {'試','试'}, {'損','损'}, {'礙','碍'}, {'擾','扰'}, {'齊','齐'}, {'繃','绷'},
+                {'則','则'}, {'補','补'}, {'轟','轰'}, {'犧','牺'}, {'嚴','严'}, {'牽','牵'},
+                {'溫','温'}, {'漸','渐'}, {'適','适'}, {'測','测'}, {'舉','举'}, {'彌','弥'},
+                {'張','张'}, {'掃','扫'}, {'臨','临'}, {'誇','夸'}, {'習','习'}, {'願','愿'},
+                {'構','构'}, {'轄','辖'}, {'滿','满'}, {'鋸','锯'}, {'閉','闭'}, {'牆','墙'},
+                {'頻','频'}, {'釘','钉'}, {'闊','阔'}, {'縫','缝'}, {'橫','横'}, {'斬','斩'},
+                {'紉','纫'}, {'礎','础'}, {'側','侧'}, {'塵','尘'}, {'決','决'}, {'優','优'},
+                {'蘿','萝'}, {'況','况'}, {'軟','软'}, {'緣','缘'}, {'隱','隐'}, {'賦','赋'},
+                {'喚','唤'}, {'義','义'}, {'議','议'}, {'撐','撑'}, {'麼','么'}, {'纖','纤'},
+                {'猶','犹'}, {'亂','乱'}, {'頗','颇'}, {'狹','狭'}, {'纏','缠'}, {'尋','寻'},
+                {'貼','贴'}, {'細','细'}, {'貫','贯'}, {'襲','袭'}, {'繞','绕'}, {'懸','悬'},
+                {'協','协'}, {'莊','庄'}, {'貯','贮'}, {'際','际'}, {'餓','饿'}, {'鑄','铸'},
+                {'倉','仓'}, {'噴','喷'}, {'鍍','镀'}, {'窺','窥'}, {'詩','诗'}, {'煙','烟'},
+                {'灑','洒'}, {'騰','腾'}, {'曉','晓'}, {'愜','惬'}, {'龐','庞'}, {'贖','赎'},
+                {'攤','摊'}, {'蟻','蚁'}, {'諱','讳'}, {'懷','怀'}, {'敗','败'}, {'僅','仅'},
+                {'輯','辑'}, {'劇','剧'}, {'瑪','玛'}, {'緩','缓'}, {'邏','逻'}, {'銜','衔'},
+                {'輜','辎'}, {'養','养'}, {'墜','坠'}, {'繼','继'}, {'誕','诞'}, {'懾','慑'},
+                {'鏈','链'}, {'恆','恒'}, {'偉','伟'}, {'壯','壮'}, {'異','异'}, {'鮮','鲜'},
+                {'樁','桩'}, {'揚','扬'}, {'鑲','镶'}, {'螻','蝼'}
             };
         }
 

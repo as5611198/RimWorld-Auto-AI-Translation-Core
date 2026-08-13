@@ -22,7 +22,7 @@ namespace AutoTranslator_Core
         {
             if (AutoTranslatorMod.Settings != null && AutoTranslatorMod.Settings.IsCloudDownloadBlacklisted(packageId))
             {
-                AutoTranslatorSettings.AddLog("ATC_Blacklist_DownloadSkipped".Translate(packageId));
+                AutoTranslatorSettings.AddLog(AutoTranslatorAPI.TranslateText("ATC_Blacklist_DownloadSkipped", packageId));
                 return false;
             }
 
@@ -113,6 +113,8 @@ namespace AutoTranslator_Core
                     AutoTranslatorScanner.NotifyTranslationFilesChanged(workspaceDir);
                 }
                 System.IO.Directory.CreateDirectory(workspaceDir);
+                var extractedLanguageFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var extractedWorkspaceFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
                 string tempZipFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{packageId}_{targetLangFolder}_cloud.zip");
                 System.IO.File.WriteAllBytes(tempZipFile, zipBytes);
@@ -126,11 +128,15 @@ namespace AutoTranslator_Core
                         string destPath = GetSafeCloudExtractPath(extractRoot, entry.FullName);
                         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(destPath));
                         entry.ExtractToFile(destPath, true);
+                        if (string.Equals(System.IO.Path.GetExtension(destPath), ".xml", StringComparison.OrdinalIgnoreCase))
+                            extractedLanguageFiles.Add(destPath);
                         AutoTranslatorScanner.NotifyTranslationFileChanged(destPath);
 
                         string wsDestPath = GetSafeCloudExtractPath(workspaceDir, entry.FullName);
                         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(wsDestPath));
                         entry.ExtractToFile(wsDestPath, true);
+                        if (string.Equals(System.IO.Path.GetExtension(wsDestPath), ".xml", StringComparison.OrdinalIgnoreCase))
+                            extractedWorkspaceFiles.Add(wsDestPath);
                         AutoTranslatorScanner.NotifyTranslationFileChanged(wsDestPath);
                     }
                 }
@@ -159,6 +165,18 @@ namespace AutoTranslator_Core
                     AutoTranslatorLegacyRepairer.RepairPackage(packageId, targetLangFolder, requestMemoryDrop: false);
                     AutoTranslatorScanner.RequestMemoryDrop();
                 }
+                AutoTranslatorScanner.MarkCloudDownloadedTranslations(
+                    extractRoot,
+                    packageId,
+                    targetLangFolder,
+                    targetRecord != null ? targetRecord.RecordId : string.Empty,
+                    extractedLanguageFiles);
+                AutoTranslatorScanner.MarkCloudDownloadedTranslations(
+                    workspaceDir,
+                    packageId,
+                    targetLangFolder,
+                    targetRecord != null ? targetRecord.RecordId : string.Empty,
+                    extractedWorkspaceFiles);
                 return true;
             }
             catch (Exception ex)
@@ -167,7 +185,8 @@ namespace AutoTranslator_Core
                 string fallbackZip = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{packageId}_{targetLangFolder}_cloud.zip");
                 if (System.IO.File.Exists(fallbackZip)) System.IO.File.Delete(fallbackZip);
 
-                ATC_Dispatcher.RunOnMainThread(() => AutoTranslatorSettings.AddErrorLog("ATC_LogError_DownloadCorrupted".Translate(packageId, ex.Message)));
+                ATC_Dispatcher.RunOnMainThread(() => AutoTranslatorSettings.AddErrorLog(
+                    AutoTranslatorAPI.TranslateText("ATC_LogError_DownloadCorrupted", packageId, ex.Message)));
                 return false;
             }
         }
@@ -240,7 +259,7 @@ namespace AutoTranslator_Core
 
                 if (result.DeletedFiles > 0)
                 {
-                    AutoTranslatorSettings.AddLog("ATC_ClearCacheSuccess".Translate(result.DeletedFiles));
+                    AutoTranslatorSettings.AddLog(AutoTranslatorAPI.TranslateText("ATC_ClearCacheSuccess", result.DeletedFiles));
                     Log.Message($"[AutoTranslationCore] Auto-cleared {result.DeletedFiles} old files for updated mods (Backup created).");
                 }
 

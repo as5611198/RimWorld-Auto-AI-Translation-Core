@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LanguageData>
-  <ATC_ModTitle>AI 지능형 번역 네트워크(AI Translation Network) V3.0</ATC_ModTitle>
+  <ATC_ModTitle>AI 지능형 번역 네트워크(AI Translation Network) V4.1 BETA</ATC_ModTitle>
   <ATC_TargetLang>대상 언어</ATC_TargetLang>
   <ATC_Lang_Traditional>번체 중국어 (Traditional Chinese)</ATC_Lang_Traditional>
   <ATC_Lang_Simplified>간체 중국어 (Simplified Chinese)</ATC_Lang_Simplified>
@@ -58,6 +58,10 @@
   <ATC_Log_TaskError>[Error] 생산 라인이 예기치 않게 중단됨: {0}</ATC_Log_TaskError>
   <ATC_Log_Clean>[Clean] 생산 라인 정지, 메모리가 해제되었습니다.</ATC_Log_Clean>
   <ATC_CancelRequested>정지 명령 수신, 생산 라인 긴급 제동 중...</ATC_CancelRequested>
+  <ATC_Stopping>중지 중…</ATC_Stopping>
+  <ATC_StoppingStatus>요청 정리 중: 대기 {0} / 활성 {1} / 재시도 {2}</ATC_StoppingStatus>
+  <ATC_RequestActivityStatus>백그라운드 요청: 대기 {0} / 활성 {1} / 재시도 {2}</ATC_RequestActivityStatus>
+  <ATC_StopCompleted>번역이 완전히 중지되었습니다. 대기, 활성 및 재시도 대기 요청이 모두 0입니다.</ATC_StopCompleted>
   <ATC_Log_FetchModelsSuccess>✅ [{0}] 모델 목록 자동 가져오기 성공!</ATC_Log_FetchModelsSuccess>
   <ATC_Log_FetchModelsFail>[System] 목록 가져오기 실패, 키를 확인하세요.</ATC_Log_FetchModelsFail>
   <ATC_Log_AllTranslationWritten>[Success] 모든 번역이 !Translation_AI_Pack에 안전하게 기록되었습니다!</ATC_Log_AllTranslationWritten>
@@ -75,8 +79,8 @@
   <ATC_FinishMessage_Title>번역 완료 알림</ATC_FinishMessage_Title>
   <ATC_FinishMessage_OK>확인! (OK)</ATC_FinishMessage_OK>
   <ATC_FinishMessage_Text>번역 작업이 성공적으로 완료되었습니다!\n【🪂 메모리 에어드랍 대성공】\n시스템이 공식 경로를 통해 최신 번역을 게임 메모리에 직접 주입했습니다!\n이제 이 창과 설정 패널을 닫으셔도 됩니다. 화면상의 아이템과 기술 이름이 즉시 설정한 언어로 변경되었습니다!\n(참고: 실제 XML 백업은 백그라운드에서 자동으로 생성되지만, 모드 목록에서 체크할 필요는 【전혀 없습니다】! 다음 실행 시에도 시스템이 자동으로 보이지 않게 마운트하므로 로드 순서 충돌에서 완벽하게 해방됩니다! 즐거운 게임 되세요!)</ATC_FinishMessage_Text>
-  <ATC_Tutorial_FullText>【V3.0 사용 설명서: 무임승차부터 기여까지】\n1. ☁️ 【먼저 클라우드를 확인하여 바퀴의 재발명을 방지하세요】\n번역을 준비하기 전에 【클라우드 워크숍】 탭을 먼저 방문하시는 것을 강력히 추천합니다! 번역 연합의 고수나 다른 유저가 이미 정밀 번역본(식은 죽 먹기 패키지)을 업로드했을 수도 있습니다. 원클릭 일괄 다운로드를 지원하여 즉시 따끈따끈한 완성본을 즐길 수 있습니다!\n\n2. ⚙️ 【번역 준비를 위한 API 설정】\n클라우드에 원하는 모드가 없다면, 먼저 설정 페이지에서 【대상 언어】(한국어, 중국어, 영어, 러시아어 등 다국어 지원)와 【제공업체】(대만에서는 무료 Gemini, 대륙에서는 DeepSeek 추천)를 선택하세요. '무한 API 탄창'을 지원하므로 '+' 버튼을 눌러 여러 API 슬롯을 추가하면 시스템이 자동으로 작업을 분배하여 무료 사용량을 한계까지 쥐어짜냅니다!\n(API 키를 붙여넣은 후 따로 검색할 필요 없이 백그라운드에서 모델을 자동으로 가져옵니다!)\n\n3. 🚀 【원클릭 번역과 메모리 에어드랍】\n스레드 수를 설정한 후, 【🚀 모든 모드 원클릭 번역】을 클릭하거나 【🎯 단일/다중 모드 번역】을 사용하여 정밀 격추를 시도해 보세요. 번역이 완료된 후 【게임을 재시작할 필요가 전혀 없습니다】! 시스템이 자동으로 '메모리 에어드랍'을 작동시켜 번역을 게임에 실시간 주입하므로, 창을 닫으면 바로 효과를 볼 수 있습니다!\n\n4. 🔍 【전역 워크벤치와 업로드 공유】\n기계 번역이 어색하게 느껴지시나요? 【전역 편집】 탭으로 들어가 강력한 '전역 텍스트 검색'을 통해 오타를 즉시 찾아내고 수정해 보세요! 수정이 완료되면 클라우드 워크숍으로 돌아와 여러분의 노력을 【유저 정밀 번역 (Manual)】 태그를 달아 업로드하여 전 세계의 림월드 유저들을 구원해 주세요!\n\n【자주 묻는 질문 Ｑ＆Ａ】\nQ: 왜 클라우드 워크숍에 '삭제' 버튼이 없나요?\nA: 유저들의 소중한 번역을 보호하기 위해, 삭제 기능은 특권 코드를 가진 관리자 또는 번역 팀만 사용할 수 있습니다. 일반 유저분들은 안심하고 업로드해 주세요. 시스템이 스마트하게 병합하고 최신 고품질 버전을 자동으로 유지합니다!\n\nQ: '원클릭 주입 핫 리로드'가 무엇인가요?\nA: 여러분이 직접 생성된 번역 XML 파일을 수동으로 수정하는 것을 좋아하는 하드코어 유저라면, 저장 후 이 버튼을 클릭하기만 하면 시스템이 즉시 프론트엔드 UI 캐시를 새로 고치고 메모리에 에어드랍하여 수정 결과를 실시간으로 확인시켜 줍니다!\n\nQ: 왜 생산 로그에 '재시도 대기'라는 빨간색 경고가 계속 뜨나요?\nA: API 서버가 응답을 안 하거나 일시적으로 요청 제한에 걸렸기 때문입니다! 모드 내부에 초강력 【지수 백오프 재시도】 메커니즘이 탑재되어 있습니다. 이후에 계속 번역 성공이 표시된다면, 그냥 가만히 두고 잠시 기다리시면 알아서 해결됩니다~ (≧∀≦)ゞ\n\nQ: 로컬 환경(LM Studio / Ollama 등)을 사용 중인데 계속 연결에 실패합니다.\nA: 1. '사용자 정의 Base URL'이 올바르게 입력되었는지 확인하세요(예: http://localhost:1234). 주소 뒤의 접미사는 걱정하지 마세요. 시스템이 자동으로 /v1을 붙여줍니다!\n2. API 키(API Key)는 절대 비워둘 수 없습니다! 로컬 환경인 경우 아무 글자나 입력해 주세요.\n\nQ: 동적 UI 인터셉터는 렉이 걸리지 않나요?\nA: 본 시스템은 '초고속 O(1) 테이블 조회'와 '예외 방지 밸브' 메커니즘을 도입하여, 에러 쓰나미가 몰려와도 프레임이 120FPS로 부드럽게 유지됩니다. 다만, 이 기능은 화면의 모든 미번역 외국어를 포착하므로 【유료 API】를 사용하는 경우 요금 폭탄을 피하기 위해 켜기 전에 신중히 판단해 주세요!</ATC_Tutorial_FullText>
-  <ATC_UpdateLog_FullText>--- V3.0 클라우드 워크숍 및 전역 에디터 출시 ---\n• 새로운 【클라우드 공유 워크숍】: 다국어 번역 팩의 원클릭 업로드 및 다운로드 지원. '번역 팀 정밀 번역', '유저 정밀 번역', 'AI 기계 번역'의 3가지 품질 태그를 지원하며, 3-2-1 스마트 버전 관리, 소프트 딜리트 보호 및 업데이트 로그 내장.\n• 강화된 【전역 번역 워크벤치】: 비동기 백그라운드 '전역 텍스트 검색' 및 동적 진행률 표시줄 추가. 수백 개의 모드가 설치되어 있어도 모든 캐시 및 내장 번역을 매끄럽게 검색할 수 있으며, 다국어 필터링과 원클릭 이동 편집 지원.\n• 【네트워크 전송 레이어】 재구축: Unity 원시 네트워크 엔진 (UnityWebRequest)으로 전면 업그레이드하고 UTF-8 압축을 강제하여, 과거 Windows 시스템 인코딩 충돌로 발생하던 에러 및 ZIP 압축 손상 문제를 완전히 해결.\n• 【스마트 미세 디톡스】 구현: 하위 레이어의 위험 변수 및 얼굴 모드(예: FaceDef)를 자동으로 필터링하여 번역 후 캐릭터 그래픽이 깨지는 참사를 종식하고, 실행 시 구버전의 잔류 가짜 번역 파일을 자동 정리.\n\n--- V2.2 코어 아키텍처 및 연결 안정성 업데이트 ---\n• 최적화 【API 요청 아키텍처】: 하부 로직을 재구성하여 다양한 AI 제공업체와의 호환성 및 데이터 해석 안정성을 향상시켰습니다.\n• 구현 【자동 백오프 재시도】: 서버 혼잡(HTTP 429) 또는 일시적인 연결 예외(HTTP 500+)가 발생할 때 시스템이 자동으로 대기 시간을 가진 후 재시도하여 번역 중단 확률을 줄입니다.\n• 신기능 【시간 제한 사용자 정의 및 테스트】: 설정 인터페이스에 '연결 테스트' 버튼과 '시간 초과 슬라이더'를 추가했습니다. (심층 생각/추론 모델을 사용할 때 시스템은 자동으로 긴 대기 시간을 적용합니다).\n• 개선 【전역 에러 알림】: 스레드 간 UI 브리지 기술을 적용하여 API 연결 에러나 키 무효가 발생하면 게임 화면 좌측 상단에 실시간 팝업이 뜨도록 하여 로그 확인을 위해 자주 탭을 전환해야 하는 번거로움을 해결했습니다.\n\n--- V2.1 번역 체험 및 지능형 업그레이드 ---\n• 구현 【원클릭 패키징 내보내기】: 번역된 모드를 데스크톱으로 독립적으로 내보낼 수 있는 기능을 지원합니다. 원작자나 번역 팀에 전달 및 피드백 시 유용한 '기계 번역 경고' 워터마크가 포함됩니다.\n• 신기능 【스마트 모드 업데이트 레이더】: 시스템이 '업데이트 필요' 또는 '미번역' 모드를 자동으로 감지합니다.\n• 지원 【자동 업데이트 교체】: 활성화하면 모드가 업데이트될 때 시스템이 자동으로 이전 번역 파일을 삭제하고 새로 번역하여 텍스트가 항상 최신 상태를 유지하도록 보장합니다.\n• 수정 【문자열 줄바꿈 에러】: 일부 \n 문자가 정상적으로 줄바꿈되지 않아 레이아웃이 깨지던 하부 문제를 해결했습니다.\n\n--- V2.0 성능 최적화 및 실시간 렌더링 ---\n• 구현 【실시간 메모리 주입】: 번역 완료 후 결과를 게임 메모리에 직접 입력하여 화면이 즉시 대상 언어로 전환되며, 다음 실행 시에도 자동 적용되어 로드 순서 충돌을 줄여줍니다.\n• 최적화 【동적 UI 인터셉터 성능】: 하부 인터셉트 로직과 캐시 설정을 개선하여 프레임 레이트(FPS) 소모를 크게 줄였습니다.\n• 신기능 【원클릭 핫 리로드】: XML 번역 파일을 직접 수정한 후 버튼만 누르면 게임을 끌 필요 없이 즉시 UI 캐시를 리프레시할 수 있습니다.\n\n--- V1.0 정식 버전 출시 ---\n• 구현 【동적 UI 인터셉터 시스템】: 설정 패널이나 정적 XML에서 누락된 외국어 텍스트를 실시간으로 인터셉트하여 자동 번역하는 기능을 지원합니다.\n• 구현 【원문 대조 기능】: 마우스 호버 시 원문을 보여주는 기능을 탑재하여 대조 및 수정을 용이하게 만들었습니다.</ATC_UpdateLog_FullText>
+  <ATC_Tutorial_FullText>【V4.1 BETA 사용 설명서: 무임승차부터 기여까지】\n1. ☁️ 【먼저 클라우드를 확인하여 바퀴의 재발명을 방지하세요】\n번역을 준비하기 전에 【클라우드 워크숍】 탭을 먼저 방문하시는 것을 강력히 추천합니다! 번역 연합의 고수나 다른 유저가 이미 정밀 번역본(식은 죽 먹기 패키지)을 업로드했을 수도 있습니다. 원클릭 일괄 다운로드를 지원하여 즉시 따끈따끈한 완성본을 즐길 수 있습니다!\n\n2. ⚙️ 【번역 준비를 위한 API 설정】\n클라우드에 원하는 모드가 없다면, 먼저 설정 페이지에서 【대상 언어】(한국어, 중국어, 영어, 러시아어 등 다국어 지원)와 【제공업체】(대만에서는 무료 Gemini, 대륙에서는 DeepSeek 추천)를 선택하세요. '무한 API 탄창'을 지원하므로 '+' 버튼을 눌러 여러 API 슬롯을 추가하면 시스템이 자동으로 작업을 분배하여 무료 사용량을 한계까지 쥐어짜냅니다!\n(API 키를 붙여넣은 후 따로 검색할 필요 없이 백그라운드에서 모델을 자동으로 가져옵니다!)\n\n3. 🚀 【원클릭 번역과 메모리 에어드랍】\n스레드 수를 설정한 후, 【🚀 모든 모드 원클릭 번역】을 클릭하거나 【🎯 단일/다중 모드 번역】을 사용하여 정밀 격추를 시도해 보세요. 번역이 완료된 후 【게임을 재시작할 필요가 전혀 없습니다】! 시스템이 자동으로 '메모리 에어드랍'을 작동시켜 번역을 게임에 실시간 주입하므로, 창을 닫으면 바로 효과를 볼 수 있습니다!\n\n4. 🔍 【전역 워크벤치와 업로드 공유】\n기계 번역이 어색하게 느껴지시나요? 【전역 편집】 탭으로 들어가 강력한 '전역 텍스트 검색'을 통해 오타를 즉시 찾아내고 수정해 보세요! 수정이 완료되면 클라우드 워크숍으로 돌아와 여러분의 노력을 【유저 정밀 번역 (Manual)】 태그를 달아 업로드하여 전 세계의 림월드 유저들을 구원해 주세요!\n\n【자주 묻는 질문 Ｑ＆Ａ】\nQ: 왜 클라우드 워크숍에 '삭제' 버튼이 없나요?\nA: 유저들의 소중한 번역을 보호하기 위해, 삭제 기능은 특권 코드를 가진 관리자 또는 번역 팀만 사용할 수 있습니다. 일반 유저분들은 안심하고 업로드해 주세요. 시스템이 스마트하게 병합하고 최신 고품질 버전을 자동으로 유지합니다!\n\nQ: '원클릭 주입 핫 리로드'가 무엇인가요?\nA: 여러분이 직접 생성된 번역 XML 파일을 수동으로 수정하는 것을 좋아하는 하드코어 유저라면, 저장 후 이 버튼을 클릭하기만 하면 시스템이 즉시 프론트엔드 UI 캐시를 새로 고치고 메모리에 에어드랍하여 수정 결과를 실시간으로 확인시켜 줍니다!\n\nQ: 왜 생산 로그에 '재시도 대기'라는 빨간색 경고가 계속 뜨나요?\nA: API 서버가 응답을 안 하거나 일시적으로 요청 제한에 걸렸기 때문입니다! 모드 내부에 초강력 【지수 백오프 재시도】 메커니즘이 탑재되어 있습니다. 이후에 계속 번역 성공이 표시된다면, 그냥 가만히 두고 잠시 기다리시면 알아서 해결됩니다~ (≧∀≦)ゞ\n\nQ: 로컬 환경(LM Studio / Ollama 등)을 사용 중인데 계속 연결에 실패합니다.\nA: 1. '사용자 정의 Base URL'이 올바르게 입력되었는지 확인하세요(예: http://localhost:1234). 주소 뒤의 접미사는 걱정하지 마세요. 시스템이 자동으로 /v1을 붙여줍니다!\n2. API 키(API Key)는 절대 비워둘 수 없습니다! 로컬 환경인 경우 아무 글자나 입력해 주세요.\n\nQ: 동적 UI 인터셉터는 렉이 걸리지 않나요?\nA: 본 시스템은 '초고속 O(1) 테이블 조회'와 '예외 방지 밸브' 메커니즘을 도입하여, 에러 쓰나미가 몰려와도 프레임이 120FPS로 부드럽게 유지됩니다. 다만, 이 기능은 화면의 모든 미번역 외국어를 포착하므로 【유료 API】를 사용하는 경우 요금 폭탄을 피하기 위해 켜기 전에 신중히 판단해 주세요!</ATC_Tutorial_FullText>
+  <ATC_UpdateLog_FullText>--- V4.1 BETA 모드 스캔 및 필터 진단 ---\n• 사용자 지정 콘텐츠 폴더와 이전 버전 Defs 감지를 수정했습니다.\n• 제외 이유, 후보 소스, 폴더 열기 기능을 확인할 수 있는 필터 상세 정보를 추가했습니다.\n• 안전한 강제 번역을 추가하고 비활성 구버전 또는 조건부 소스를 제외하여 불필요한 토큰 사용을 줄였습니다.\n\n--- V4.0 BETA 클라우드 워크숍 및 전역 에디터 출시 ---\n• 새로운 【클라우드 공유 워크숍】: 다국어 번역 팩의 원클릭 업로드 및 다운로드 지원. '번역 팀 정밀 번역', '유저 정밀 번역', 'AI 기계 번역'의 3가지 품질 태그를 지원하며, 3-2-1 스마트 버전 관리, 소프트 딜리트 보호 및 업데이트 로그 내장.\n• 강화된 【전역 번역 워크벤치】: 비동기 백그라운드 '전역 텍스트 검색' 및 동적 진행률 표시줄 추가. 수백 개의 모드가 설치되어 있어도 모든 캐시 및 내장 번역을 매끄럽게 검색할 수 있으며, 다국어 필터링과 원클릭 이동 편집 지원.\n• 【네트워크 전송 레이어】 재구축: Unity 원시 네트워크 엔진 (UnityWebRequest)으로 전면 업그레이드하고 UTF-8 압축을 강제하여, 과거 Windows 시스템 인코딩 충돌로 발생하던 에러 및 ZIP 압축 손상 문제를 완전히 해결.\n• 【스마트 미세 디톡스】 구현: 하위 레이어의 위험 변수 및 얼굴 모드(예: FaceDef)를 자동으로 필터링하여 번역 후 캐릭터 그래픽이 깨지는 참사를 종식하고, 실행 시 구버전의 잔류 가짜 번역 파일을 자동 정리.\n\n--- V2.2 코어 아키텍처 및 연결 안정성 업데이트 ---\n• 최적화 【API 요청 아키텍처】: 하부 로직을 재구성하여 다양한 AI 제공업체와의 호환성 및 데이터 해석 안정성을 향상시켰습니다.\n• 구현 【자동 백오프 재시도】: 서버 혼잡(HTTP 429) 또는 일시적인 연결 예외(HTTP 500+)가 발생할 때 시스템이 자동으로 대기 시간을 가진 후 재시도하여 번역 중단 확률을 줄입니다.\n• 신기능 【시간 제한 사용자 정의 및 테스트】: 설정 인터페이스에 '연결 테스트' 버튼과 '시간 초과 슬라이더'를 추가했습니다. (심층 생각/추론 모델을 사용할 때 시스템은 자동으로 긴 대기 시간을 적용합니다).\n• 개선 【전역 에러 알림】: 스레드 간 UI 브리지 기술을 적용하여 API 연결 에러나 키 무효가 발생하면 게임 화면 좌측 상단에 실시간 팝업이 뜨도록 하여 로그 확인을 위해 자주 탭을 전환해야 하는 번거로움을 해결했습니다.\n\n--- V2.1 번역 체험 및 지능형 업그레이드 ---\n• 구현 【원클릭 패키징 내보내기】: 번역된 모드를 데스크톱으로 독립적으로 내보낼 수 있는 기능을 지원합니다. 원작자나 번역 팀에 전달 및 피드백 시 유용한 '기계 번역 경고' 워터마크가 포함됩니다.\n• 신기능 【스마트 모드 업데이트 레이더】: 시스템이 '업데이트 필요' 또는 '미번역' 모드를 자동으로 감지합니다.\n• 지원 【자동 업데이트 교체】: 활성화하면 모드가 업데이트될 때 시스템이 자동으로 이전 번역 파일을 삭제하고 새로 번역하여 텍스트가 항상 최신 상태를 유지하도록 보장합니다.\n• 수정 【문자열 줄바꿈 에러】: 일부 \n 문자가 정상적으로 줄바꿈되지 않아 레이아웃이 깨지던 하부 문제를 해결했습니다.\n\n--- V2.0 성능 최적화 및 실시간 렌더링 ---\n• 구현 【실시간 메모리 주입】: 번역 완료 후 결과를 게임 메모리에 직접 입력하여 화면이 즉시 대상 언어로 전환되며, 다음 실행 시에도 자동 적용되어 로드 순서 충돌을 줄여줍니다.\n• 최적화 【동적 UI 인터셉터 성능】: 하부 인터셉트 로직과 캐시 설정을 개선하여 프레임 레이트(FPS) 소모를 크게 줄였습니다.\n• 신기능 【원클릭 핫 리로드】: XML 번역 파일을 직접 수정한 후 버튼만 누르면 게임을 끌 필요 없이 즉시 UI 캐시를 리프레시할 수 있습니다.\n\n--- V1.0 정식 버전 출시 ---\n• 구현 【동적 UI 인터셉터 시스템】: 설정 패널이나 정적 XML에서 누락된 외국어 텍스트를 실시간으로 인터셉트하여 자동 번역하는 기능을 지원합니다.\n• 구현 【원문 대조 기능】: 마우스 호버 시 원문을 보여주는 기능을 탑재하여 대조 및 수정을 용이하게 만들었습니다.</ATC_UpdateLog_FullText>
   <ATC_ApiConfigTitle>API 인터페이스 탄창 설정 (다중 동시 스레드 폴링 지원)</ATC_ApiConfigTitle>
   <ATC_Provider>제공업체</ATC_Provider>
   <ATC_CustomUrlOptional>(사용자 정의 BaseUrl, 비워둘 시 기본값 사용)</ATC_CustomUrlOptional>
@@ -85,8 +89,8 @@
   <ATC_FetchingModel>모델 검색 중...</ATC_FetchingModel>
   <ATC_NoModelWaitKey>모델 미선택 (Key 붙여넣기 시 자동 획득)</ATC_NoModelWaitKey>
   <ATC_AddApiBtn>API 인터페이스 추가 (Add API Interface)</ATC_AddApiBtn>
-  <ATC_EmergencyStop>번역 중지 (Emergency Stop)</ATC_EmergencyStop>
-  <ATC_StartFullScan>모든 모드 일괄 번역 (Start Full Scan)</ATC_StartFullScan>
+  <ATC_EmergencyStop>모든 번역 및 분석 중지</ATC_EmergencyStop>
+  <ATC_StartFullScan>모든 모드 일괄 번역</ATC_StartFullScan>
   <ATC_EmptyConfigWarning>최소한 하나의 유효한 API 구성을 설정해 주세요!</ATC_EmptyConfigWarning>
   <ATC_MaxThreads>동시 스레드 수 (Max Threads)</ATC_MaxThreads>
   <ATC_MaxThreadsTip>강력 추천: 활성화된 인터페이스 수 x 3</ATC_MaxThreadsTip>
@@ -100,6 +104,72 @@
   <ATC_MultiSelect_Title>번역할 모드 선택 (다중 선택 가능)</ATC_MultiSelect_Title>
   <ATC_MultiSelect_Search>여기에 모드 이름을 입력하여 검색...</ATC_MultiSelect_Search>
   <ATC_MultiSelect_Start>선택한 {0}개의 모드 번역 시작</ATC_MultiSelect_Start>
+  <ATC_PolicyShadowRun_Button>로컬 규칙 시험 실행 ({0})</ATC_PolicyShadowRun_Button>
+  <ATC_PolicyShadowRun_Task>로컬 규칙 시험 실행 중...</ATC_PolicyShadowRun_Task>
+  <ATC_PolicyShadowRun_Start>선택한 모드 {0}개에 로컬 규칙 시험 실행을 수행합니다. Agent 사전 판정은 호출하지 않으며 번역을 기록하거나 런타임에 주입하지 않습니다.</ATC_PolicyShadowRun_Start>
+  <ATC_PolicyPreflight_CloudStart>선택한 모드 {0}개의 클라우드 판단을 동기화합니다. Agent는 호출하지 않으며 번역을 기록하거나 주입하지 않습니다.</ATC_PolicyPreflight_CloudStart>
+  <ATC_PolicyPreflight_AgentStart>선택한 모드 {0}개에 Agent 사전 판정을 실행합니다. 설정된 분석 모델을 호출하지만 번역을 기록하거나 주입하지 않습니다.</ATC_PolicyPreflight_AgentStart>
+  <ATC_PolicyPreflight_LaunchTrace>작업 추적: 실행 #{0}; 진입점={1}; 모드={2}; 모드 수={3}.</ATC_PolicyPreflight_LaunchTrace>
+  <ATC_Preflight_CloseRunningTitle>스마트 번역 작업 실행 중</ATC_Preflight_CloseRunningTitle>
+  <ATC_Preflight_CloseRunningConfirm>이 창을 닫으면 현재 스마트 번역 작업도 중지됩니다. 중지하고 닫으시겠습니까?</ATC_Preflight_CloseRunningConfirm>
+  <ATC_Preflight_StopAndClose>중지하고 닫기</ATC_Preflight_StopAndClose>
+  <ATC_Preflight_KeepOpen>계속 기다리기</ATC_Preflight_KeepOpen>
+  <ATC_PolicyShadowRun_Title>로컬 규칙 시험 실행 결과</ATC_PolicyShadowRun_Title>
+  <ATC_PolicyShadowRun_Summary>모드: {0}\n후보 텍스트: {1}\n허용: {2}\n거부: {3}\n모호함: {4}\n그룹: {5}\n예상 요청 수: {6}\n예상 입력 토큰: {7}\n예상 출력 토큰: {8}\n예상 전체 토큰: {9}\n실제 AI/API 호출 / 소비 토큰: 0 / 0\n경과 시간: {10}\n보고서: {11}\n번역 기록 / 런타임 주입: 0 / 0</ATC_PolicyShadowRun_Summary>
+  <ATC_PolicyAgent_Enable>불확실한 텍스트에 Agent 예측 사용(기본값: 꺼짐)</ATC_PolicyAgent_Enable>
+  <ATC_PolicyAgent_SharedModelPoolNotice>Agent 사전 판정은 표준 분석 작업입니다. 표준 모델을 우선 사용하고 사용할 수 없으면 정밀, 대량 모델 순으로 전환합니다. 로컬에서 불확실한 항목만 모델 토큰을 사용합니다.</ATC_PolicyAgent_SharedModelPoolNotice>
+  <ATC_PolicyAgent_EnableTooltip>사용하면 번역 전에 모호한 텍스트를 분류합니다. DeepL은 분류할 수 없으므로 AI 채팅 공급자를 설정하세요. 실패하면 원문을 유지합니다.</ATC_PolicyAgent_EnableTooltip>
+  <ATC_PolicyAgent_MaxCallsPerRun>번역 작업당 Agent 사전 판정 호출 소프트 임계값: {0}</ATC_PolicyAgent_MaxCallsPerRun>
+  <ATC_PolicyAgent_MaxEstimatedTokensPerRun>번역 작업당 예상 토큰 소프트 임계값: {0}</ATC_PolicyAgent_MaxEstimatedTokensPerRun>
+  <ATC_PolicyAgent_MaxCallsPerMod>모드당 Agent 사전 판정 호출 소프트 임계값: {0}</ATC_PolicyAgent_MaxCallsPerMod>
+  <ATC_PolicyAgent_RetryNotice>요청당 재시도 횟수: {0}. 모든 재시도는 호출 수와 예상 토큰 소프트 임계값에 포함됩니다.</ATC_PolicyAgent_RetryNotice>
+  <ATC_PolicyAgent_ClearCache>Agent 사전 판정 판단 캐시 지우기</ATC_PolicyAgent_ClearCache>
+  <ATC_PolicyAgent_CacheCleared>Agent 사전 판정 판단 캐시를 지웠습니다.</ATC_PolicyAgent_CacheCleared>
+  <ATC_PolicyAgent_CacheClearFailed>Agent 사전 판정 판단 캐시를 지울 수 없습니다.</ATC_PolicyAgent_CacheClearFailed>
+  <ATC_PolicyAgent_NoProvider>사용 가능한 AI Agent 사전 판정 공급자가 없습니다. DeepL은 텍스트를 분류할 수 없으므로 모호한 텍스트는 원문을 유지합니다.</ATC_PolicyAgent_NoProvider>
+  <ATC_PolicyAgent_BudgetExhausted>Agent 사전 판정가 소프트 임계값에서 중지되었습니다. 남은 모호한 텍스트는 원문을 유지합니다.</ATC_PolicyAgent_BudgetExhausted>
+  <ATC_PolicyAgent_BudgetPrompt_Title>Agent 사전 판정 소프트 임계값 확인</ATC_PolicyAgent_BudgetPrompt_Title>
+  <ATC_PolicyAgent_BudgetPrompt_Message>다음 Agent 사전 판정 요청이 소프트 임계값을 초과합니다.\n모드: {0}\n작업 호출: {1} -&gt; {2}(임계값 {3}), 현재 모드: {4} -&gt; {5}(임계값 {6})\n예상 토큰: {7} -&gt; {8}(임계값 {9}){10}\n현재 발견되어 아직 처리하지 않은 모호한 그룹: 약 {11}\n요청 유형: {12}\n계속하면 이 작업에서는 다시 묻지 않습니다. 공급자 할당량과 요금은 계속 적용됩니다.</ATC_PolicyAgent_BudgetPrompt_Message>
+  <ATC_PolicyAgent_BudgetPrompt_ReportedTokens>공급자가 현재까지 보고한 토큰(불완전할 수 있음): {0}</ATC_PolicyAgent_BudgetPrompt_ReportedTokens>
+  <ATC_PolicyAgent_BudgetPrompt_RequestNew>새 요청</ATC_PolicyAgent_BudgetPrompt_RequestNew>
+  <ATC_PolicyAgent_BudgetPrompt_RequestRetry>재시도</ATC_PolicyAgent_BudgetPrompt_RequestRetry>
+  <ATC_PolicyAgent_BudgetPrompt_Continue>Agent 계속 사용</ATC_PolicyAgent_BudgetPrompt_Continue>
+  <ATC_PolicyAgent_BudgetPrompt_LocalOnly>Agent를 중지하고 계속</ATC_PolicyAgent_BudgetPrompt_LocalOnly>
+  <ATC_PolicyAgent_BudgetPrompt_Cancel>번역 취소</ATC_PolicyAgent_BudgetPrompt_Cancel>
+  <ATC_PolicyAgent_BudgetPrompt_Waiting>Agent 사전 판정 소프트 임계값 선택 대기 중</ATC_PolicyAgent_BudgetPrompt_Waiting>
+  <ATC_PolicyAgent_BudgetPrompt_Notice>소프트 임계값에서 번역을 일시 중지하고 확인합니다. 계속하면 이 작업의 내부 임계값과 재확인은 해제되지만 공급자 할당량과 요금은 계속 적용됩니다.</ATC_PolicyAgent_BudgetPrompt_Notice>
+  <ATC_PolicyAgent_EmergencyLimitReached>Agent 사전 판정가 기술 안전 한도({0}회 호출 또는 예상 {1}토큰)에 도달하여 이 작업의 나머지에서는 Agent를 중지합니다.</ATC_PolicyAgent_EmergencyLimitReached>
+  <ATC_PolicyAgent_LocalOnlySelected>이 작업의 나머지에서 Agent 사전 판정를 중지했습니다. 새 모호한 텍스트는 원문을 유지합니다.</ATC_PolicyAgent_LocalOnlySelected>
+  <ATC_PolicyAgent_BatchSummary>사전 판정 [{0}]: 로컬 허용 {1}, 로컬 거부 {2}, Agent 허용 {3}, 원문 유지 {4}.</ATC_PolicyAgent_BatchSummary>
+  <ATC_PolicyAgent_BatchProgress>Agent 사전 판정 배치: 예상 {0}, 처리 {1}, 실패 {2}, 진행 중 {3}.</ATC_PolicyAgent_BatchProgress>
+  <ATC_PolicyAgent_RunSummary>Agent 사전 판정 요약: 호출 {0}, 예상 토큰 {1}, 캐시 적중 {2}, 로컬 허용 {3}, 로컬 거부 {4}, Agent 허용 {5}, Agent 거부 {6}, 검토 필요 {7}, 미해결 {8}.</ATC_PolicyAgent_RunSummary>
+  <ATC_HardcodedUi_EnablePrototype>DLL 하드코딩 UI 텍스트를 번역에 포함</ATC_HardcodedUi_EnablePrototype>
+  <ATC_HardcodedUi_EnablePrototypeTooltip>시험 실행과 번역에서 로드된 Mod의 DLL UI 텍스트를 자동 분석합니다. 정적 분석으로 확정 가능한 항목을 처리하고, Agent 사전 판단을 켠 경우 불확실한 항목만 판단합니다. 사용자 지정이 항상 우선하며 타사 DLL은 다시 작성하지 않습니다.</ATC_HardcodedUi_EnablePrototypeTooltip>
+  <ATC_HardcodedUi_Status>DLL 하드코딩 UI 번역: {0}</ATC_HardcodedUi_Status>
+  <ATC_HardcodedUi_ReloadManifest>승인된 UI manifest 다시 로드</ATC_HardcodedUi_ReloadManifest>
+  <ATC_HardcodedUi_Conflict>기존 전역 UI 인터셉터가 켜져 있는 동안 DLL 지정 치환은 일시 중지됩니다.</ATC_HardcodedUi_Conflict>
+  <ATC_HardcodedUi_AutoAnalyzing>DLL 하드코딩 UI 텍스트를 분석하는 중…</ATC_HardcodedUi_AutoAnalyzing>
+  <ATC_HardcodedUi_AutoTranslating>번역이 필요하다고 확인된 DLL UI 텍스트를 번역하는 중…</ATC_HardcodedUi_AutoTranslating>
+  <ATC_HardcodedUi_AutoBatchFailed>{0}의 DLL 번역 배치({1}개)에 실패했습니다. 원문을 유지하고 계속합니다.</ATC_HardcodedUi_AutoBatchFailed>
+  <ATC_HardcodedUi_AutoDone>{0}개 Mod의 DLL UI 처리가 완료되었고 새 번역 {1}개를 저장했습니다.</ATC_HardcodedUi_AutoDone>
+  <ATC_HardcodedUi_AutoFailed>DLL UI 처리에 실패했지만 XML 번역은 계속 사용할 수 있습니다. 세부 정보: {0}</ATC_HardcodedUi_AutoFailed>
+  <ATC_Workbench_SourceAll>전체 ({0})</ATC_Workbench_SourceAll>
+  <ATC_Workbench_SourceXml>XML ({0})</ATC_Workbench_SourceXml>
+  <ATC_Workbench_SourceDll>DLL ({0})</ATC_Workbench_SourceDll>
+  <ATC_Workbench_DllLoadFailed>DLL 항목을 불러오지 못했습니다: {0}</ATC_Workbench_DllLoadFailed>
+  <ATC_Workbench_DllStaleManifest>저장된 DLL 번역 {0}개가 현재 어셈블리와 일치하지 않습니다(대개 Mod/DLL 업데이트 때문입니다). 해당 항목의 런타임 적용은 중지되었습니다. 새 스캔을 확인한 뒤 저장하여 오래된 항목을 정리하세요.</ATC_Workbench_DllStaleManifest>
+  <ATC_Workbench_DllSaved>DLL 번역과 판단을 저장하고 런타임 다시 로드를 요청했습니다.</ATC_Workbench_DllSaved>
+  <ATC_Workbench_TranslateCurrentRange>현재 범위 번역 ({0})</ATC_Workbench_TranslateCurrentRange>
+  <ATC_Workbench_TranslateCurrentRangeTip>현재 소스, 분류, 검색 조건에 맞는 모든 번역 가능 항목을 처리합니다. 기존 번역은 건너뛰며 자동 저장하지 않습니다.</ATC_Workbench_TranslateCurrentRangeTip>
+  <ATC_Workbench_CurrentRangeProgress>번역 중 {0}/{1}</ATC_Workbench_CurrentRangeProgress>
+  <ATC_Workbench_CurrentRangeNothing>현재 범위에 번역 가능한 미번역 항목이 없습니다.</ATC_Workbench_CurrentRangeNothing>
+  <ATC_Workbench_CurrentRangeStarted>{0}개 항목 번역을 시작했습니다.</ATC_Workbench_CurrentRangeStarted>
+  <ATC_Workbench_CurrentRangeDone>{0}/{1}개 항목을 번역했습니다. 확인 후 직접 저장하세요.</ATC_Workbench_CurrentRangeDone>
+  <ATC_Workbench_CurrentRangeStopped>{0}/{1}개 항목 번역 후 중지했습니다. 완료 결과는 검토할 수 있도록 저장되지 않은 상태로 유지됩니다.</ATC_Workbench_CurrentRangeStopped>
+  <ATC_Workbench_CurrentRangePartial>{0}/{1}개 항목을 번역했습니다. 일부 배치 실패: {2}</ATC_Workbench_CurrentRangePartial>
+  <ATC_Workbench_DllAdvanced>DLL 분석 세부 정보</ATC_Workbench_DllAdvanced>
+  <ATC_Workbench_DllAdvancedTip>증거 경로, Agent 사전 판단, 고급 판단 제어를 위한 DLL 전용 워크벤치를 엽니다.</ATC_Workbench_DllAdvancedTip>
+  <ATC_Workbench_DllDecisionTip>번역, 번역 안 함 또는 자동 판단 복원을 선택합니다. 사용자 선택이 항상 우선합니다.</ATC_Workbench_DllDecisionTip>
   <ATC_SubTask_AnalyzingDict>로컬 번역 텍스트 분석 중...</ATC_SubTask_AnalyzingDict>
   <ATC_SubTask_BuildingDict>사전 빌드 중: {0}</ATC_SubTask_BuildingDict>
   <ATC_SubTask_DictDone>사전 구축 완료!</ATC_SubTask_DictDone>
@@ -115,6 +185,10 @@
   <ATC_One_click_chaos>원클릭 아무거나 선택</ATC_One_click_chaos>
   <ATC_Rickroll>절대로 여기를 누르지 마세요...</ATC_Rickroll>
   <ATC_SelectAll>전체 선택</ATC_SelectAll>
+  <ATC_SelectUntranslated>Untranslated Mods Only</ATC_SelectUntranslated>
+  <ATC_SelectUntranslated_Checking>Checking translation status...</ATC_SelectUntranslated_Checking>
+  <ATC_SelectUntranslated_Result>Selected {0} untranslated mods; official base game and DLC packages were excluded.</ATC_SelectUntranslated_Result>
+  <ATC_SelectUntranslated_Failed>Could not check untranslated mods. See the developer log.</ATC_SelectUntranslated_Failed>
   <ATC_DeselectAll>선택 해제</ATC_DeselectAll>
   <ATC_Log_UIInterceptorStarted>동적 UI 인터셉터 작동 시작! 백그라운드 캐시 시스템 가동 중...</ATC_Log_UIInterceptorStarted>
   <ATC_Log_UICacheLoaded>{0}개의 하드코드 UI 캐시 로드 완료!</ATC_Log_UICacheLoaded>
@@ -145,7 +219,7 @@
   <ATC_Log_EnglishResidualRejected>[검증] 재시도 후에도 영어 잔류가 해결되지 않음: {0}</ATC_Log_EnglishResidualRejected>
   <ATC_Log_ProtectedTokenMismatchRejected>[검증] 재시도 후에도 보호 token 불일치가 해결되지 않음: {0}</ATC_Log_ProtectedTokenMismatchRejected>
   <ATC_Log_PlaceholderRepairSummary>[검증] 생성된 번역 파일 {1}개에서 자리표시자 token {0}개를 복구했습니다.</ATC_Log_PlaceholderRepairSummary>
-  <ATC_Profile_Current>현재 전략：배치당 {0}개, 형식 재시도 {1}회, 타임아웃 하한 {2}초</ATC_Profile_Current>
+  <ATC_Profile_Current>현재 전략：배치당 {0}개, 형식 재시도 {1}회, 실제 타임아웃 {2}초</ATC_Profile_Current>
   <ATC_Profile_DeepSeek>DeepSeek：빈 응답 또는 잘못된 JSON을 줄이기 위해 보수적인 배치를 사용합니다.</ATC_Profile_DeepSeek>
   <ATC_Profile_Google>Google/Gemini：안정적인 대량 번역용 표준 배치입니다.</ATC_Profile_Google>
   <ATC_Profile_DeepL>DeepL：XML 태그 보호, LLM JSON 파싱 재시도 없음.</ATC_Profile_DeepL>
@@ -164,7 +238,7 @@
   <ATC_OriginalText>원문</ATC_OriginalText>
   <ATC_Log_MemoryDropSuccess>[메모리 에어드랍] {0}개의 시스템 텍스트 및 {1}개의 아이템 정의 주입 성공!</ATC_Log_MemoryDropSuccess>
   <ATC_LogError_MemoryDropFailed>[메모리 에어드랍 실패] {0}</ATC_LogError_MemoryDropFailed>
-  <ATC_Button_HotReload>원클릭 메모리 주입 핫 리로드 (재부팅 불필요, 화면 즉시 갱신!)</ATC_Button_HotReload>
+  <ATC_Button_HotReload>핫 리로드</ATC_Button_HotReload>
   <ATC_Message_HotReloadSuccess>🪂 [메모리 에어드랍] 번역 데이터가 즉시 주입되었으며 UI 캐시가 완벽히 갱신되었습니다!</ATC_Message_HotReloadSuccess>
   <ATC_Log_HotReloadSuccess>🪂 [메모리 에어드랍] 번역 데이터가 코어에 즉시 주입되었으며 UI 윈도우 캐시가 완전히 리프레시되었습니다!</ATC_Log_HotReloadSuccess>
   <ATC_LogError_InvalidXmlKey>[XML 수비수] AI가 반환한 Key에 잘못된 문자가 포함되어 자동으로 스킵되었습니다: {0}</ATC_LogError_InvalidXmlKey>
@@ -311,7 +385,7 @@
   <ATC_Log_RetryAttempt>HTTP {0} 피드백 수신. 제 {1}차 재접속 기동 중 (대기 시간 {2}ms)...</ATC_Log_RetryAttempt>
   <ATC_Log_RetryTimeout>응답 주기 경과. 제 {0}차 복구 시도 작동 (대기 {1}ms)...</ATC_Log_RetryTimeout>
   <ATC_Setting_Timeout>API 최대 허용 초과 시간: {0}초</ATC_Setting_Timeout>
-  <ATC_Setting_Timeout_Tooltip>설정한 초 동안 답신이 지체되면 처리를 파기하고 복구 재검토를 진행합니다. 권장치 60~120\n(단, 추론/심층 생각 모델을 지정 시 내부적으로 강제 300초가 동시 가산 적용됩니다)</ATC_Setting_Timeout_Tooltip>
+  <ATC_Setting_Timeout_Tooltip>번역, 용어 정리 및 Agent 사전 판정에 적용되는 실제 API 네트워크 대기 한도입니다. 이 시간 안에 완전한 응답이 없으면 요청을 중단하고 시간 초과로 기록합니다. 공급자나 모델이 값을 임의로 늘리지 않습니다. 권장: 60~120초.</ATC_Setting_Timeout_Tooltip>
   <ATC_FilteredCodeOnly>{0}개의 순수 구동 장치 전용 모드를 걸러냈습니다. 번역 데이터가 불필요합니다.</ATC_FilteredCodeOnly>
   <ATC_FilteredModsCount>스캔 가능한 번역 소스가 없는 모드 {0}개를 필터링했습니다</ATC_FilteredModsCount>
   <ATC_Log_DeepL_EndpointDetected>✅ DeepL［{0}］엔드포인트 연동이 완료되었습니다.</ATC_Log_DeepL_EndpointDetected>
@@ -417,8 +491,6 @@
   <ATC_Error_FetchModels_RateLimit>[{0}] 모델 연결 거부 (429): 짧은 주기에 다량 접속 요구 발생. 트래픽 보호 장치가 작동했으니 텀을 두고 요청하세요.</ATC_Error_FetchModels_RateLimit>
   <ATC_Error_FetchModels_ServerError>[{0}] 모델 취득 무산 ({1}): 대상 회사의 전송 시스템 연동 파탄. 서버 에러 의심. 내역: {2}</ATC_Error_FetchModels_ServerError>
   <ATC_Error_FetchModels_Unknown>[{0}] 모델 취득 실패 ({1}): 식별 불가 장애. 로그 내역: {2}</ATC_Error_FetchModels_Unknown>
-  <ATC_Error_FetchModelsDispatchTimeout>[{0}] Model lookup did not start in time. Please close and reopen the settings panel, or try again after the game finishes loading.</ATC_Error_FetchModelsDispatchTimeout>
-  <ATC_Error_FetchModelsWatchdogReleased>[{0}] Model lookup timed out; stuck fetching state was released. Please retry later or click Refetch Models.</ATC_Error_FetchModelsWatchdogReleased>
   <ATC_Lang_French>프랑스어 (Français)</ATC_Lang_French>
   <ATC_Lang_German>독일어 (Deutsch)</ATC_Lang_German>
   <ATC_Lang_Spanish>스페인어 (Español)</ATC_Lang_Spanish>
@@ -448,6 +520,7 @@
   <ATC_Cloud_NoLog>작성자분이 제공한 수정 정보 사항이 비어 있습니다.</ATC_Cloud_NoLog>
   <ATC_UploadPreview_Title>클라우드 기여 전 최종 패키지 모니터링 콘솔 - {0}</ATC_UploadPreview_Title>
   <ATC_UploadPreview_Loading>패키징할 모든 대상 XML의 인코딩 점검 및 데이터 악성 코드 정밀 수비 분석 중. 잠시만 기다려 주세요...</ATC_UploadPreview_Loading>
+  <ATC_Workbench_Loading>현재 Mod의 XML 및 DLL 편집 데이터를 불러오는 중입니다. 잠시만 기다려 주세요...</ATC_Workbench_Loading>
   <ATC_Preview_ClickToSee>왼쪽 항목을 고르면 실제 수정된 번역을 대조합니다</ATC_Preview_ClickToSee>
   <ATC_Upload_LogLabel>신규 업로드 설명 정보 기록 (유저 패키지 갱신 내역 고지용):</ATC_Upload_LogLabel>
   <ATC_Upload_LogHint>이번 수정본의 세부 특이점을 간략히 기재해 주세요 (예: 폰트 깨짐 보완, 인물 대화 오역 땜질 완료...)</ATC_Upload_LogHint>
@@ -587,4 +660,169 @@
   <ATC_Blacklist_DownloadSkipped>차단된 모드의 클라우드 다운로드를 건너뜀: {0}</ATC_Blacklist_DownloadSkipped>
   <ATC_Blacklist_DownloadBlockedStatus>클라우드 다운로드 차단됨</ATC_Blacklist_DownloadBlockedStatus>
   <ATC_Cloud_Btn_BatchBestTip>활성화된 설치 모드 중 클라우드에 해당 번역이 있는 모드만 다운로드합니다.</ATC_Cloud_Btn_BatchBestTip>
+  <ATC_UsageBudget_Enable>이번 번역 작업의 사용량 제한 활성화</ATC_UsageBudget_Enable>
+  <ATC_UsageBudget_EnableTooltip>요청 전 예산을 확인하며, 일시 중지되어도 완료된 결과를 보존합니다.</ATC_UsageBudget_EnableTooltip>
+  <ATC_UsageBudget_Characters>이번 작업의 최대 원문 문자 수: {0}</ATC_UsageBudget_Characters>
+  <ATC_UsageBudget_Notice>화면에서는 문자 수를 설정합니다. Token은 내부에서 추정하며 예산을 늘린 뒤 다시 시작할 수 있습니다.</ATC_UsageBudget_Notice>
+  <ATC_StructuredOutput_Label>Structured output</ATC_StructuredOutput_Label>
+  <ATC_StructuredOutput_Tooltip>Auto selects the safest supported format. Unsupported manual overrides fail without an automatic paid retry.</ATC_StructuredOutput_Tooltip>
+  <ATC_StructuredOutput_Effective>Effective: {0}</ATC_StructuredOutput_Effective>
+  <ATC_StructuredOutput_Auto>Auto (recommended)</ATC_StructuredOutput_Auto>
+  <ATC_StructuredOutput_PromptOnly>Prompt only</ATC_StructuredOutput_PromptOnly>
+  <ATC_StructuredOutput_JsonObject>JSON object</ATC_StructuredOutput_JsonObject>
+  <ATC_StructuredOutput_JsonSchema>Strict JSON Schema</ATC_StructuredOutput_JsonSchema>
+  <ATC_StructuredOutput_GeminiSchema>Gemini response schema</ATC_StructuredOutput_GeminiSchema>
+  <ATC_StructuredOutput_StrictFunction>Strict function call</ATC_StructuredOutput_StrictFunction>
+  <ATC_StructuredOutput_Native>Provider native</ATC_StructuredOutput_Native>
+  <ATC_TaskTier_Label>Task workload tier</ATC_TaskTier_Label>
+  <ATC_TaskTier_Bulk>Bulk translation (required)</ATC_TaskTier_Bulk>
+  <ATC_TaskTier_Standard>Standard task</ATC_TaskTier_Standard>
+  <ATC_TaskTier_Precision>Small precision task</ATC_TaskTier_Precision>
+  <ATC_TaskTier_Tooltip>Bulk tasks only use Bulk models. Standard tasks fall back to Precision, then Bulk; Precision tasks fall back to Standard, then Bulk. Higher tiers never replace a missing Bulk model.</ATC_TaskTier_Tooltip>
+  <ATC_TaskTier_RequiresBulk>Configure and enable another Bulk translation model before assigning this API entry to an optional tier.</ATC_TaskTier_RequiresBulk>
+  <ATC_TranslationCache_Clear>Clear validated translation reuse cache</ATC_TranslationCache_Clear>
+  <ATC_TranslationCache_Cleared>Validated translation reuse cache cleared.</ATC_TranslationCache_Cleared>
+  <ATC_TranslationCache_ClearFailed>Could not clear the validated translation reuse cache.</ATC_TranslationCache_ClearFailed>
+  <ATC_PolicyCloud_Enable>클라우드 판단 캐시 사용(지원 서버 필요)</ATC_PolicyCloud_Enable>
+  <ATC_PolicyCloud_Tooltip>원본과 규칙 버전이 정확히 일치할 때만 클라우드 판단을 재사용합니다. 결과는 자동 업로드되지 않으며 모드 목록에서 추가 전용 기여를 명시적으로 승인해야 합니다.</ATC_PolicyCloud_Tooltip>
+  <ATC_SourcePriority_Open>Configure translation source priority</ATC_SourcePriority_Open>
+  <ATC_SourcePriority_Title>Translation source priority</ATC_SourcePriority_Title>
+  <ATC_SourcePriority_Notice>Higher rows win when multiple valid translations exist. Every candidate still passes deterministic token, format, and target-language validation.</ATC_SourcePriority_Notice>
+  <ATC_SourcePriority_Global>Global default order</ATC_SourcePriority_Global>
+  <ATC_SourcePriority_ResetDefault>Restore recommended order</ATC_SourcePriority_ResetDefault>
+  <ATC_SourcePriority_NoMods>No installed mods</ATC_SourcePriority_NoMods>
+  <ATC_SourcePriority_UseOverride>Use a custom order for this mod</ATC_SourcePriority_UseOverride>
+  <ATC_SourcePriority_ModHint>Per-mod order overrides the global default only for the selected package.</ATC_SourcePriority_ModHint>
+  <ATC_SourcePriority_SaveClose>Save and close</ATC_SourcePriority_SaveClose>
+  <ATC_SourcePriority_UserManual>User manual edits</ATC_SourcePriority_UserManual>
+  <ATC_SourcePriority_ExternalHuman>Third-party human translation</ATC_SourcePriority_ExternalHuman>
+  <ATC_SourcePriority_ModNative>Mod built-in translation</ATC_SourcePriority_ModNative>
+  <ATC_SourcePriority_Cloud>Cloud translation</ATC_SourcePriority_Cloud>
+  <ATC_SourcePriority_Automatic>Automatic translation</ATC_SourcePriority_Automatic>
+  <ATC_Log_ApiConcurrencyRetry>[API recovery] The provider reported excessive concurrency or request rate. Subsequent requests are temporarily serialized. Retry {0}/{1} starts in {2} seconds.</ATC_Log_ApiConcurrencyRetry>
+  <ATC_Log_ApiConcurrencyRecovered>[API recovery] The request succeeded after concurrency was reduced. Requests will remain serialized briefly to avoid another limit.</ATC_Log_ApiConcurrencyRecovered>
+  <ATC_LogError_ApiConcurrencyExhausted>[API concurrency/rate limit] Concurrency was reduced and waits were extended, but the provider still rejected {0} retries. Original text was preserved. Retry later or lower Max Threads in API settings.</ATC_LogError_ApiConcurrencyExhausted>
+  <ATC_ApiFailureCategory_Quota>insufficient API balance or quota</ATC_ApiFailureCategory_Quota>
+  <ATC_ApiFailureCategory_Concurrency>API server concurrency or request-rate limit</ATC_ApiFailureCategory_Concurrency>
+  <ATC_ApiFailureCategory_LocalDispatch>the request was not sent because the game could not create the network request</ATC_ApiFailureCategory_LocalDispatch>
+  <ATC_ApiFailureCategory_ResponseTimeout>the request was sent, but no complete response arrived before the timeout</ATC_ApiFailureCategory_ResponseTimeout>
+  <ATC_ApiFailureCategory_ResponseTimeoutDuringUpload>요청 본문 업로드가 끝나기 전에 시간 초과되었습니다. 연결, TLS, 게이트웨이 대기 또는 본문 업로드 단계 문제일 가능성이 큽니다</ATC_ApiFailureCategory_ResponseTimeoutDuringUpload>
+  <ATC_ApiFailureCategory_ResponseTimeoutAfterUpload>요청 본문이 네트워크 계층에 완전히 전달됐지만 완전한 응답을 받지 못했습니다. 서버 처리, 첫 응답 대기 또는 응답 수신 단계 문제일 가능성이 큽니다</ATC_ApiFailureCategory_ResponseTimeoutAfterUpload>
+  <ATC_ApiFailureCategory_UnityTransportStall>설정된 시간 초과 후 15초의 정리 유예 시간에도 Unity 네트워크 요청이 끝나지 않아 전송 계층 정지로 판단하고 강제 정리했습니다</ATC_ApiFailureCategory_UnityTransportStall>
+  <ATC_ApiFailureCategory_Http>the provider returned an HTTP error</ATC_ApiFailureCategory_Http>
+  <ATC_ApiFailureCategory_InvalidResponse>the provider responded, but the content was not a usable translation result</ATC_ApiFailureCategory_InvalidResponse>
+  <ATC_ApiFailureCategory_Configuration>no enabled API or model is available for this task tier</ATC_ApiFailureCategory_Configuration>
+  <ATC_ApiFailureCategory_BudgetDenied>the local usage limit configured for this translation run has been reached, so the task is paused</ATC_ApiFailureCategory_BudgetDenied>
+  <ATC_ApiFailureCategory_Cancelled>the request was cancelled by the user</ATC_ApiFailureCategory_Cancelled>
+  <ATC_ApiFailureCategory_Transport>the network connection or request transport failed</ATC_ApiFailureCategory_Transport>
+  <ATC_ApiResponse_None>no response</ATC_ApiResponse_None>
+  <ATC_LogError_ApiFailureUnknown>【{0}】 produced no usable translation. The original was preserved for retry. Check the API configuration, network, and provider status.</ATC_LogError_ApiFailureUnknown>
+  <ATC_LogError_ApiFailureDetailed>【{0}】 produced no usable translation. Failure type: {1}. The original was preserved and recorded for retry. [Developer details] {2}</ATC_LogError_ApiFailureDetailed>
+  <ATC_ErrorAggregate_Summary>Same root cause: {0} failed batches, {1} affected entries. Per-batch details remain in AutoTranslation_Log.txt.</ATC_ErrorAggregate_Summary>
+  <ATC_Terminology_Enable>지능형 용어 일관성 분석 사용</ATC_Terminology_Enable>
+  <ATC_Terminology_EnableTooltip>기본값은 꺼짐입니다. 선택한 Mod만 사전 분석하며 용어 Agent를 호출할 수 있습니다. 시간과 Token이 추가되며 품질을 완전히 보장하지 않습니다.</ATC_Terminology_EnableTooltip>
+  <ATC_Terminology_Configure>용어 분석에 참여할 Mod 선택 ({0})</ATC_Terminology_Configure>
+  <ATC_Terminology_Title>용어 일관성: Mod 및 공유 그룹</ATC_Terminology_Title>
+  <ATC_Terminology_Notice>선택한 Mod만 후보와 Agent 요청에 참여합니다. 같은 그룹은 용어를 교차 검증하고 재사용하며 서로 다른 그룹은 격리됩니다.</ATC_Terminology_Notice>
+  <ATC_Terminology_ModColumn>분석에 참여하는 활성 Mod</ATC_Terminology_ModColumn>
+  <ATC_Terminology_GroupColumn>공유 용어 그룹 (선택 사항)</ATC_Terminology_GroupColumn>
+  <ATC_Terminology_GroupHint>예: Milira 시리즈</ATC_Terminology_GroupHint>
+  <ATC_Terminology_SelectedCount>{0}개 Mod 선택됨. 마스터 스위치가 꺼져 있으면 분석하지 않습니다.</ATC_Terminology_SelectedCount>
+  <ATC_Terminology_Review>용어 검토 ({0})</ATC_Terminology_Review>
+  <ATC_Terminology_ReviewTitle>용어 충돌 및 수동 승인</ATC_Terminology_ReviewTitle>
+  <ATC_Terminology_ReviewNotice>Agent와 자동 증거는 임시 용어만 만듭니다. 번역과 범위를 확인한 뒤 승인하세요. 사용자가 승인한 용어가 가장 높은 우선순위를 가집니다.</ATC_Terminology_ReviewNotice>
+  <ATC_Terminology_Refresh>새로 고침</ATC_Terminology_Refresh>
+  <ATC_Terminology_ReviewCount>검토 대기 용어 {0}개</ATC_Terminology_ReviewCount>
+  <ATC_Terminology_Conflict>같은 범위에 충돌하는 번역이 있습니다: {0}</ATC_Terminology_Conflict>
+  <ATC_Terminology_Target>대상 번역</ATC_Terminology_Target>
+  <ATC_Terminology_Role>의미 역할</ATC_Terminology_Role>
+  <ATC_Terminology_Approve>승인</ATC_Terminology_Approve>
+  <ATC_Terminology_Reject>거부</ATC_Terminology_Reject>
+  <ATC_Terminology_ScopeMod>모드: {0}</ATC_Terminology_ScopeMod>
+  <ATC_Terminology_ScopeGroup>공유 그룹: {0}</ATC_Terminology_ScopeGroup>
+  <ATC_Terminology_ScopeGlobal>전역</ATC_Terminology_ScopeGlobal>
+  <ATC_PolicyCloud_RuntimeUnavailable>클라우드 판단 캐시를 일시적으로 사용할 수 없습니다. 로컬 규칙과 Agent로 자동 전환하며 번역 작업은 계속됩니다.</ATC_PolicyCloud_RuntimeUnavailable>
+  <ATC_PolicyCloud_RuntimeRecovered>클라우드 판단 캐시가 복구되었습니다.</ATC_PolicyCloud_RuntimeRecovered>
+  <ATC_Stop>중지</ATC_Stop>
+  <ATC_Filter_AllTranslationStates>번역 상태: 전체</ATC_Filter_AllTranslationStates>
+  <ATC_Filter_Translated>번역 상태: 번역됨</ATC_Filter_Translated>
+  <ATC_Filter_Untranslated>번역 상태: 미번역</ATC_Filter_Untranslated>
+  <ATC_Filter_UntranslatedIncludingDll>번역 상태: 미번역(DLL 포함)</ATC_Filter_UntranslatedIncludingDll>
+  <ATC_Filter_AllDecisions>판정: 전체</ATC_Filter_AllDecisions>
+  <ATC_Filter_DecisionTranslate>판정: 번역</ATC_Filter_DecisionTranslate>
+  <ATC_Filter_DecisionDoNotTranslate>판정: 번역 안 함</ATC_Filter_DecisionDoNotTranslate>
+  <ATC_Filter_DecisionUncertain>판정: 불확실</ATC_Filter_DecisionUncertain>
+  <ATC_Filter_VisibleCount>{0}개 항목 표시</ATC_Filter_VisibleCount>
+  <ATC_HardcodedUi_ChangeDecision>클릭하여 사용자 판정 변경</ATC_HardcodedUi_ChangeDecision>
+  <ATC_HardcodedUi_BatchProgress>DLL 분석 {0}/{1}: {2}</ATC_HardcodedUi_BatchProgress>
+  <ATC_HardcodedUi_BatchProgressIdle>DLL 분석이 시작되지 않았습니다</ATC_HardcodedUi_BatchProgressIdle>
+  <ATC_HardcodedUi_BatchProgressDone>DLL 분석 완료: Mod {0}개, 후보 {1}개</ATC_HardcodedUi_BatchProgressDone>
+  <ATC_HardcodedUi_BatchProgressStopped>DLL 분석 중지: Mod {0}개 완료</ATC_HardcodedUi_BatchProgressStopped>
+  <ATC_HardcodedUi_AnalyzeSelectedDll>선택한 DLL 일괄 분석</ATC_HardcodedUi_AnalyzeSelectedDll>
+  <ATC_Disabled_DllFeatureOff>DLL 하드코딩 UI 분석이 활성화되지 않았습니다</ATC_Disabled_DllFeatureOff>
+  <ATC_PolicyPreflight_Finalizing>결과 생성 완료. 저장 및 정리 중…</ATC_PolicyPreflight_Finalizing>
+  <ATC_HardcodedUi_RestoreModDefaults>기본값 복원</ATC_HardcodedUi_RestoreModDefaults>
+  <ATC_HardcodedUi_RestoreModDefaultsConfirm>“{0}”의 수동 판단 {1}개를 지우고 자동 판단으로 복원할까요?</ATC_HardcodedUi_RestoreModDefaultsConfirm>
+  <ATC_HardcodedUi_RestoreModDefaultsDone>수동 판단 {0}개를 복원했습니다.</ATC_HardcodedUi_RestoreModDefaultsDone>
+  <ATC_HardcodedUi_NoModOverrides>이 Mod에는 수동으로 변경한 판단이 없습니다</ATC_HardcodedUi_NoModOverrides>
+  <ATC_HardcodedUi_BatchScanStopped>DLL 분석이 중지되었습니다. {0}개 Mod 완료.</ATC_HardcodedUi_BatchScanStopped>
+  <ATC_DisabledReason>현재 사용할 수 없음: {0}</ATC_DisabledReason>
+  <ATC_Disabled_Stopping>중지 중이며 백그라운드 요청을 정리하고 있습니다</ATC_Disabled_Stopping>
+  <ATC_Disabled_TaskRunning>번역 또는 분석 작업이 이미 실행 중입니다</ATC_Disabled_TaskRunning>
+  <ATC_Disabled_StatusChecking>Mod 번역 상태를 확인 중입니다</ATC_Disabled_StatusChecking>
+  <ATC_Disabled_NoResult>표시할 시험 실행 결과가 없습니다</ATC_Disabled_NoResult>
+  <ATC_Disabled_AgentNotConfigured>Agent 예측용 모델이 설정되지 않았습니다</ATC_Disabled_AgentNotConfigured>
+  <ATC_Disabled_TranslationNotConfigured>번역 모델이 설정되지 않았습니다</ATC_Disabled_TranslationNotConfigured>
+  <ATC_Disabled_NoModSelected>Mod가 선택되지 않았습니다</ATC_Disabled_NoModSelected>
+  <ATC_Disabled_ApiBusy>API 요청이 대기 중이거나 실행 중입니다</ATC_Disabled_ApiBusy>
+  <ATC_Disabled_DllScanning>DLL 일괄 분석이 실행 중입니다</ATC_Disabled_DllScanning>
+  <ATC_Disabled_ModNameTranslation>Mod 이름 번역이 실행 중입니다</ATC_Disabled_ModNameTranslation>
+  <ATC_Disabled_NotReady>필요한 조건이 충족되지 않았습니다</ATC_Disabled_NotReady>
+  <ATC_Disabled_NoActiveTask>실행 중인 번역 또는 분석 작업이 없습니다</ATC_Disabled_NoActiveTask>
+  <ATC_Disabled_WorkbenchBusy>워크벤치가 다른 작업을 처리 중입니다</ATC_Disabled_WorkbenchBusy>
+  <ATC_Disabled_NoScanResult>먼저 DLL을 스캔하세요</ATC_Disabled_NoScanResult>
+  <ATC_Disabled_NoTranslatableEntries>번역 대상으로 판단된 항목이 없습니다</ATC_Disabled_NoTranslatableEntries>
+  <ATC_Disabled_NoUnsavedChanges>저장되지 않은 변경 사항이 없습니다</ATC_Disabled_NoUnsavedChanges>
+  <ATC_StopAllTaskTooltip>번역, Agent 분석, 대기 또는 실행 중인 API 요청, 재시도 대기 및 기존 UI 번역 대기열을 포함한 현재 ATC 작업 전체를 중지합니다. RimWorld와 다른 Mod에는 영향을 주지 않습니다.</ATC_StopAllTaskTooltip>
+  <ATC_PolicyCloud_ServiceUpgradePending>서버에 XML/DLL 도메인 분리와 schema v2 계약이 배포될 때까지 클라우드 판정 캐시를 사용할 수 없습니다. Agent 예측은 독립적으로 사용할 수 있습니다.</ATC_PolicyCloud_ServiceUpgradePending>
+  <ATC_PolicyCloud_StatusUnavailable>클라우드 판정: 서비스 업그레이드 대기</ATC_PolicyCloud_StatusUnavailable>
+  <ATC_EnableDevelopmentDebugLogging>개발 디버그 로그 활성화(기본값: 끔)</ATC_EnableDevelopmentDebugLogging>
+  <ATC_EnableDevelopmentDebugLoggingTooltip>상세 요청 수명 주기 진단을 RimWorld 로그와 AutoTranslation_Log.txt에 기록합니다. API 키, 인증 헤더, 요청 본문은 기록하지 않습니다.</ATC_EnableDevelopmentDebugLoggingTooltip>
+  <ATC_PolicyAgent_ApiTitle>Dedicated Policy Agent API</ATC_PolicyAgent_ApiTitle>
+  <ATC_PolicyAgent_ApiNotice>Use a separate provider, key, base URL, and model here. The Policy Agent never uses the translation API list.</ATC_PolicyAgent_ApiNotice>
+  <ATC_PolicyAgent_ApiEnabled>Enable this dedicated Agent API configuration</ATC_PolicyAgent_ApiEnabled>
+  <ATC_PolicyAgent_ApiReady>Dedicated Agent API is ready.</ATC_PolicyAgent_ApiReady>
+  <ATC_PolicyAgent_ApiIncomplete>Dedicated Agent API is incomplete; the Policy Agent will not use translation API keys.</ATC_PolicyAgent_ApiIncomplete>
+  <ATC_FilteredModsButton>필터됨 {0}개 | 강제 포함 {1}개</ATC_FilteredModsButton>
+  <ATC_Filtered_Title>필터링된 모드 ({0})</ATC_Filtered_Title>
+  <ATC_Filtered_Summary>모드 전체 또는 일부 소스가 번역에서 제외된 이유를 확인합니다. 강제 포함: {0}개.</ATC_Filtered_Summary>
+  <ATC_Filtered_Search>모드, Package ID, 이유 또는 경로 검색...</ATC_Filtered_Search>
+  <ATC_Filtered_Refreshing>모드 다시 확인 중: {0} / {1}</ATC_Filtered_Refreshing>
+  <ATC_Filtered_OpenFolder>폴더 열기</ATC_Filtered_OpenFolder>
+  <ATC_Filtered_OpenFolderTip>파일 탐색기에서 이 모드의 루트 폴더를 엽니다.</ATC_Filtered_OpenFolderTip>
+  <ATC_Filtered_ForceInclude>강제 포함</ATC_Filtered_ForceInclude>
+  <ATC_Filtered_CancelForce>강제 해제</ATC_Filtered_CancelForce>
+  <ATC_Filtered_ForceTip>일반 검색 경로 밖에서 찾은 Defs / Languages 소스를 사용합니다.</ATC_Filtered_ForceTip>
+  <ATC_Filtered_ForceUnavailableTip>인식 가능한 Defs 또는 Languages XML을 찾지 못했습니다.</ATC_Filtered_ForceUnavailableTip>
+  <ATC_Filtered_ForceTitle>번역 대상에 강제 포함</ATC_Filtered_ForceTitle>
+  <ATC_Filtered_ForceWarning>"{0}" 모드를 강제로 포함할까요?
+
+찾은 XML이 RimWorld에서 실제로 로드되지 않을 수 있습니다. 이전 버전 또는 미사용 콘텐츠일 수 있으며, 번역 시간과 토큰을 더 사용해도 게임에 적용되지 않을 수 있습니다.</ATC_Filtered_ForceWarning>
+  <ATC_Filtered_ForceConfirm>그래도 강제 포함</ATC_Filtered_ForceConfirm>
+  <ATC_Filtered_ForceEnabled>이 모드를 강제로 포함했습니다. 목록을 새로 고친 뒤 표시됩니다.</ATC_Filtered_ForceEnabled>
+  <ATC_Filtered_ForceDisabled>이 모드의 강제 포함을 해제했습니다.</ATC_Filtered_ForceDisabled>
+  <ATC_Filtered_FolderMissing>모드 폴더가 없거나 이동되었습니다.</ATC_Filtered_FolderMissing>
+  <ATC_Filtered_FolderOpenFailed>모드 폴더를 열 수 없습니다: {0}</ATC_Filtered_FolderOpenFailed>
+  <ATC_Filtered_ReasonTool>번역 도구 또는 언어 팩이므로 자체 번역하지 않습니다</ATC_Filtered_ReasonTool>
+  <ATC_Filtered_ReasonTranslationPatch>다른 모드용 번역 패치로 감지되었습니다</ATC_Filtered_ReasonTranslationPatch>
+  <ATC_Filtered_ReasonBlacklist>플레이어의 번역 블랙리스트에 포함되어 있습니다</ATC_Filtered_ReasonBlacklist>
+  <ATC_Filtered_ReasonMissingRoot>모드 루트 폴더가 없습니다</ATC_Filtered_ReasonMissingRoot>
+  <ATC_Filtered_ReasonUnsupportedLayout>RimWorld가 현재 로드하는 경로 밖에서 소스를 찾았습니다</ATC_Filtered_ReasonUnsupportedLayout>
+  <ATC_Filtered_ReasonPartialSources>일부 Defs 또는 Languages 소스가 RimWorld의 활성 콘텐츠 경로 밖에 있습니다</ATC_Filtered_ReasonPartialSources>
+  <ATC_Filtered_ReasonNoSources>XML이 있는 Defs 또는 Languages 소스를 찾지 못했습니다</ATC_Filtered_ReasonNoSources>
+  <ATC_Filtered_ReasonForceIncluded>플레이어가 강제로 포함했습니다</ATC_Filtered_ReasonForceIncluded>
+  <ATC_Filtered_ReasonScanFailed>모드 검사 실패: {0}</ATC_Filtered_ReasonScanFailed>
+  <ATC_Filtered_NoCandidatePaths>사용 가능한 소스 경로가 없습니다</ATC_Filtered_NoCandidatePaths>
+  <ATC_Filtered_CandidatePaths>후보 소스: {0}</ATC_Filtered_CandidatePaths>
+  <ATC_Filtered_CandidateHeader>찾은 후보 소스:</ATC_Filtered_CandidateHeader>
 </LanguageData>
