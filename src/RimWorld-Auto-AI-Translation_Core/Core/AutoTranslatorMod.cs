@@ -42,6 +42,8 @@ namespace AutoTranslator_Core
         private static long _nextActiveModCountCheckUtcTicks = 0L;
         private static bool _validModsCacheRefreshInFlight = false;
         private static int _validModsCacheGeneration = 0;
+        private static int _validModsFilterSettingsRevision = 0;
+        private static int _validModsCacheAppliedSettingsRevision = -1;
         private static int _validModsCacheVersion = 0;
         private static int _validModsCacheProgressCurrent = 0;
         private static int _validModsCacheProgressTotal = 0;
@@ -134,6 +136,8 @@ namespace AutoTranslator_Core
 
         private static void QueueValidModsCacheRefreshIfNeeded()
         {
+            if (_validModsCacheRefreshInFlight) return;
+
             long nowTicks = DateTime.UtcNow.Ticks;
             if (_cachedValidMods != null && nowTicks < _nextActiveModCountCheckUtcTicks)
             {
@@ -151,13 +155,8 @@ namespace AutoTranslator_Core
                 return;
             }
 
-            if (_validModsCacheRefreshInFlight &&
-                string.Equals(_pendingActiveModSignature, signature, StringComparison.Ordinal))
-            {
-                return;
-            }
-
             int generation = ++_validModsCacheGeneration;
+            int settingsRevision = _validModsFilterSettingsRevision;
             _validModsCacheRefreshInFlight = true;
             _pendingActiveModSignature = signature;
             _validModsCacheProgressCurrent = 0;
@@ -167,6 +166,7 @@ namespace AutoTranslator_Core
             Task.Run(() =>
             {
                 List<ModMetaData> validMods = new List<ModMetaData>();
+                List<FilteredModInfo> filteredMods = new List<FilteredModInfo>();
                 string error = null;
 
                 try
@@ -177,13 +177,15 @@ namespace AutoTranslator_Core
                         _validModsCacheProgressCurrent = i;
                         _validModsCacheProgressModName = snapshot != null ? snapshot.Name ?? "" : "";
 
-                        if (snapshot != null &&
-                            !ShouldSkipValidModPackage(snapshot.PackageId) &&
-                            snapshot.Mod != null &&
-                            (AutoTranslatorScanner.IsOfficialBaseGameOrDlcPackage(snapshot.PackageId) ||
-                             AutoTranslatorScanner.HasScannableTranslationSources(snapshot.PackageId, snapshot.RootDir)))
+                        bool includeInValidMods;
+                        FilteredModInfo filteredInfo = EvaluateModFilter(snapshot, out includeInValidMods);
+                        if (includeInValidMods && snapshot != null && snapshot.Mod != null)
                         {
                             validMods.Add(snapshot.Mod);
+                        }
+                        if (filteredInfo != null)
+                        {
+                            filteredMods.Add(filteredInfo);
                         }
                     }
 
@@ -191,6 +193,10 @@ namespace AutoTranslator_Core
                     _validModsCacheProgressModName = "";
                     validMods = validMods
                         .OrderBy(m => m.Name ?? "", StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+                    filteredMods = filteredMods
+                        .OrderByDescending(info => info.IsFiltered)
+                        .ThenBy(info => info.Name ?? "", StringComparer.OrdinalIgnoreCase)
                         .ToList();
                 }
                 catch (Exception ex)
@@ -215,8 +221,11 @@ namespace AutoTranslator_Core
                     }
 
                     _cachedValidMods = validMods ?? new List<ModMetaData>();
+                    _cachedFilteredMods = filteredMods ?? new List<FilteredModInfo>();
+                    AutoTranslatorSettings.FilteredModsCount = _cachedFilteredMods.Count(info => info.IsFiltered);
                     _lastActiveModCount = activeCount;
                     _lastActiveModSignature = signature;
+                    _validModsCacheAppliedSettingsRevision = settingsRevision;
                     _validModsCacheVersion++;
                     _cachedCloudDisplayMods = null;
                     _cachedCloudLocalModMap = null;
@@ -252,7 +261,7 @@ namespace AutoTranslator_Core
                 });
             }
 
-            signature = activeCount + ":" + signatureBuilder;
+            signature = activeCount + ":settings=" + _validModsFilterSettingsRevision + ":" + signatureBuilder;
             return snapshots;
         }
 

@@ -199,6 +199,7 @@ namespace AutoTranslator_Core
         public Dictionary<string, string> ModLastVerifiedFingerprints = new Dictionary<string, string>();
         public List<string> TranslationBlacklist = new List<string>();
         public List<string> CloudDownloadBlacklist = new List<string>();
+        public List<string> ForceTranslationPackages = new List<string>();
         private static readonly object PackageBlacklistLock = new object();
 
         // 這個欄位保存 Filtered模組Count 的執行狀態或快取資料。
@@ -265,6 +266,7 @@ namespace AutoTranslator_Core
         public void SetTranslationBlacklisted(string packageId, bool blocked)
         {
             SetPackageIdBlocked(TranslationBlacklist, packageId, blocked);
+            AutoTranslatorMod.InvalidateValidModsCache();
         }
 
         public void SetCloudDownloadBlacklisted(string packageId, bool blocked)
@@ -279,6 +281,19 @@ namespace AutoTranslator_Core
                 TranslationBlacklist.Clear();
                 CloudDownloadBlacklist.Clear();
             }
+            AutoTranslatorMod.InvalidateValidModsCache();
+        }
+
+        public bool IsForceTranslationEnabled(string packageId)
+        {
+            return ContainsPackageId(ForceTranslationPackages, packageId);
+        }
+
+        public void SetForceTranslationEnabled(string packageId, bool enabled)
+        {
+            SetPackageIdBlocked(ForceTranslationPackages, packageId, enabled);
+            AutoTranslatorMod.InvalidateValidModsCache();
+            ModUpdateDetector.ClearStatusCache();
         }
 
         private static bool ContainsPackageId(List<string> packageIds, string packageId)
@@ -433,8 +448,10 @@ namespace AutoTranslator_Core
             if (ModLastVerifiedFingerprints == null) ModLastVerifiedFingerprints = new Dictionary<string, string>();
             Scribe_Collections.Look(ref TranslationBlacklist, "TranslationBlacklist", LookMode.Value);
             Scribe_Collections.Look(ref CloudDownloadBlacklist, "CloudDownloadBlacklist", LookMode.Value);
+            Scribe_Collections.Look(ref ForceTranslationPackages, "ForceTranslationPackages", LookMode.Value);
             NormalizePackageIdList(ref TranslationBlacklist);
             NormalizePackageIdList(ref CloudDownloadBlacklist);
+            NormalizePackageIdList(ref ForceTranslationPackages);
 
             Scribe_Values.Look(ref TimeoutSeconds, "TimeoutSeconds", 60);
 

@@ -164,16 +164,21 @@ namespace AutoTranslator_Core
             }
 
 
-            if (!AutoTranslatorSettings.IsRunning && AutoTranslatorSettings.FilteredModsCount > 0)
+            if (!AutoTranslatorSettings.IsRunning)
             {
-                GUI.color = Color.gray;
-                string text = "ATC_FilteredModsCount".Translate(AutoTranslatorSettings.FilteredModsCount);
-
-                Rect filterRect = l.GetRect(25f);
-                Widgets.Label(filterRect, text);
-
+                int filteredCount = GetFilteredModsCountCached();
+                int forcedCount = GetForceIncludedModsCountCached();
+                if (filteredCount > 0 || forcedCount > 0 || IsValidModsCacheRefreshing)
+                {
+                    GUI.color = new Color(0.72f, 0.72f, 0.72f);
+                    string text = "ATC_FilteredModsButton".Translate(filteredCount, forcedCount);
+                    if (Widgets.ButtonText(l.GetRect(32f), text))
+                    {
+                        Find.WindowStack.Add(new Window_FilteredMods());
+                    }
+                    l.Gap(10f);
+                }
                 GUI.color = Color.white;
-                l.Gap(10f);
             }
 
             Rect headerRect = l.GetRect(24f);
