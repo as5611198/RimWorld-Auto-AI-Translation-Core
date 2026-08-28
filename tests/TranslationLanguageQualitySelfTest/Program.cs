@@ -32,6 +32,7 @@ namespace TranslationLanguageQualitySelfTest
                 Run("Keyed output ownership is exact", TestKeyedOutputOwnership);
                 Run("Keyed migration discovers only exact legacy files", TestKeyedMigrationFileDiscovery);
                 Run("English target accepts English", TestEnglishTarget);
+                Run("Thai target accepts Thai and rejects English", TestThaiTarget);
 
                 Console.WriteLine("PASS: " + _passed + " translation language quality self-tests");
                 return 0;
@@ -329,6 +330,25 @@ namespace TranslationLanguageQualitySelfTest
                     "The unit is ready.",
                     TargetLanguage.English),
                 "English target");
+        }
+
+        private static void TestThaiTarget()
+        {
+            AssertTrue(
+                TranslationResultLanguagePolicy.ShouldAccept(
+                    "ยูนิตนี้พร้อมใช้งาน {0}",
+                    "This unit is ready {0}",
+                    TargetLanguage.Thai),
+                "Thai target text");
+            AssertFalse(
+                TranslationResultLanguagePolicy.ShouldAccept(
+                    "This unit is ready {0}",
+                    "This unit is ready {0}",
+                    TargetLanguage.Thai),
+                "English output under Thai target");
+            AssertTrue(
+                LanguageDetector.LooksLikeTargetLanguage("ภาษาไทย", TargetLanguage.Thai),
+                "Thai script detection");
         }
 
         private static void TestKeyedOutputOwnership()

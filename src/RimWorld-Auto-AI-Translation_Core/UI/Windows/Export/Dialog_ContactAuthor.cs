@@ -223,6 +223,7 @@ namespace AutoTranslator_Core
                 case TargetLanguage.Russian: return "Russian (Русский)";
                 case TargetLanguage.Ukrainian: return "Ukrainian (Українська)";
                 case TargetLanguage.English: return "English";
+                case TargetLanguage.Thai: return "Thai (ภาษาไทย)";
                 default: return "English";
             }
         }

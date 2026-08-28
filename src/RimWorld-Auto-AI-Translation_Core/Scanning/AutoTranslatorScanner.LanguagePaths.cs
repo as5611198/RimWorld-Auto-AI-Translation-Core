@@ -90,6 +90,7 @@ namespace AutoTranslator_Core
                 case TargetLanguage.Polish: return "Polish";
                 case TargetLanguage.Portuguese: return "PortugueseBrazilian";
                 case TargetLanguage.Turkish: return "Turkish";
+                case TargetLanguage.Thai: return "Thai";
                 default: return "English";
             }
         }
@@ -143,6 +144,7 @@ namespace AutoTranslator_Core
             if (sourceLang == TargetLanguage.Korean) return 35;
             if (sourceLang == TargetLanguage.Russian) return 40;
             if (sourceLang == TargetLanguage.Ukrainian) return 45;
+            if (sourceLang == TargetLanguage.Thai) return 50;
 
             return sourceLang.HasValue ? 70 : 100;
         }

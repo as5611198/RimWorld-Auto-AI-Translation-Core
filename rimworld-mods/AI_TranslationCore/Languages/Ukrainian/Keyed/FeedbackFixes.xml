@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_Lang_Thai>Тайська</ATC_Lang_Thai>
+  <ATC_Log_BatchBackupSuccess>Створено резервні копії перекладів для модів: {0}.</ATC_Log_BatchBackupSuccess>
+  <ATC_Cloud_RecordRecovered>Збережений запис {0} недоступний. Автоматично вибрано доступний переклад.</ATC_Cloud_RecordRecovered>
+  <ATC_Cloud_DownloadHttpFailed>Помилка завантаження з хмари для {0} (HTTP {1}): {2}</ATC_Cloud_DownloadHttpFailed>
+  <ATC_Cloud_OrderTitle>Порядок завантаження хмарних перекладів</ATC_Cloud_OrderTitle>
+  <ATC_Cloud_OrderSummary>Елементи вище замінюють елементи нижче. Показано модів: {0}.</ATC_Cloud_OrderSummary>
+  <ATC_Cloud_OrderReset>Скинути за порядком завантаження гри</ATC_Cloud_OrderReset>
+  <ATC_Cloud_OrderApply>Застосувати</ATC_Cloud_OrderApply>
+  <ATC_Cloud_OrderMoveUp>Підвищити пріоритет</ATC_Cloud_OrderMoveUp>
+  <ATC_Cloud_OrderMoveDown>Знизити пріоритет</ATC_Cloud_OrderMoveDown>
+  <ATC_Cloud_OrderApplied>Порядок завантаження перекладів застосовано.</ATC_Cloud_OrderApplied>
+  <ATC_Cloud_OrderButton>Порядок перекладів</ATC_Cloud_OrderButton>
+  <ATC_Cloud_OrderButtonTip>Виберіть пріоритетний переклад, якщо кілька модів замінюють один ключ.</ATC_Cloud_OrderButtonTip>
+  <ATC_Cloud_ParallelDownloads>Паралельних завантажень: {0}</ATC_Cloud_ParallelDownloads>
+  <ATC_UIManager_Open>Керування вбудованим UI ({0})</ATC_UIManager_Open>
+  <ATC_UIManager_OpenTip>Редагуйте, ігноруйте та фільтруйте перехоплені переклади інтерфейсу.</ATC_UIManager_OpenTip>
+  <ATC_UIManager_Title>Керування перекладом вбудованого інтерфейсу</ATC_UIManager_Title>
+  <ATC_UIManager_Search>Пошук оригіналу, перекладу або ID мода</ATC_UIManager_Search>
+  <ATC_UIManager_AllMods>Усі вихідні моди</ATC_UIManager_AllMods>
+  <ATC_UIManager_UnknownMod>Джерело невідоме</ATC_UIManager_UnknownMod>
+  <ATC_UIManager_StatusIgnored>ігнорується</ATC_UIManager_StatusIgnored>
+  <ATC_UIManager_StatusPending>не перекладено</ATC_UIManager_StatusPending>
+  <ATC_UIManager_StatusTranslated>перекладено</ATC_UIManager_StatusTranslated>
+  <ATC_UIManager_SelectEntry>Виберіть перехоплений рядок для редагування.</ATC_UIManager_SelectEntry>
+  <ATC_UIManager_Original>Оригінальний текст</ATC_UIManager_Original>
+  <ATC_UIManager_Translation>Переклад</ATC_UIManager_Translation>
+  <ATC_UIManager_SourceMod>Вихідний мод: {0}</ATC_UIManager_SourceMod>
+  <ATC_UIManager_IgnoreEntry>Ніколи не перекладати цей рядок</ATC_UIManager_IgnoreEntry>
+  <ATC_UIManager_BlockMod>Вимкнути переклад вбудованого UI для цього мода</ATC_UIManager_BlockMod>
+  <ATC_UIManager_Save>Зберегти переклад</ATC_UIManager_Save>
+  <ATC_UIManager_Reset>Видалити переклад</ATC_UIManager_Reset>
+  <ATC_UIManager_Saved>Переклад інтерфейсу збережено й оновлено.</ATC_UIManager_Saved>
+  <ATC_UIManager_InvalidTranslation>Переклад відхилено перевіркою безпеки. Збережіть заповнювачі та використовуйте вибрану мову.</ATC_UIManager_InvalidTranslation>
+  <ATC_UIManager_OpenFolder>Відкрити папку кешу</ATC_UIManager_OpenFolder>
+  <ATC_UIManager_OpenFolderFailed>Не вдалося відкрити папку кешу: {0}</ATC_UIManager_OpenFolderFailed>
+  <ATC_UIManager_Refresh>Оновити список</ATC_UIManager_Refresh>
+</LanguageData>

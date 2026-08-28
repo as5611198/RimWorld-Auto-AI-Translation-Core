@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_Lang_Thai>Тайский</ATC_Lang_Thai>
+  <ATC_Log_BatchBackupSuccess>Созданы резервные копии переводов для модов: {0}.</ATC_Log_BatchBackupSuccess>
+  <ATC_Cloud_RecordRecovered>Сохранённая запись {0} недоступна. Автоматически выбран доступный перевод.</ATC_Cloud_RecordRecovered>
+  <ATC_Cloud_DownloadHttpFailed>Ошибка загрузки из облака для {0} (HTTP {1}): {2}</ATC_Cloud_DownloadHttpFailed>
+  <ATC_Cloud_OrderTitle>Порядок загрузки облачных переводов</ATC_Cloud_OrderTitle>
+  <ATC_Cloud_OrderSummary>Элементы выше переопределяют элементы ниже. Показано модов: {0}.</ATC_Cloud_OrderSummary>
+  <ATC_Cloud_OrderReset>Сбросить по порядку загрузки игры</ATC_Cloud_OrderReset>
+  <ATC_Cloud_OrderApply>Применить</ATC_Cloud_OrderApply>
+  <ATC_Cloud_OrderMoveUp>Повысить приоритет</ATC_Cloud_OrderMoveUp>
+  <ATC_Cloud_OrderMoveDown>Понизить приоритет</ATC_Cloud_OrderMoveDown>
+  <ATC_Cloud_OrderApplied>Порядок загрузки переводов применён.</ATC_Cloud_OrderApplied>
+  <ATC_Cloud_OrderButton>Порядок переводов</ATC_Cloud_OrderButton>
+  <ATC_Cloud_OrderButtonTip>Выберите приоритетный перевод, если несколько модов заменяют один ключ.</ATC_Cloud_OrderButtonTip>
+  <ATC_Cloud_ParallelDownloads>Параллельных загрузок: {0}</ATC_Cloud_ParallelDownloads>
+  <ATC_UIManager_Open>Управление встроенным UI ({0})</ATC_UIManager_Open>
+  <ATC_UIManager_OpenTip>Редактируйте, игнорируйте и фильтруйте перехваченные переводы интерфейса.</ATC_UIManager_OpenTip>
+  <ATC_UIManager_Title>Управление переводом встроенного интерфейса</ATC_UIManager_Title>
+  <ATC_UIManager_Search>Поиск исходного текста, перевода или ID мода</ATC_UIManager_Search>
+  <ATC_UIManager_AllMods>Все исходные моды</ATC_UIManager_AllMods>
+  <ATC_UIManager_UnknownMod>Источник неизвестен</ATC_UIManager_UnknownMod>
+  <ATC_UIManager_StatusIgnored>игнорируется</ATC_UIManager_StatusIgnored>
+  <ATC_UIManager_StatusPending>не переведено</ATC_UIManager_StatusPending>
+  <ATC_UIManager_StatusTranslated>переведено</ATC_UIManager_StatusTranslated>
+  <ATC_UIManager_SelectEntry>Выберите перехваченную строку для редактирования.</ATC_UIManager_SelectEntry>
+  <ATC_UIManager_Original>Исходный текст</ATC_UIManager_Original>
+  <ATC_UIManager_Translation>Перевод</ATC_UIManager_Translation>
+  <ATC_UIManager_SourceMod>Исходный мод: {0}</ATC_UIManager_SourceMod>
+  <ATC_UIManager_IgnoreEntry>Никогда не переводить эту строку</ATC_UIManager_IgnoreEntry>
+  <ATC_UIManager_BlockMod>Отключить перевод встроенного UI для этого мода</ATC_UIManager_BlockMod>
+  <ATC_UIManager_Save>Сохранить перевод</ATC_UIManager_Save>
+  <ATC_UIManager_Reset>Удалить перевод</ATC_UIManager_Reset>
+  <ATC_UIManager_Saved>Перевод интерфейса сохранён и обновлён.</ATC_UIManager_Saved>
+  <ATC_UIManager_InvalidTranslation>Перевод отклонён проверкой безопасности. Сохраните заполнители и используйте выбранный язык.</ATC_UIManager_InvalidTranslation>
+  <ATC_UIManager_OpenFolder>Открыть папку кэша</ATC_UIManager_OpenFolder>
+  <ATC_UIManager_OpenFolderFailed>Не удалось открыть папку кэша: {0}</ATC_UIManager_OpenFolderFailed>
+  <ATC_UIManager_Refresh>Обновить список</ATC_UIManager_Refresh>
+</LanguageData>

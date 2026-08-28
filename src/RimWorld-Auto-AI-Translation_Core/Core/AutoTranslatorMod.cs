@@ -330,6 +330,7 @@ namespace AutoTranslator_Core
                 case TargetLanguage.Polish: return "ATC_Lang_Polish".Translate();
                 case TargetLanguage.Portuguese: return "ATC_Lang_Portuguese".Translate();
                 case TargetLanguage.Turkish: return "ATC_Lang_Turkish".Translate();
+                case TargetLanguage.Thai: return "ATC_Lang_Thai".Translate();
                 default: return lang.ToString();
             }
         }
@@ -446,6 +447,7 @@ namespace AutoTranslator_Core
                 case "Polish": targetLang = TargetLanguage.Polish; return true;
                 case "PortugueseBrazilian": targetLang = TargetLanguage.Portuguese; return true;
                 case "Turkish": targetLang = TargetLanguage.Turkish; return true;
+                case "Thai": targetLang = TargetLanguage.Thai; return true;
                 case "English": targetLang = TargetLanguage.English; return true;
                 default: return false;
             }
@@ -545,6 +547,30 @@ namespace AutoTranslator_Core
                         }
                     });
                 }
+            });
+        }
+
+        internal static void ReplaceCloudRegistryAfterRecovery(
+            List<CloudModRecord> records,
+            string packageId,
+            CloudModRecord selectedRecord)
+        {
+            if (records == null) return;
+            ATC_Dispatcher.RunOnMainThread(() =>
+            {
+                AutoTranslatorSettings.CloudRegistry = records;
+                AutoTranslatorSettings.HasFetchedCloudThisSession = true;
+                AutoTranslatorSettings.CloudConnectionFailed = false;
+                AutoTranslatorSettings.CloudFetchGeneration++;
+                if (!string.IsNullOrWhiteSpace(packageId) && selectedRecord != null)
+                {
+                    AutoTranslatorSettings.SelectedCloudVersion[packageId] = selectedRecord;
+                }
+                _cachedCloudLookup = null;
+                _singleCorrectionCountCache.Clear();
+                _singleCorrectionCountFetchInFlight.Clear();
+                _lastCloudRegistryCount = -1;
+                _lastCloudLangFolder = string.Empty;
             });
         }
 

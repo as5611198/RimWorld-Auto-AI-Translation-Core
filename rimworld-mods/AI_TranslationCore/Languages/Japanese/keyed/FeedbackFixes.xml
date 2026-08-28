@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_Lang_Thai>タイ語</ATC_Lang_Thai>
+  <ATC_Log_BatchBackupSuccess>{0} 個のModの翻訳をバックアップしました。</ATC_Log_BatchBackupSuccess>
+  <ATC_Cloud_RecordRecovered>{0} の保存済み記録が無効なため、利用可能な翻訳へ自動的に切り替えました。</ATC_Cloud_RecordRecovered>
+  <ATC_Cloud_DownloadHttpFailed>{0} のクラウドダウンロードに失敗しました（HTTP {1}）：{2}</ATC_Cloud_DownloadHttpFailed>
+  <ATC_Cloud_OrderTitle>クラウド翻訳の読み込み順</ATC_Cloud_OrderTitle>
+  <ATC_Cloud_OrderSummary>上にある項目ほど優先されます。{0} 個のModを表示しています。</ATC_Cloud_OrderSummary>
+  <ATC_Cloud_OrderReset>ゲームの読み込み順に戻す</ATC_Cloud_OrderReset>
+  <ATC_Cloud_OrderApply>今すぐ適用</ATC_Cloud_OrderApply>
+  <ATC_Cloud_OrderMoveUp>上書き優先度を上げる</ATC_Cloud_OrderMoveUp>
+  <ATC_Cloud_OrderMoveDown>上書き優先度を下げる</ATC_Cloud_OrderMoveDown>
+  <ATC_Cloud_OrderApplied>クラウド翻訳の読み込み順を適用しました。</ATC_Cloud_OrderApplied>
+  <ATC_Cloud_OrderButton>翻訳の読み込み順</ATC_Cloud_OrderButton>
+  <ATC_Cloud_OrderButtonTip>複数のModが同じキーを変更する場合の上書き順を設定します。</ATC_Cloud_OrderButtonTip>
+  <ATC_Cloud_ParallelDownloads>同時ダウンロード数：{0}</ATC_Cloud_ParallelDownloads>
+  <ATC_UIManager_Open>ハードコードUIを管理（{0}）</ATC_UIManager_Open>
+  <ATC_UIManager_OpenTip>検出したUI翻訳を編集、無視、またはMod単位で無効化します。</ATC_UIManager_OpenTip>
+  <ATC_UIManager_Title>ハードコードUI翻訳の管理</ATC_UIManager_Title>
+  <ATC_UIManager_Search>原文、翻訳、パッケージIDを検索</ATC_UIManager_Search>
+  <ATC_UIManager_AllMods>すべてのMod</ATC_UIManager_AllMods>
+  <ATC_UIManager_UnknownMod>不明なソース</ATC_UIManager_UnknownMod>
+  <ATC_UIManager_StatusIgnored>無視</ATC_UIManager_StatusIgnored>
+  <ATC_UIManager_StatusPending>未翻訳</ATC_UIManager_StatusPending>
+  <ATC_UIManager_StatusTranslated>翻訳済み</ATC_UIManager_StatusTranslated>
+  <ATC_UIManager_SelectEntry>編集する文字列を選択してください。</ATC_UIManager_SelectEntry>
+  <ATC_UIManager_Original>原文</ATC_UIManager_Original>
+  <ATC_UIManager_Translation>翻訳</ATC_UIManager_Translation>
+  <ATC_UIManager_SourceMod>ソースMod：{0}</ATC_UIManager_SourceMod>
+  <ATC_UIManager_IgnoreEntry>この文字列を翻訳しない</ATC_UIManager_IgnoreEntry>
+  <ATC_UIManager_BlockMod>このModのハードコードUI翻訳を無効化</ATC_UIManager_BlockMod>
+  <ATC_UIManager_Save>翻訳を保存</ATC_UIManager_Save>
+  <ATC_UIManager_Reset>翻訳を削除</ATC_UIManager_Reset>
+  <ATC_UIManager_Saved>UI翻訳を保存して更新しました。</ATC_UIManager_Saved>
+  <ATC_UIManager_InvalidTranslation>翻訳が安全確認に通りませんでした。プレースホルダーを維持し、選択中の言語を使用してください。</ATC_UIManager_InvalidTranslation>
+  <ATC_UIManager_OpenFolder>キャッシュフォルダーを開く</ATC_UIManager_OpenFolder>
+  <ATC_UIManager_OpenFolderFailed>キャッシュフォルダーを開けません：{0}</ATC_UIManager_OpenFolderFailed>
+  <ATC_UIManager_Refresh>一覧を更新</ATC_UIManager_Refresh>
+</LanguageData>

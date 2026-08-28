@@ -39,6 +39,7 @@ namespace AutoTranslator_Core
                 case TargetLanguage.Polish: return "PL";
                 case TargetLanguage.Portuguese: return "PT-BR";
                 case TargetLanguage.Turkish: return "TR";
+                case TargetLanguage.Thai: return null;
                 default: return null;
             }
         }

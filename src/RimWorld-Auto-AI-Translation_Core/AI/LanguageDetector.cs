@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 // 這個檔案負責偵測文字語言。
@@ -232,6 +233,7 @@ namespace AutoTranslator_Core
             if (sample.Length < 2) return false;
 
             CountScripts(sample, out int hanCount, out int kanaCount, out int hangulCount, out int cyrillicCount, out int latinCount, out int letterCount);
+            int thaiCount = sample.Count(IsThai);
             if (letterCount < 2) return false;
 
             switch (expectedLang)
@@ -303,6 +305,9 @@ namespace AutoTranslator_Core
                 case TargetLanguage.Turkish:
                     return LooksLikeLatinTarget(sample, hanCount, kanaCount, hangulCount, cyrillicCount, latinCount, letterCount, TurkishMarkerChars,
                         new[] { "bir", "icin", "i\u00E7in", "degil", "de\u011Fil", "olan", "daha", "ile" });
+
+                case TargetLanguage.Thai:
+                    return thaiCount >= 2 && Percent(thaiCount, letterCount) >= 70;
 
                 default:
                     return false;
@@ -598,7 +603,8 @@ namespace AutoTranslator_Core
                    targetLang == TargetLanguage.Japanese ||
                    targetLang == TargetLanguage.Korean ||
                    targetLang == TargetLanguage.Russian ||
-                   targetLang == TargetLanguage.Ukrainian;
+                   targetLang == TargetLanguage.Ukrainian ||
+                   targetLang == TargetLanguage.Thai;
         }
 
         // 這個方法負責判斷 IsHan 條件是否成立。
@@ -643,6 +649,11 @@ namespace AutoTranslator_Core
             return (c >= 'A' && c <= 'Z')
                 || (c >= 'a' && c <= 'z')
                 || (c >= '\u00C0' && c <= '\u024F');
+        }
+
+        private static bool IsThai(char c)
+        {
+            return c >= '\u0E00' && c <= '\u0E7F';
         }
 
         // 這個方法負責判斷 IsFake語言 條件是否成立。

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_Lang_Thai>ภาษาไทย</ATC_Lang_Thai>
+  <ATC_Log_BatchBackupSuccess>สร้างข้อมูลสำรองคำแปลสำหรับ {0} ม็อดแล้ว</ATC_Log_BatchBackupSuccess>
+  <ATC_Cloud_RecordRecovered>ระเบียนเดิมของ {0} ใช้งานไม่ได้ จึงเลือกคำแปลที่ดาวน์โหลดได้ให้อัตโนมัติ</ATC_Cloud_RecordRecovered>
+  <ATC_Cloud_DownloadHttpFailed>ดาวน์โหลดจากคลาวด์สำหรับ {0} ล้มเหลว (HTTP {1}): {2}</ATC_Cloud_DownloadHttpFailed>
+  <ATC_Cloud_OrderTitle>ลำดับการโหลดคำแปลจากคลาวด์</ATC_Cloud_OrderTitle>
+  <ATC_Cloud_OrderSummary>รายการด้านบนจะแทนที่รายการด้านล่าง แสดงทั้งหมด {0} ม็อด</ATC_Cloud_OrderSummary>
+  <ATC_Cloud_OrderReset>รีเซ็ตตามลำดับโหลดของเกม</ATC_Cloud_OrderReset>
+  <ATC_Cloud_OrderApply>ใช้ทันที</ATC_Cloud_OrderApply>
+  <ATC_Cloud_OrderMoveUp>เพิ่มลำดับความสำคัญ</ATC_Cloud_OrderMoveUp>
+  <ATC_Cloud_OrderMoveDown>ลดลำดับความสำคัญ</ATC_Cloud_OrderMoveDown>
+  <ATC_Cloud_OrderApplied>ใช้ลำดับการโหลดคำแปลแล้ว</ATC_Cloud_OrderApplied>
+  <ATC_Cloud_OrderButton>ลำดับการโหลดคำแปล</ATC_Cloud_OrderButton>
+  <ATC_Cloud_OrderButtonTip>เลือกคำแปลที่จะมีสิทธิ์แทนที่เมื่อหลายม็อดแก้ไขคีย์เดียวกัน</ATC_Cloud_OrderButtonTip>
+  <ATC_Cloud_ParallelDownloads>ดาวน์โหลดพร้อมกัน: {0}</ATC_Cloud_ParallelDownloads>
+  <ATC_UIManager_Open>จัดการ UI แบบฮาร์ดโค้ด ({0})</ATC_UIManager_Open>
+  <ATC_UIManager_OpenTip>แก้ไข เพิกเฉย หรือกรองคำแปล UI ที่ตรวจพบ</ATC_UIManager_OpenTip>
+  <ATC_UIManager_Title>ตัวจัดการคำแปล UI แบบฮาร์ดโค้ด</ATC_UIManager_Title>
+  <ATC_UIManager_Search>ค้นหาข้อความ คำแปล หรือรหัสม็อด</ATC_UIManager_Search>
+  <ATC_UIManager_AllMods>ม็อดต้นทางทั้งหมด</ATC_UIManager_AllMods>
+  <ATC_UIManager_UnknownMod>ไม่ทราบแหล่งที่มา</ATC_UIManager_UnknownMod>
+  <ATC_UIManager_StatusIgnored>เพิกเฉย</ATC_UIManager_StatusIgnored>
+  <ATC_UIManager_StatusPending>ยังไม่แปล</ATC_UIManager_StatusPending>
+  <ATC_UIManager_StatusTranslated>แปลแล้ว</ATC_UIManager_StatusTranslated>
+  <ATC_UIManager_SelectEntry>เลือกข้อความที่ตรวจพบเพื่อแก้ไข</ATC_UIManager_SelectEntry>
+  <ATC_UIManager_Original>ข้อความต้นฉบับ</ATC_UIManager_Original>
+  <ATC_UIManager_Translation>คำแปล</ATC_UIManager_Translation>
+  <ATC_UIManager_SourceMod>ม็อดต้นทาง: {0}</ATC_UIManager_SourceMod>
+  <ATC_UIManager_IgnoreEntry>ไม่ต้องแปลข้อความนี้</ATC_UIManager_IgnoreEntry>
+  <ATC_UIManager_BlockMod>ปิดคำแปล UI แบบฮาร์ดโค้ดสำหรับม็อดนี้</ATC_UIManager_BlockMod>
+  <ATC_UIManager_Save>บันทึกคำแปล</ATC_UIManager_Save>
+  <ATC_UIManager_Reset>ลบคำแปล</ATC_UIManager_Reset>
+  <ATC_UIManager_Saved>บันทึกและรีเฟรชคำแปล UI แล้ว</ATC_UIManager_Saved>
+  <ATC_UIManager_InvalidTranslation>คำแปลไม่ผ่านการตรวจสอบ โปรดคง Placeholder เดิมและใช้ภาษาเป้าหมายที่เลือก</ATC_UIManager_InvalidTranslation>
+  <ATC_UIManager_OpenFolder>เปิดโฟลเดอร์แคช</ATC_UIManager_OpenFolder>
+  <ATC_UIManager_OpenFolderFailed>เปิดโฟลเดอร์แคชไม่ได้: {0}</ATC_UIManager_OpenFolderFailed>
+  <ATC_UIManager_Refresh>รีเฟรชรายการ</ATC_UIManager_Refresh>
+</LanguageData>

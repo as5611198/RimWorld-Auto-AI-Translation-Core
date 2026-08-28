@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using UnityEngine;
 using Verse;
 using static AutoTranslator_Core.DeleteTranslationWindow;
@@ -66,6 +67,12 @@ namespace AutoTranslator_Core
         {
             public List<BatchDownloadItem> Items = new List<BatchDownloadItem>();
             public string Error;
+        }
+
+        private sealed class BatchDownloadExecutionResult
+        {
+            public BatchDownloadItem Item;
+            public bool Success;
         }
 
         private sealed class BatchUploadPreparationResult
@@ -338,12 +345,14 @@ namespace AutoTranslator_Core
                 try
                 {
                     const int clearChunkSize = 32;
-                    for (int i = 0; i < totalCount; i++)
+                    int completedCount = 0;
+                    int maxParallel = Math.Max(1, Math.Min(4, AutoTranslatorMod.Settings.CloudBatchDownloadConcurrency));
+                    using (var semaphore = new System.Threading.SemaphoreSlim(maxParallel, maxParallel))
                     {
-                        if (i % clearChunkSize == 0)
+                        for (int chunkStart = 0; chunkStart < totalCount; chunkStart += clearChunkSize)
                         {
                             List<AutoTranslatorScanner.LocalTranslationDeleteTarget> clearTargets = modsToDownload
-                                .Skip(i)
+                                .Skip(chunkStart)
                                 .Take(clearChunkSize)
                                 .Select(item => new AutoTranslatorScanner.LocalTranslationDeleteTarget
                                 {
@@ -360,37 +369,38 @@ namespace AutoTranslator_Core
                             {
                                 pendingPreclearedPackages.Add(target.PackageId);
                             }
-                        }
 
-                        BatchDownloadItem mod = modsToDownload[i];
-                        UpdateBatchTaskProgress("ATC_Cloud_Downloading", mod.DisplayName, totalCount > 0 ? (float)i / totalCount : 0f);
+                            List<BatchDownloadItem> chunkItems = modsToDownload
+                                .Skip(chunkStart)
+                                .Take(clearChunkSize)
+                                .ToList();
+                            Task<BatchDownloadExecutionResult>[] downloads = chunkItems
+                                .Select(item => DownloadPreparedBatchItemAsync(item, targetLangStr, semaphore))
+                                .ToArray();
+                            BatchDownloadExecutionResult[] chunkResults = await Task.WhenAll(downloads);
 
-                        var clearTarget = new AutoTranslatorScanner.LocalTranslationDeleteTarget
-                        {
-                            PackageId = mod.PackageId,
-                            ModName = mod.DisplayName
-                        };
-                        bool success = await AutoTranslatorCloudClient.DownloadAndInjectAsync(
-                            mod.PackageId,
-                            targetLangStr,
-                            mod.Record,
-                            requestMemoryDrop: false,
-                            requestRuntimeRefreshAfterClear: false,
-                            clearTarget: clearTarget,
-                            clearExistingTranslations: false,
-                            restoreBackupOnFailure: false);
-                        if (success)
-                        {
-                            pendingPreclearedPackages.Remove(mod.PackageId);
-                            successCount++;
-                            repairedPackages.Add(mod.PackageId);
-                        }
-                        else
-                        {
-                            RestorePreclearedBatchPackage(mod.PackageId, packagesWithPreviousTranslations);
-                            pendingPreclearedPackages.Remove(mod.PackageId);
-                            failCount++;
-                            failedMods.Add(mod.DisplayName);
+                            foreach (BatchDownloadExecutionResult download in chunkResults)
+                            {
+                                BatchDownloadItem mod = download.Item;
+                                completedCount++;
+                                UpdateBatchTaskProgress(
+                                    "ATC_Cloud_Downloading",
+                                    mod.DisplayName,
+                                    totalCount > 0 ? (float)completedCount / totalCount : 0f);
+                                if (download.Success)
+                                {
+                                    pendingPreclearedPackages.Remove(mod.PackageId);
+                                    successCount++;
+                                    repairedPackages.Add(mod.PackageId);
+                                }
+                                else
+                                {
+                                    RestorePreclearedBatchPackage(mod.PackageId, packagesWithPreviousTranslations);
+                                    pendingPreclearedPackages.Remove(mod.PackageId);
+                                    failCount++;
+                                    failedMods.Add(mod.DisplayName);
+                                }
+                            }
                         }
                     }
 
@@ -434,6 +444,41 @@ namespace AutoTranslator_Core
                     });
                 }
             });
+        }
+
+        private static async Task<BatchDownloadExecutionResult> DownloadPreparedBatchItemAsync(
+            BatchDownloadItem item,
+            string targetLangStr,
+            System.Threading.SemaphoreSlim semaphore)
+        {
+            await semaphore.WaitAsync();
+            try
+            {
+                var clearTarget = new AutoTranslatorScanner.LocalTranslationDeleteTarget
+                {
+                    PackageId = item.PackageId,
+                    ModName = item.DisplayName
+                };
+                bool success = await AutoTranslatorCloudClient.DownloadAndInjectAsync(
+                    item.PackageId,
+                    targetLangStr,
+                    item.Record,
+                    requestMemoryDrop: false,
+                    requestRuntimeRefreshAfterClear: false,
+                    clearTarget: clearTarget,
+                    clearExistingTranslations: false,
+                    restoreBackupOnFailure: false);
+                return new BatchDownloadExecutionResult { Item = item, Success = success };
+            }
+            catch (Exception ex)
+            {
+                Verse.Log.Warning("[AutoTranslationCore] Batch cloud download failed for " + item.PackageId + ": " + ex.Message);
+                return new BatchDownloadExecutionResult { Item = item, Success = false };
+            }
+            finally
+            {
+                semaphore.Release();
+            }
         }
 
         private static void RestorePreclearedBatchPackage(string packageId, HashSet<string> packagesWithPreviousTranslations)

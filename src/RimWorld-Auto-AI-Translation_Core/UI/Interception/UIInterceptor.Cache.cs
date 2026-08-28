@@ -112,10 +112,15 @@ namespace AutoTranslator_Core
                     if (string.IsNullOrWhiteSpace(key)) continue;
                     if (IgnoredCache.Count >= MaxIgnoredCacheSize) break;
 
-                    if (TryGetOriginalTextFromCacheKey(key, out _, out TargetLanguage? keyLanguage) &&
+                    if (TryGetOriginalTextFromCacheKey(key, out string original, out TargetLanguage? keyLanguage) &&
                         (!keyLanguage.HasValue || keyLanguage.Value == AutoTranslatorMod.Settings.TargetLang))
                     {
-                        IgnoredCache[key] = true;
+                        string cleanOriginal = GetTranslationLookupText(original);
+                        if (!string.IsNullOrWhiteSpace(cleanOriginal))
+                        {
+                            IgnoredCache[BuildCacheKey(cleanOriginal)] = true;
+                            if (!keyLanguage.HasValue) MarkIgnoredCacheDirty();
+                        }
                     }
                 }
 
@@ -344,6 +349,11 @@ namespace AutoTranslator_Core
                 {
                     SaveIgnoredCache();
                 }
+
+                if (_sourceOwnersDirty)
+                {
+                    SaveSourceOwners();
+                }
             }
         }
 
@@ -438,6 +448,7 @@ namespace AutoTranslator_Core
                 System.Threading.Interlocked.Increment(ref _uiLanguageGeneration);
                 Cache.Clear();
                 IgnoredCache.Clear();
+                SourceOwners.Clear();
                 FastBypassDecisionCache.Clear();
                 TextDecisionCache.Clear();
                 ClearRenderDecisionCache();
@@ -450,9 +461,11 @@ namespace AutoTranslator_Core
                 System.Threading.Interlocked.Exchange(ref _queuedApproxCount, 0);
                 _cacheDirty = false;
                 _ignoredCacheDirty = false;
+                _sourceOwnersDirty = false;
 
                 LoadCache();
                 LoadIgnoredCache();
+                LoadSourceOwners();
             }
         }
 
@@ -543,6 +556,13 @@ namespace AutoTranslator_Core
             }
 
             if (!bypassAlreadyChecked && ShouldBypassUIPatchText(original))
+            {
+                RememberRenderDecision(renderKey, UIRenderDecisionKind.PassThrough, null, 0L);
+                return false;
+            }
+
+            CaptureSourceOwnerIfNeeded(original);
+            if (IsIgnored(original) || IsSourceOwnerBlacklisted(original))
             {
                 RememberRenderDecision(renderKey, UIRenderDecisionKind.PassThrough, null, 0L);
                 return false;
@@ -713,13 +733,14 @@ namespace AutoTranslator_Core
         {
             lock (_cachePersistenceLock)
             {
-                if (!_cacheDirty && !_ignoredCacheDirty) return;
+                if (!_cacheDirty && !_ignoredCacheDirty && !_sourceOwnersDirty) return;
 
                 long last = System.Threading.Interlocked.Read(ref _lastCacheSaveTicks);
                 if (!force && DateTime.UtcNow.Ticks - last < TimeSpan.FromSeconds(10).Ticks) return;
 
                 if (_cacheDirty) SaveCache();
                 if (_ignoredCacheDirty) SaveIgnoredCache();
+                if (_sourceOwnersDirty) SaveSourceOwners();
             }
         }
 
@@ -733,6 +754,7 @@ namespace AutoTranslator_Core
                 System.Threading.Interlocked.Increment(ref _uiLanguageGeneration);
                 Cache.Clear();
                 IgnoredCache.Clear();
+                SourceOwners.Clear();
                 FastBypassDecisionCache.Clear();
                 TextDecisionCache.Clear();
                 ClearRenderDecisionCache();
@@ -744,6 +766,7 @@ namespace AutoTranslator_Core
                 System.Threading.Interlocked.Exchange(ref _queuedApproxCount, 0);
                 _cacheDirty = false;
                 _ignoredCacheDirty = false;
+                _sourceOwnersDirty = false;
 
                 try
                 {
@@ -755,6 +778,11 @@ namespace AutoTranslator_Core
                     if (File.Exists(IgnoredCacheFilePath))
                     {
                         File.Delete(IgnoredCacheFilePath);
+                    }
+
+                    if (File.Exists(SourceOwnersFilePath))
+                    {
+                        File.Delete(SourceOwnersFilePath);
                     }
                 }
                 catch (Exception ex)

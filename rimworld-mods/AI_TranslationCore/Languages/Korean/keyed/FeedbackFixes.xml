@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_Lang_Thai>태국어</ATC_Lang_Thai>
+  <ATC_Log_BatchBackupSuccess>{0}개 모드의 번역을 백업했습니다.</ATC_Log_BatchBackupSuccess>
+  <ATC_Cloud_RecordRecovered>{0}의 저장된 기록을 사용할 수 없어 다운로드 가능한 번역으로 자동 전환했습니다.</ATC_Cloud_RecordRecovered>
+  <ATC_Cloud_DownloadHttpFailed>{0} 클라우드 다운로드 실패(HTTP {1}): {2}</ATC_Cloud_DownloadHttpFailed>
+  <ATC_Cloud_OrderTitle>클라우드 번역 로드 순서</ATC_Cloud_OrderTitle>
+  <ATC_Cloud_OrderSummary>위에 있는 항목이 아래 항목을 덮어씁니다. {0}개 모드를 표시합니다.</ATC_Cloud_OrderSummary>
+  <ATC_Cloud_OrderReset>게임 로드 순서로 재설정</ATC_Cloud_OrderReset>
+  <ATC_Cloud_OrderApply>지금 적용</ATC_Cloud_OrderApply>
+  <ATC_Cloud_OrderMoveUp>덮어쓰기 우선순위 올리기</ATC_Cloud_OrderMoveUp>
+  <ATC_Cloud_OrderMoveDown>덮어쓰기 우선순위 내리기</ATC_Cloud_OrderMoveDown>
+  <ATC_Cloud_OrderApplied>클라우드 번역 로드 순서를 적용했습니다.</ATC_Cloud_OrderApplied>
+  <ATC_Cloud_OrderButton>번역 로드 순서</ATC_Cloud_OrderButton>
+  <ATC_Cloud_OrderButtonTip>여러 모드가 같은 키를 바꿀 때 마지막으로 적용할 번역을 선택합니다.</ATC_Cloud_OrderButtonTip>
+  <ATC_Cloud_ParallelDownloads>동시 다운로드: {0}</ATC_Cloud_ParallelDownloads>
+  <ATC_UIManager_Open>하드코딩 UI 관리 ({0})</ATC_UIManager_Open>
+  <ATC_UIManager_OpenTip>감지된 UI 번역을 편집하거나 문자열/모드별로 비활성화합니다.</ATC_UIManager_OpenTip>
+  <ATC_UIManager_Title>하드코딩 UI 번역 관리</ATC_UIManager_Title>
+  <ATC_UIManager_Search>원문, 번역 또는 패키지 ID 검색</ATC_UIManager_Search>
+  <ATC_UIManager_AllMods>모든 소스 모드</ATC_UIManager_AllMods>
+  <ATC_UIManager_UnknownMod>알 수 없는 소스</ATC_UIManager_UnknownMod>
+  <ATC_UIManager_StatusIgnored>무시됨</ATC_UIManager_StatusIgnored>
+  <ATC_UIManager_StatusPending>번역 안 됨</ATC_UIManager_StatusPending>
+  <ATC_UIManager_StatusTranslated>번역됨</ATC_UIManager_StatusTranslated>
+  <ATC_UIManager_SelectEntry>편집할 문자열을 선택하세요.</ATC_UIManager_SelectEntry>
+  <ATC_UIManager_Original>원문</ATC_UIManager_Original>
+  <ATC_UIManager_Translation>번역</ATC_UIManager_Translation>
+  <ATC_UIManager_SourceMod>소스 모드: {0}</ATC_UIManager_SourceMod>
+  <ATC_UIManager_IgnoreEntry>이 문자열을 번역하지 않기</ATC_UIManager_IgnoreEntry>
+  <ATC_UIManager_BlockMod>이 모드의 하드코딩 UI 번역 비활성화</ATC_UIManager_BlockMod>
+  <ATC_UIManager_Save>번역 저장</ATC_UIManager_Save>
+  <ATC_UIManager_Reset>번역 제거</ATC_UIManager_Reset>
+  <ATC_UIManager_Saved>UI 번역을 저장하고 새로 고쳤습니다.</ATC_UIManager_Saved>
+  <ATC_UIManager_InvalidTranslation>번역이 안전 검사를 통과하지 못했습니다. 자리 표시자를 유지하고 선택한 대상 언어를 사용하세요.</ATC_UIManager_InvalidTranslation>
+  <ATC_UIManager_OpenFolder>캐시 폴더 열기</ATC_UIManager_OpenFolder>
+  <ATC_UIManager_OpenFolderFailed>캐시 폴더를 열 수 없습니다: {0}</ATC_UIManager_OpenFolderFailed>
+  <ATC_UIManager_Refresh>목록 새로 고침</ATC_UIManager_Refresh>
+</LanguageData>

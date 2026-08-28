@@ -60,6 +60,12 @@ namespace AutoTranslator_Core
             if (!Settings.EnableUIInterceptor && !AutoTranslatorSettings.IsRunning) GUI.color = new Color(0.5f, 0.5f, 0.5f, 0.5f);
             Widgets.CheckboxLabeled(l.GetRect(30f), "ATC_ShowOriginalUI".Translate(), ref Settings.ShowOriginalUI);
             GUI.color = Color.white;
+            Rect uiManagerRect = l.GetRect(35f);
+            if (Widgets.ButtonText(uiManagerRect, "ATC_UIManager_Open".Translate(UIInterceptor.GetManagedEntryCount())))
+            {
+                Find.WindowStack.Add(new Window_UITranslationManager());
+            }
+            TooltipHandler.TipRegion(uiManagerRect, "ATC_UIManager_OpenTip".Translate());
             l.Gap(15f);
 
 

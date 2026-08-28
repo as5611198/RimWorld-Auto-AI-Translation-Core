@@ -200,6 +200,9 @@ namespace AutoTranslator_Core
         public List<string> TranslationBlacklist = new List<string>();
         public List<string> CloudDownloadBlacklist = new List<string>();
         public List<string> ForceTranslationPackages = new List<string>();
+        public List<string> CloudTranslationPriority = new List<string>();
+        public List<string> UITranslationModBlacklist = new List<string>();
+        public int CloudBatchDownloadConcurrency = 3;
         private static readonly object PackageBlacklistLock = new object();
 
         // 這個欄位保存 Filtered模組Count 的執行狀態或快取資料。
@@ -296,6 +299,17 @@ namespace AutoTranslator_Core
             ModUpdateDetector.ClearStatusCache();
         }
 
+        public bool IsUiTranslationModBlacklisted(string packageId)
+        {
+            return ContainsPackageId(UITranslationModBlacklist, packageId);
+        }
+
+        public void SetUiTranslationModBlacklisted(string packageId, bool blocked)
+        {
+            SetPackageIdBlocked(UITranslationModBlacklist, packageId, blocked);
+            UIInterceptor.RefreshRuntimeUICache();
+        }
+
         private static bool ContainsPackageId(List<string> packageIds, string packageId)
         {
             if (packageIds == null || string.IsNullOrWhiteSpace(packageId)) return false;
@@ -327,6 +341,16 @@ namespace AutoTranslator_Core
                     .OrderBy(id => id, StringComparer.OrdinalIgnoreCase)
                     .ToList();
             }
+        }
+
+        private static void NormalizeOrderedPackageIdList(ref List<string> packageIds)
+        {
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            packageIds = (packageIds ?? new List<string>())
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id.Trim().ToLowerInvariant())
+                .Where(id => seen.Add(id))
+                .ToList();
         }
 
         // 這個方法負責處理 AddLog 相關流程。
@@ -449,9 +473,15 @@ namespace AutoTranslator_Core
             Scribe_Collections.Look(ref TranslationBlacklist, "TranslationBlacklist", LookMode.Value);
             Scribe_Collections.Look(ref CloudDownloadBlacklist, "CloudDownloadBlacklist", LookMode.Value);
             Scribe_Collections.Look(ref ForceTranslationPackages, "ForceTranslationPackages", LookMode.Value);
+            Scribe_Collections.Look(ref CloudTranslationPriority, "CloudTranslationPriority", LookMode.Value);
+            Scribe_Collections.Look(ref UITranslationModBlacklist, "UITranslationModBlacklist", LookMode.Value);
             NormalizePackageIdList(ref TranslationBlacklist);
             NormalizePackageIdList(ref CloudDownloadBlacklist);
             NormalizePackageIdList(ref ForceTranslationPackages);
+            NormalizeOrderedPackageIdList(ref CloudTranslationPriority);
+            NormalizePackageIdList(ref UITranslationModBlacklist);
+            Scribe_Values.Look(ref CloudBatchDownloadConcurrency, "CloudBatchDownloadConcurrency", 3);
+            CloudBatchDownloadConcurrency = Math.Max(1, Math.Min(4, CloudBatchDownloadConcurrency));
 
             Scribe_Values.Look(ref TimeoutSeconds, "TimeoutSeconds", 60);
 

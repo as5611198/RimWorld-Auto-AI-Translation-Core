@@ -36,11 +36,14 @@ namespace AutoTranslator_Core.TranslationPolicy
                 return candidates;
             }
 
-            foreach (XmlNode defNode in ElementChildren(document.DocumentElement))
+            List<ResolvedDefXmlNode> resolvedNodes = DefXmlInheritanceResolver.Resolve(
+                new[] { new DefXmlSourceDocument { Document = document, SourceFile = context?.SourceFile } });
+            foreach (ResolvedDefXmlNode resolved in resolvedNodes)
             {
-                string defName = GetDirectChildText(defNode, "defName");
+                XmlNode defNode = resolved.OriginalNode;
+                string defName = DefXmlInheritanceResolver.GetDirectChildText(defNode, "defName");
                 if (string.IsNullOrWhiteSpace(defName)) continue;
-                TraverseDef(defNode, defName.Trim(), defNode.Name, context, candidates);
+                TraverseDef(resolved.ResolvedNode, defName.Trim(), defNode.Name, context, candidates);
             }
 
             return candidates.OrderBy(candidate => candidate.CandidateId, StringComparer.Ordinal).ToList();

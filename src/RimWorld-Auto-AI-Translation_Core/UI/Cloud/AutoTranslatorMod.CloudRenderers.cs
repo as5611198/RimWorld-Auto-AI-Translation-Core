@@ -100,6 +100,33 @@ namespace AutoTranslator_Core
 
             l.Gap(5f);
 
+            Rect orderRow = l.GetRect(30f);
+            if (Widgets.ButtonText(new Rect(orderRow.x, orderRow.y, 220f, orderRow.height), "ATC_Cloud_OrderButton".Translate()))
+            {
+                Find.WindowStack.Add(new Window_CloudTranslationOrder());
+            }
+            TooltipHandler.TipRegion(new Rect(orderRow.x, orderRow.y, 220f, orderRow.height), "ATC_Cloud_OrderButtonTip".Translate());
+
+            Widgets.Label(new Rect(orderRow.x + 235f, orderRow.y + 4f, 190f, 24f),
+                "ATC_Cloud_ParallelDownloads".Translate(Settings.CloudBatchDownloadConcurrency));
+            int parallelDownloads = Mathf.RoundToInt(Widgets.HorizontalSlider(
+                new Rect(orderRow.x + 430f, orderRow.y + 7f, Mathf.Max(100f, orderRow.width - 430f), 20f),
+                Settings.CloudBatchDownloadConcurrency,
+                1f,
+                4f,
+                false,
+                null,
+                "1",
+                "4",
+                1f));
+            if (parallelDownloads != Settings.CloudBatchDownloadConcurrency)
+            {
+                Settings.CloudBatchDownloadConcurrency = parallelDownloads;
+                WriteSettings();
+            }
+
+            l.Gap(5f);
+
 
             Rect userRow = l.GetRect(24f);
             Widgets.Label(new Rect(userRow.x, userRow.y + 2f, 100f, 24f), "ATC_Cloud_Nickname".Translate());

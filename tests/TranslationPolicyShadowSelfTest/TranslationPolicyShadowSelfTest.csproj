@@ -10,6 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\Scanning\DefXmlInheritanceResolver.cs"
+             Link="DefXmlInheritanceResolver.cs" />
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\packages\Newtonsoft.Json.13.0.4\lib\net6.0\Newtonsoft.Json.dll</HintPath>
       <Private>true</Private>

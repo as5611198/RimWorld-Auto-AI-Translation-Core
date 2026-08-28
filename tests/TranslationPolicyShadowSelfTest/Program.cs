@@ -336,6 +336,20 @@ namespace TranslationPolicyShadowSelfTest
             AssertTrue(keyed.Count == 3, "Keyed scanner candidate count");
             AssertDecision(keyed.Single(item => item.KeyOrPath == "ATC.Power"), TranslationPolicyDecision.HardAllow, "keyed_text");
             AssertDecision(keyed.Single(item => item.KeyOrPath == "ATC.Icon"), TranslationPolicyDecision.HardDeny, "path_or_resource_value");
+
+            const string inheritedDefsXml =
+                "<Defs><ThingDef Name='Human'><label>Human</label><description>Inherited description</description></ThingDef>" +
+                "<ThingDef ParentName='Human'><defName>Dummy</defName></ThingDef></Defs>";
+            List<TranslationPolicyCandidate> inherited = TranslationPolicyXmlScanner.ScanDefsXml(inheritedDefsXml, context);
+            AssertEqual("Human", inherited.Single(item => item.KeyOrPath == "Dummy.label").SourceText, "Inherited Def label candidate");
+            AssertEqual("Inherited description", inherited.Single(item => item.KeyOrPath == "Dummy.description").SourceText, "Inherited Def description candidate");
+
+            const string multilineKeyedXml =
+                "<LanguageData><Milira.Difficulty_CrazyDesc>First line of a long settings description.\n" +
+                "Second line must remain available for translation.</Milira.Difficulty_CrazyDesc></LanguageData>";
+            List<TranslationPolicyCandidate> multiline = TranslationPolicyXmlScanner.ScanKeyedXml(multilineKeyedXml, context);
+            AssertTrue(multiline.Count == 1, "Long multiline Keyed value must not disappear");
+            AssertTrue(multiline[0].SourceText.Contains("Second line"), "Multiline Keyed content must be preserved");
         }
 
         private static void TestDefInjectedXmlScanning()

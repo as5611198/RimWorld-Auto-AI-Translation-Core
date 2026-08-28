@@ -158,28 +158,32 @@ namespace AutoTranslator_Core
             bool hasKana = KanaRegex.IsMatch(languageSample);
             bool hasHangul = HangulRegex.IsMatch(languageSample);
             bool hasCJK = CJKRegex.IsMatch(languageSample);
+            bool hasThai = ThaiRegex.IsMatch(languageSample);
 
             switch (targetLang)
             {
                 case TargetLanguage.Traditional:
                 case TargetLanguage.Simplified:
-                    if (hasEnglish || hasCyrillic || hasKana || hasHangul) isForeignText = true;
+                    if (hasEnglish || hasCyrillic || hasKana || hasHangul || hasThai) isForeignText = true;
                     break;
                 case TargetLanguage.Japanese:
-                    if (hasEnglish || hasCyrillic || hasHangul || (hasCJK && !hasKana)) isForeignText = true;
+                    if (hasEnglish || hasCyrillic || hasHangul || hasThai || (hasCJK && !hasKana)) isForeignText = true;
                     break;
                 case TargetLanguage.Korean:
-                    if (hasEnglish || hasCyrillic || hasKana || hasCJK) isForeignText = true;
+                    if (hasEnglish || hasCyrillic || hasKana || hasCJK || hasThai) isForeignText = true;
                     break;
                 case TargetLanguage.English:
-                    if (hasCJK || hasKana || hasHangul || hasCyrillic) isForeignText = true;
+                    if (hasCJK || hasKana || hasHangul || hasCyrillic || hasThai) isForeignText = true;
                     break;
                 case TargetLanguage.Russian:
                 case TargetLanguage.Ukrainian:
-                    if (hasEnglish || hasCJK || hasKana || hasHangul) isForeignText = true;
+                    if (hasEnglish || hasCJK || hasKana || hasHangul || hasThai) isForeignText = true;
+                    break;
+                case TargetLanguage.Thai:
+                    if (!hasThai && (hasEnglish || hasCJK || hasKana || hasHangul || hasCyrillic)) isForeignText = true;
                     break;
                 default:
-                    if (hasEnglish || hasCJK) isForeignText = true;
+                    if (hasEnglish || hasCJK || hasThai) isForeignText = true;
                     break;
             }
 

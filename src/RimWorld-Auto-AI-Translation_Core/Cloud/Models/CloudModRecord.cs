@@ -1,11 +1,4 @@
-using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.IO.Compression;
-using System.Threading.Tasks;
-using Verse;
-using static AutoTranslator_Core.DeleteTranslationWindow;
 // 這個資料模型保存雲端模組的版本與發佈資訊。
 // EN: This model stores cloud mod version and publishing metadata.
 

@@ -22,6 +22,7 @@ namespace AutoTranslator_Core
     {
         public static ConcurrentDictionary<string, string> Cache = new ConcurrentDictionary<string, string>();
         public static ConcurrentDictionary<string, bool> IgnoredCache = new ConcurrentDictionary<string, bool>();
+        private static readonly ConcurrentDictionary<string, string> SourceOwners = new ConcurrentDictionary<string, string>();
         private static ConcurrentQueue<string> ClassificationQueue = new ConcurrentQueue<string>();
         private static ConcurrentDictionary<string, bool> PendingClassifications = new ConcurrentDictionary<string, bool>();
         private static ConcurrentQueue<string> TranslationQueue = new ConcurrentQueue<string>();
@@ -32,6 +33,7 @@ namespace AutoTranslator_Core
         // 這個欄位保存 Ignored快取File路徑 的執行狀態或快取資料。
         // EN: This field stores ignored cache file path runtime state or cached data.
         private static readonly string IgnoredCacheFilePath;
+        private static readonly string SourceOwnersFilePath;
         // 這個常數定義 MaxQueuedTranslations 的固定值。
         // EN: This constant defines the fixed value for max queued translations.
         private const int MaxQueuedTranslations = 500;
@@ -78,6 +80,7 @@ namespace AutoTranslator_Core
         // EN: This field stores ignored cache dirty runtime state or cached data.
         private static volatile bool _ignoredCacheDirty = false;
         private static int _ignoredCacheChangeVersion = 0;
+        private static volatile bool _sourceOwnersDirty = false;
         private static readonly object _cachePersistenceLock = new object();
         private static int _uiLanguageGeneration = 0;
         // 這個欄位保存 last快取SaveTicks 的執行狀態或快取資料。
@@ -90,11 +93,12 @@ namespace AutoTranslator_Core
         private static readonly Regex KanaRegex = new Regex(@"\p{IsHiragana}|\p{IsKatakana}", RegexOptions.Compiled);
         private static readonly Regex HangulRegex = new Regex(@"\p{IsHangulSyllables}", RegexOptions.Compiled);
         private static readonly Regex CJKRegex = new Regex(@"\p{IsCJKUnifiedIdeographs}", RegexOptions.Compiled);
+        private static readonly Regex ThaiRegex = new Regex(@"[\u0E00-\u0E7F]", RegexOptions.Compiled);
         private static readonly Regex DataKeyValueRegex = new Regex(@"^\s*(?:""[^""]{1,64}""|'[^']{1,64}'|text|translation|translated|result|value)\s*[:=]\s*", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly Regex LogTimestampRegex = new Regex(@"^(?<prefix>\s*(?:\(\d+\)\s*)?\[\d{1,2}:\d{2}:\d{2}\]\s*)(?<body>[\s\S]*)$", RegexOptions.Compiled);
         private static readonly Regex VolatileMetricRegex = new Regex(@"^\s*(?:FPS|TPS|帧率|幀率)\s*[:：]\s*\d+(?:\s*[\(（]\d+[\)）])?\s*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly Regex TemperatureReadoutRegex = new Regex(@"^\s*(?:(?:Indoor|Indoors|Outdoor|Outdoors|Inside|Outside|Room|室內|室内|室外|戶外|户外|屋內|屋内|外面|内部|外部)\s+)?[-+]?\d+(?:\.\d+)?\s*(?:°\s*)?[CF]\s*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-        private static readonly Regex StackCountRegex = new Regex(@"^\s*[\p{L}\p{IsCJKUnifiedIdeographs}\p{IsHiragana}\p{IsKatakana}\p{IsHangulSyllables}\p{IsCyrillic}\s'\-·・]+[xX×]\s*\d{1,6}\s*$", RegexOptions.Compiled);
+        private static readonly Regex StackCountRegex = new Regex(@"^\s*[\p{L}\p{IsCJKUnifiedIdeographs}\p{IsHiragana}\p{IsKatakana}\p{IsHangulSyllables}\p{IsCyrillic}\u0E00-\u0E7F\s'\-·・]+[xX×]\s*\d{1,6}\s*$", RegexOptions.Compiled);
         private static readonly Regex InternalKeyRegex = new Regex(@"^\s*[A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+)+(?:Label|Def|Path|Worker|Job|Recipe|Tool|Group|Tab|Menu|Key)?\s*$|^\s*[A-Za-z][A-Za-z0-9]+(?:Label|Def|Path|Worker|Job|Recipe|Tool|Group|Tab|Menu|Key)\s*$", RegexOptions.Compiled);
         private static readonly Regex NumericStatusRegex = new Regex(@"(?:\d+(?:\.\d+)?\s*[%/]|[=/|]\s*\d+(?:\.\d+)?|\d+(?:\.\d+)?\s*(?:h|mm|cm|kg|g|W|kW|XP)\b)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly Regex MusicPlaybackStatusRegex = new Regex(@"^\s*(?:Now\s+playing|Currently\s+playing|Playing)\s*[:：]\s*.+$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -130,9 +134,11 @@ namespace AutoTranslator_Core
         {
             CacheFilePath = Path.Combine(AutoTranslatorScanner.GetLocalPackPath(), "UI_Hardcoded_Cache.json");
             IgnoredCacheFilePath = Path.Combine(AutoTranslatorScanner.GetLocalPackPath(), "UI_Hardcoded_Ignored.json");
+            SourceOwnersFilePath = Path.Combine(AutoTranslatorScanner.GetLocalPackPath(), "UI_Hardcoded_Owners.json");
             AutoTranslatorMod.TryAutoSyncLanguageWithGame(resetCaches: false, log: false, writeSettings: true);
             LoadCache();
             LoadIgnoredCache();
+            LoadSourceOwners();
 
             AutoTranslatorScanner.RequestKeyedMemoryDrop();
 
