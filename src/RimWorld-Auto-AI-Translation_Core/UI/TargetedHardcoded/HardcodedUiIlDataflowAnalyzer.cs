@@ -28,7 +28,7 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
 
     internal static class HardcodedUiIlDataflowAnalyzer
     {
-        internal const int AnalyzerVersion = 6;
+        internal const int AnalyzerVersion = 7;
         internal const int StructureEngineVersion = 2;
         private const int MaximumSummaryIterations = 8;
         private const int ProgressStageCount = 5;

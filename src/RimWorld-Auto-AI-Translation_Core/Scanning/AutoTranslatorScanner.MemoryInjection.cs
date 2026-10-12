@@ -80,6 +80,8 @@ namespace AutoTranslator_Core
         private class MemoryDropApplyState
         {
             public MemoryDropPayload Payload;
+            public LoadedLanguage Language;
+            public IEnumerator<int> ClearSteps;
             public System.Diagnostics.Stopwatch Timer;
             public List<KeyValuePair<string, string>> KeyedEntries = new List<KeyValuePair<string, string>>();
             public int KeyedIndex;
@@ -104,6 +106,10 @@ namespace AutoTranslator_Core
             public long AfterInjectMs;
             public long RestoreCleanupMs;
             public long NormalizeMs;
+            public bool InjectionFailed;
+            public IEnumerator<int> FinalizationSteps;
+            public readonly Dictionary<DefInjectionPackage, Dictionary<string, DefInjectionPackage.DefInjection>> ChangedDefInjections =
+                new Dictionary<DefInjectionPackage, Dictionary<string, DefInjectionPackage.DefInjection>>();
             public readonly List<RuntimeDefRestoreRemoval> TemporaryDefRestores = new List<RuntimeDefRestoreRemoval>();
         }
 
@@ -442,6 +448,7 @@ namespace AutoTranslator_Core
 
         internal static void PumpMainThreadDispatcher()
         {
+            TargetedHardcodedUi.HardcodedUiTargetedPatchManager.PumpReload();
             int currentFrame = UnityEngine.Time.frameCount;
             if (_activeMemoryDropApply != null && _lastMemoryDropApplyFrame != currentFrame)
             {
@@ -772,6 +779,16 @@ namespace AutoTranslator_Core
         {
             if (payload == null) return;
             if (LanguageDatabase.activeLanguage == null || AutoTranslatorMod.Settings == null) return;
+            // Preserve the language-loading prerequisite of the game's global
+            // injection wrappers before creating any runtime replacement packages.
+            try { LanguageDatabase.activeLanguage.LoadData(); }
+            catch (Exception ex)
+            {
+                lock (_pendingInjectLock) _memoryDropCycleSucceeded = false;
+                AutoTranslatorSettings.AddErrorLog("Memory Drop 语言数据加载失败：" + ex.Message);
+                CompleteMemoryDropWaitersIfIdle();
+                return;
+            }
 
             int defEntryCount = payload.DefsByType?.Sum(item => item?.Data?.Count ?? 0) ?? 0;
             long queuedMs = payload.PreparedAtUtc == default(DateTime)
@@ -785,6 +802,7 @@ namespace AutoTranslator_Core
             _activeMemoryDropApply = new MemoryDropApplyState
             {
                 Payload = payload,
+                Language = LanguageDatabase.activeLanguage,
                 Timer = System.Diagnostics.Stopwatch.StartNew(),
                 KeyedEntries = payload.Keyed != null
                     ? payload.Keyed.ToList()
@@ -810,13 +828,14 @@ namespace AutoTranslator_Core
             try
             {
                 LoadedLanguage activeLang = LanguageDatabase.activeLanguage;
-                if (activeLang == null || AutoTranslatorMod.Settings == null)
+                if (activeLang == null || AutoTranslatorMod.Settings == null || !ReferenceEquals(state.Language, activeLang) ||
+                    !string.Equals(state.Payload.TargetFolder, GetFolderNameByLanguage(AutoTranslatorMod.Settings.TargetLang), StringComparison.OrdinalIgnoreCase))
                 {
                     shouldFinish = true;
                     return;
                 }
 
-                ApplyPackageClearKeysIfNeeded(state, activeLang);
+                if (ContinuePackageClear(state, activeLang)) return;
                 if (ApplyKeyedBatch(state, activeLang)) return;
                 if (!state.Payload.KeyedOnly && ApplyDefBatch(state, activeLang)) return;
                 if (!state.Payload.KeyedOnly && state.NeedsDataInjection && !state.FinalizationStarted)
@@ -858,40 +877,108 @@ namespace AutoTranslator_Core
             }
         }
 
+        private static void QueueChangedDef(MemoryDropApplyState state, DefInjectionPackage package, string path)
+        {
+            DefInjectionPackage.DefInjection injection;
+            if (!package.injections.TryGetValue(path, out injection)) return;
+            Dictionary<string, DefInjectionPackage.DefInjection> changes;
+            if (!state.ChangedDefInjections.TryGetValue(package, out changes))
+            {
+                changes = new Dictionary<string, DefInjectionPackage.DefInjection>(StringComparer.Ordinal);
+                state.ChangedDefInjections.Add(package, changes);
+            }
+            changes[path] = injection;
+        }
+
+        private static IEnumerator<int> InjectChangedDefs(MemoryDropApplyState state, bool reportMissingDefs)
+        {
+            foreach (var changedPackage in state.ChangedDefInjections)
+            {
+                // Use the game's own field/path injection logic, but supply only this
+                // operation's changed objects. Do not replace the live package dictionary.
+                var batch = new DefInjectionPackage(changedPackage.Key.defType);
+                int inspected = 0;
+                foreach (var changed in changedPackage.Value)
+                {
+                    if (++inspected % 64 == 0) yield return 0;
+                    var injection = changed.Value;
+                    DefInjectionPackage.DefInjection live;
+                    if (injection.injected || !changedPackage.Key.injections.TryGetValue(changed.Key, out live) ||
+                        !ReferenceEquals(live, injection)) continue;
+                    batch.injections[changed.Key] = injection;
+                    if (batch.injections.Count < 64) continue;
+                    ApplyChangedDefBatch(state, changedPackage.Key, batch, reportMissingDefs);
+                    batch = new DefInjectionPackage(changedPackage.Key.defType);
+                    yield return 0;
+                }
+                if (batch.injections.Count > 0)
+                {
+                    ApplyChangedDefBatch(state, changedPackage.Key, batch, reportMissingDefs);
+                    yield return 0;
+                }
+            }
+        }
+
+        private static void ApplyChangedDefBatch(MemoryDropApplyState state, DefInjectionPackage original,
+            DefInjectionPackage batch, bool reportMissingDefs)
+        {
+            batch.InjectIntoDefs(reportMissingDefs);
+            original.loadSyntaxSuggestions.AddRange(batch.loadSyntaxSuggestions);
+            if (!reportMissingDefs) return;
+            foreach (string error in batch.loadErrors)
+            {
+                original.loadErrors.Add(error);
+                AutoTranslatorSettings.AddWarningLog("XML 增量注入：" + error);
+            }
+            if (batch.injections.Values.Any(injection => !injection.injected)) state.InjectionFailed = true;
+        }
+
+        private static IEnumerator<int> FinalizeMemoryDropSteps(MemoryDropApplyState state)
+        {
+            state.FinalizationPhase = 0;
+            using (var before = InjectChangedDefs(state, false)) while (before.MoveNext()) yield return 0;
+            state.FinalizationPhase = 1;
+            using (var after = InjectChangedDefs(state, true)) while (after.MoveNext()) yield return 0;
+            state.FinalizationPhase = 2;
+            foreach (var removal in state.TemporaryDefRestores)
+            {
+                RemoveTemporaryDefRestores(new[] { removal });
+                yield return 0;
+            }
+            state.FinalizationPhase = 3;
+            using (var normalize = NormalizeInjectedDefsSteps()) while (normalize.MoveNext()) yield return 0;
+            state.FinalizationPhase = 4;
+        }
+
         private static bool ContinueMemoryDropFinalization(MemoryDropApplyState state, LoadedLanguage activeLang)
         {
             if (state == null || activeLang == null || state.FinalizationPhase >= 4) return false;
-
-            System.Diagnostics.Stopwatch stageTimer = System.Diagnostics.Stopwatch.StartNew();
-            int completedPhase = state.FinalizationPhase;
-            switch (completedPhase)
+            if (state.FinalizationSteps == null) state.FinalizationSteps = FinalizeMemoryDropSteps(state);
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            bool more;
+            do
             {
-                case 0:
-                    activeLang.InjectIntoData_BeforeImpliedDefs();
-                    break;
-                case 1:
-                    activeLang.InjectIntoData_AfterImpliedDefs();
-                    break;
-                case 2:
-                    RemoveTemporaryDefRestores(state.TemporaryDefRestores);
-                    break;
-                case 3:
-                    NormalizeInjectedDefs();
-                    break;
+                int phase = state.FinalizationPhase;
+                long beforeMs = timer.ElapsedMilliseconds;
+                more = state.FinalizationSteps.MoveNext();
+                long elapsedMs = timer.ElapsedMilliseconds - beforeMs;
+                switch (phase)
+                {
+                    case 0: state.BeforeInjectMs += elapsedMs; break;
+                    case 1: state.AfterInjectMs += elapsedMs; break;
+                    case 2: state.RestoreCleanupMs += elapsedMs; break;
+                    case 3: state.NormalizeMs += elapsedMs; break;
+                }
             }
-            stageTimer.Stop();
-
-            long elapsedMs = stageTimer.ElapsedMilliseconds;
-            state.FinalizeMs += elapsedMs;
-            switch (completedPhase)
+            while (more && timer.ElapsedMilliseconds < 4);
+            timer.Stop();
+            state.FinalizeMs += timer.ElapsedMilliseconds;
+            if (!more)
             {
-                case 0: state.BeforeInjectMs = elapsedMs; break;
-                case 1: state.AfterInjectMs = elapsedMs; break;
-                case 2: state.RestoreCleanupMs = elapsedMs; break;
-                case 3: state.NormalizeMs = elapsedMs; break;
+                state.FinalizationSteps.Dispose();
+                state.FinalizationSteps = null;
             }
-            state.FinalizationPhase++;
-            return state.FinalizationPhase < 4;
+            return more;
         }
 
         private static string GetMemoryDropFinalizationPhaseName(int phase)
@@ -906,15 +993,30 @@ namespace AutoTranslator_Core
             }
         }
 
-        private static void ApplyPackageClearKeysIfNeeded(MemoryDropApplyState state, LoadedLanguage activeLang)
+        private static bool ContinuePackageClear(MemoryDropApplyState state, LoadedLanguage activeLang)
         {
-            if (state == null || state.PackageClearApplied) return;
-            state.PackageClearApplied = true;
+            if (state.PackageClearApplied) return false;
+            if (state.ClearSteps == null) state.ClearSteps = ApplyPackageClearSteps(state, activeLang);
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            bool more;
+            do { more = state.ClearSteps.MoveNext(); }
+            while (more && timer.ElapsedMilliseconds < 4);
+            if (!more)
+            {
+                state.ClearSteps.Dispose();
+                state.ClearSteps = null;
+                state.PackageClearApplied = true;
+            }
+            return more;
+        }
 
+        private static IEnumerator<int> ApplyPackageClearSteps(MemoryDropApplyState state, LoadedLanguage activeLang)
+        {
+            if (state == null || state.PackageClearApplied) yield break;
             if (activeLang == null || state.Payload == null || !state.Payload.PackageScoped ||
                 state.Payload.ClearKeysByDefType == null || state.Payload.ClearKeysByDefType.Count == 0)
             {
-                return;
+                yield break;
             }
 
             if (activeLang.keyedReplacements == null)
@@ -927,6 +1029,7 @@ namespace AutoTranslator_Core
             {
                 foreach (string key in keyedKeys)
                 {
+                    yield return 0;
                     if (string.IsNullOrWhiteSpace(key)) continue;
                     if (!RuntimeInjectedKeyedKeys.Remove(key)) continue;
 
@@ -961,6 +1064,7 @@ namespace AutoTranslator_Core
 
                 foreach (string key in pair.Value)
                 {
+                    yield return 0;
                     if (string.IsNullOrWhiteSpace(key)) continue;
                     string runtimeKey = GetRuntimeDefKey(defType, key);
                     if (!RuntimeInjectedDefKeys.Remove(runtimeKey)) continue;
@@ -986,6 +1090,7 @@ namespace AutoTranslator_Core
                         package.injections.Remove(key);
                     }
 
+                    QueueChangedDef(state, package, key);
                     RuntimeDefBaselines.Remove(runtimeKey);
                     state.ClearedDefs++;
                     state.NeedsDataInjection = true;
@@ -1214,7 +1319,8 @@ namespace AutoTranslator_Core
             }
 
             int remaining = MemoryDropKeyedApplyBudget;
-            while (state.KeyedIndex < state.KeyedEntries.Count && remaining-- > 0)
+            var sliceTimer = System.Diagnostics.Stopwatch.StartNew();
+            while (state.KeyedIndex < state.KeyedEntries.Count && remaining-- > 0 && sliceTimer.ElapsedMilliseconds < 4)
             {
                 var kvp = state.KeyedEntries[state.KeyedIndex++];
 
@@ -1242,7 +1348,8 @@ namespace AutoTranslator_Core
             if (state == null || activeLang == null || state.Payload == null || state.Payload.DefsByType == null) return false;
 
             int remaining = MemoryDropDefApplyBudget;
-            while (state.DefTypeIndex < state.Payload.DefsByType.Count && remaining > 0)
+            var sliceTimer = System.Diagnostics.Stopwatch.StartNew();
+            while (state.DefTypeIndex < state.Payload.DefsByType.Count && remaining > 0 && sliceTimer.ElapsedMilliseconds < 4)
             {
                 if (state.CurrentDefEntries == null)
                 {
@@ -1269,7 +1376,7 @@ namespace AutoTranslator_Core
                     state.CurrentDefEntryIndex = 0;
                 }
 
-                while (state.CurrentDefEntryIndex < state.CurrentDefEntries.Count && remaining-- > 0)
+                while (state.CurrentDefEntryIndex < state.CurrentDefEntries.Count && remaining-- > 0 && sliceTimer.ElapsedMilliseconds < 4)
                 {
                     var kvp = state.CurrentDefEntries[state.CurrentDefEntryIndex++];
                     if (IsUnsafeRuntimeDefInjectionPath(kvp.Key))
@@ -1278,12 +1385,16 @@ namespace AutoTranslator_Core
                         continue;
                     }
 
+                    DefInjectionPackage.DefInjection existing;
+                    if (state.CurrentPackage.injections.TryGetValue(kvp.Key, out existing) && existing.injected &&
+                        string.Equals(existing.injection, kvp.Value, StringComparison.Ordinal)) continue;
                     RememberRuntimeDefBaseline(state.CurrentDefType, state.CurrentPackage, kvp.Key);
                     state.CurrentPackage.injections[kvp.Key] = new DefInjectionPackage.DefInjection
                     {
                         path = kvp.Key,
                         injection = kvp.Value
                     };
+                    QueueChangedDef(state, state.CurrentPackage, kvp.Key);
                     RuntimeInjectedDefKeys.Add(GetRuntimeDefKey(state.CurrentDefType, kvp.Key));
                     state.InjectedDefs++;
                     state.NeedsDataInjection = true;
@@ -1305,6 +1416,9 @@ namespace AutoTranslator_Core
         private static void FinishMemoryDropApply(MemoryDropApplyState state, bool success)
         {
             if (state == null) return;
+            success = success && !state.InjectionFailed;
+            state.FinalizationSteps?.Dispose();
+            state.ClearSteps?.Dispose();
 
             try
             {
@@ -1330,10 +1444,8 @@ namespace AutoTranslator_Core
                         " / 注入后 " + state.AfterInjectMs +
                         " / 恢复清理 " + state.RestoreCleanupMs +
                         " / 规范化 " + state.NormalizeMs;
-                    if (state.FinalizeMs >= 1000L)
-                        AutoTranslatorSettings.AddWarningLog(timingDetail);
-                    else
-                        AutoTranslatorSettings.AddDebugLog(timingDetail);
+                    // Total work across multiple frames is not a single-frame stall.
+                    AutoTranslatorSettings.AddDebugLog(timingDetail);
                 }
 
                 if (state.RejectedDefs > 0)
@@ -1419,38 +1531,22 @@ namespace AutoTranslator_Core
             foreach (TaskCompletionSource<bool> waiter in waiters) waiter.TrySetResult(success);
         }
 
-        private static void ApplyMemoryDropPayloadImmediate(MemoryDropPayload payload, System.Diagnostics.Stopwatch timer)
+        private static void NormalizeInjectedDefs()
         {
-            if (payload == null) return;
-            if (LanguageDatabase.activeLanguage == null || AutoTranslatorMod.Settings == null) return;
-
-            var state = new MemoryDropApplyState
-            {
-                Payload = payload,
-                Timer = timer ?? System.Diagnostics.Stopwatch.StartNew(),
-                KeyedEntries = payload.Keyed != null
-                    ? payload.Keyed.ToList()
-                    : new List<KeyValuePair<string, string>>()
-            };
-
-            LoadedLanguage activeLang = LanguageDatabase.activeLanguage;
-            while (ApplyKeyedBatch(state, activeLang)) { }
-            while (!payload.KeyedOnly && ApplyDefBatch(state, activeLang)) { }
-            state.FinalizationStarted = true;
-            while (!payload.KeyedOnly && state.NeedsDataInjection &&
-                   ContinueMemoryDropFinalization(state, activeLang)) { }
-            FinishMemoryDropApply(state, true);
+            using (var steps = NormalizeInjectedDefsSteps()) while (steps.MoveNext()) { }
         }
 
-        private static void NormalizeInjectedDefs()
+        private static IEnumerator<int> NormalizeInjectedDefsSteps()
         {
             foreach (var recipe in DefDatabase<RecipeDef>.AllDefsListForReading)
             {
                 NormalizeAutoGeneratedRecipeText(recipe);
+                yield return 0;
             }
 
             foreach (var thingDef in DefDatabase<ThingDef>.AllDefsListForReading)
             {
+                yield return 0;
                 NormalizeThingDescriptionLead(thingDef);
 
                 if (thingDef.race != null && !string.IsNullOrEmpty(thingDef.label))
@@ -1500,24 +1596,9 @@ namespace AutoTranslator_Core
 
         private static void MemoryDrop_InjectNow(bool keyedOnly)
         {
-            System.Diagnostics.Stopwatch timer = System.Diagnostics.Stopwatch.StartNew();
-            try
-            {
-                MemoryDropPayload payload = BuildMemoryDropPayload(keyedOnly);
-                if (payload == null) return;
-                ApplyMemoryDropPayloadImmediate(payload, timer);
-                timer = null;
-            }
-            catch (Exception ex)
-            {
-
-                AutoTranslatorSettings.AddErrorLog("❌ " + AutoTranslatorAPI.TranslateText("ATC_LogError_MemoryDropFailed", ex.Message));
-                Log.Error($"[AutoTranslationCore] Memory Drop Failed: {ex.Message}");
-            }
-            finally
-            {
-                timer?.Stop();
-            }
+            // Compatibility entry points share the background preparation and
+            // framed application pipeline rather than injecting synchronously.
+            QueueMemoryDropPreparation(keyedOnly, !keyedOnly);
         }
 
         // 這個方法負責清除 Global翻譯Database 資料。

@@ -293,6 +293,7 @@ namespace AutoTranslator_Core.Workflow
 
     public sealed class PendingFileOperationRecord
     {
+        public string ReuseProvenanceJson { get; set; } = string.Empty;
         public Guid OperationId { get; set; }
         public string CandidateId { get; set; } = string.Empty;
         public string TargetLanguage { get; set; } = string.Empty;

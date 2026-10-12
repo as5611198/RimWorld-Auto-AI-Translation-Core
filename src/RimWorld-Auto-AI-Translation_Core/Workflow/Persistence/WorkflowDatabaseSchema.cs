@@ -6,7 +6,7 @@ namespace AutoTranslator_Core.Workflow.Persistence
 {
     internal static class WorkflowDatabaseSchema
     {
-        public const int CurrentVersion = 19;
+        public const int CurrentVersion = 20;
 
         private static readonly IReadOnlyDictionary<int, string[]> Migrations =
             new Dictionary<int, string[]>
@@ -319,6 +319,11 @@ namespace AutoTranslator_Core.Workflow.Persistence
                         FOREIGN KEY(scope_mod_identity) REFERENCES Mods(mod_identity));",
                     @"CREATE INDEX IF NOT EXISTS IX_ReferenceDictionaryEntries_LanguageScope
                         ON ReferenceDictionaryEntries(target_language,scope_mod_identity,enabled);"
+                },
+                [20] = new[]
+                {
+                    @"ALTER TABLE PendingFileOperations ADD COLUMN reuse_provenance_json TEXT NOT NULL DEFAULT '';",
+                    @"CREATE INDEX IF NOT EXISTS IX_Candidates_ReuseHash ON Candidates(source_text_hash);"
                 },
                 [19] = new[]
                 {

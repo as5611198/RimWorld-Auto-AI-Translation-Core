@@ -30,7 +30,7 @@ namespace AutoTranslator_Core.Workflow
             bool dllReloadRequested = await EnableAndRequestDllReloadAsync();
             AutoTranslatorSettings.AddLog(
                 "运行时译文热重载：XML=" + (xmlRefreshed ? "成功" : "失败") +
-                "；DLL=" + (dllReloadRequested ? "已请求重载" : "请求失败"));
+                "；DLL=" + (dllReloadRequested ? "已应用" : "应用失败"));
             return xmlRefreshed && dllReloadRequested;
         }
 
@@ -38,7 +38,7 @@ namespace AutoTranslator_Core.Workflow
         {
             TaskCompletionSource<bool> completion = new TaskCompletionSource<bool>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
-            ATC_Dispatcher.RunOnMainThread(() =>
+            ATC_Dispatcher.RunOnMainThread(async () =>
             {
                 try
                 {
@@ -51,8 +51,7 @@ namespace AutoTranslator_Core.Workflow
 
                     settings.EnableHardcodedUiPrototype = true;
                     LoadedModManager.GetMod<AutoTranslatorMod>()?.WriteSettings();
-                    HardcodedUiTargetedPatchManager.RequestReload();
-                    completion.TrySetResult(true);
+                    completion.TrySetResult(await HardcodedUiTargetedPatchManager.RequestReloadAsync());
                 }
                 catch (Exception ex)
                 {

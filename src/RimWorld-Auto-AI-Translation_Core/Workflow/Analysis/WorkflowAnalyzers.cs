@@ -638,12 +638,14 @@ namespace AutoTranslator_Core.Workflow.Analysis
                 {
                     runtimeMatchCounts.TryGetValue(
                         HardcodedUiRuntimeObservationStore.CreateCandidateMatchKey(entry), out int runtimeMatchCount);
-                    if (runtimeMatchCount == 1)
+                    bool conflictingUse = decision?.DiagnosticFlags?.Contains("flows_to_ui_and_non_ui") == true ||
+                        decision?.AutomaticDecision == HardcodedUiAutomaticDecision.DoNotTranslate;
+                    if (runtimeMatchCount == 1 && !conflictingUse)
                     {
                         classification = CandidateClassification.NeedsTranslation;
                         reasonCode = "runtime_ui_observed";
                     }
-                    else if (classification != CandidateClassification.NeedsTranslation)
+                    else if (!conflictingUse && classification != CandidateClassification.NeedsTranslation)
                     {
                         classification = CandidateClassification.Undetermined;
                         reasonCode = "runtime_ui_observed_ambiguous";

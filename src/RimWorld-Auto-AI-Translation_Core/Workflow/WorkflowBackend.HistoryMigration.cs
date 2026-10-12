@@ -99,9 +99,9 @@ namespace AutoTranslator_Core.Workflow
                             token.ThrowIfCancellationRequested();
                             if (entry.HasElements || duplicateKeys.Contains(entry.Name.LocalName))
                             { result.Unmatched++; continue; }
-                            var matches = candidates.Where(candidate =>
-                                candidate.TranslationEntryKey == entry.Name.LocalName &&
-                                MatchesHistoricalFile(candidate, document.Key, language, owner.Key)).ToList();
+                            var matches = candidates.Where(item =>
+                                item.TranslationEntryKey == entry.Name.LocalName &&
+                                MatchesHistoricalFile(item, document.Key, language, owner.Key)).ToList();
                             if (matches.Count != 1) { result.Unmatched++; continue; }
                             CandidateRecord candidate = matches[0];
                             // Conservative fill-only: even a failed/stale record with text remains untouched.

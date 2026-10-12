@@ -21,8 +21,6 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
     {
         private const string HarmonyId = "MingYang.AutoTranslation.HardcodedUiTargetedPrototype";
         private const int ManifestVersion = 1;
-        private const int MaximumManifestBytes = 32 * 1024 * 1024;
-        private const int MaximumEntries = 10000;
         private const int MaximumTranslationsPerEntry = 32;
         private const int MaximumTranslationKeyLength = 64;
         private const int MaximumTextLength = 4096;
@@ -36,6 +34,13 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
             new Dictionary<string, MethodBase>(StringComparer.Ordinal);
         private static readonly HashSet<string> AppliedEntryIds =
             new HashSet<string>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, string> AppliedMethodSpecs = new Dictionary<string, string>(StringComparer.Ordinal);
+        private static readonly List<TaskCompletionSource<bool>> ReloadWaiters = new List<TaskCompletionSource<bool>>();
+        private static IEnumerator<int> _applySteps;
+        private static int _applyGeneration;
+        private static int _lastApplyFrame = -1;
+        private static bool _recoveringApply;
+        private static HardcodedUiPatchManifest _recoveryManifest;
         private static int _initialized;
         private static int _loading;
         private static int _reloadGeneration;
@@ -91,70 +96,113 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
             RequestReload();
         }
 
+        public static Task<bool> RequestReloadAsync()
+        {
+            var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            ATC_Dispatcher.RunOnMainThread(() => StartReload(completion));
+            return completion.Task;
+        }
+
         public static void RequestReload()
         {
-            int generation = Interlocked.Increment(ref _reloadGeneration);
-            if (AutoTranslatorMod.Settings == null || !AutoTranslatorMod.Settings.EnableHardcodedUiPrototype)
-            {
-                ATC_Dispatcher.RunOnMainThread(ClearAppliedState);
-                return;
-            }
+            ATC_Dispatcher.RunOnMainThread(() => StartReload(null));
+        }
 
+        private static void StartReload(TaskCompletionSource<bool> completion)
+        {
+            if (completion != null) ReloadWaiters.Add(completion);
+            int generation = Interlocked.Increment(ref _reloadGeneration);
             if (Interlocked.Exchange(ref _loading, 1) == 1) return;
             SetStatus("loading", string.Empty);
-
+            if (AutoTranslatorMod.Settings == null || !AutoTranslatorMod.Settings.EnableHardcodedUiPrototype)
+            {
+                _applyGeneration = generation;
+                _replacementStarted = false;
+                _recoveringApply = false;
+                _applySteps = ClearAppliedStateSteps();
+                return;
+            }
             Task.Run(() =>
             {
                 HardcodedUiPatchManifest manifest = null;
                 string error = string.Empty;
-                try
-                {
-                    manifest = LoadManifestFromDisk(out error);
-                }
-                catch (Exception ex)
-                {
-                    error = ex.Message;
-                }
-
+                try { manifest = LoadManifestFromDisk(out error); }
+                catch (Exception ex) { error = ex.Message; }
                 ATC_Dispatcher.RunOnMainThread(() =>
                 {
-                    bool restartAfterLoad = false;
-                    try
-                    {
-                        if (generation != Interlocked.CompareExchange(ref _reloadGeneration, 0, 0))
-                        {
-                            restartAfterLoad = true;
-                            return;
-                        }
-
-                        if (AutoTranslatorMod.Settings == null || !AutoTranslatorMod.Settings.EnableHardcodedUiPrototype)
-                        {
-                            ClearAppliedState();
-                            return;
-                        }
-
-                        // Runtime observation and targeted translation injection are independent:
-                        // the interceptor only records evidence while the targeted transpiler
-                        // applies already-approved translations.
-                        ApplyManifest(manifest, error);
-                    }
-                    catch (Exception ex)
-                    {
-                        try { ClearAppliedState(); }
-                        catch (Exception cleanupEx)
-                        {
-                            Log.Warning("[AutoTranslationCore] Hardcoded UI cleanup after reload failure failed: " + cleanupEx);
-                        }
-                        SetStatus("error", ex.Message);
-                        Log.Warning("[AutoTranslationCore] Hardcoded UI manifest apply failed: " + ex);
-                    }
-                    finally
+                    if (generation != Interlocked.CompareExchange(ref _reloadGeneration, 0, 0))
                     {
                         Interlocked.Exchange(ref _loading, 0);
-                        if (restartAfterLoad) RequestReload();
+                        RequestReload();
+                        return;
                     }
+                    _applyGeneration = generation;
+                    _recoveryManifest = _lastAppliedManifest;
+                    _replacementStarted = false;
+                    _recoveringApply = false;
+                    _applySteps = AutoTranslatorMod.Settings == null || !AutoTranslatorMod.Settings.EnableHardcodedUiPrototype
+                        ? ClearAppliedStateSteps() : ApplyManifest(manifest, error);
                 });
             });
+        }
+
+        // Called from the existing dispatcher pump, at most once per Unity frame.
+        internal static void PumpReload()
+        {
+            if (_applySteps == null || _lastApplyFrame == UnityEngine.Time.frameCount) return;
+            _lastApplyFrame = UnityEngine.Time.frameCount;
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            bool done = false;
+            try
+            {
+                do { done = !_applySteps.MoveNext(); }
+                while (!done && timer.ElapsedMilliseconds < 4);
+            }
+            catch (Exception ex)
+            {
+                _applySteps.Dispose();
+                Log.Warning("[AutoTranslationCore] Hardcoded UI manifest apply failed: " + ex);
+                if (!_recoveringApply && _replacementStarted)
+                {
+                    _recoveringApply = true;
+                    _applySteps = RestorePreviousSteps(_recoveryManifest);
+                    return;
+                }
+                SetStatus("error", ex.Message);
+                done = true;
+            }
+            if (!done) return;
+            _applySteps.Dispose();
+            _applySteps = null;
+            Interlocked.Exchange(ref _loading, 0);
+            if (_applyGeneration != Interlocked.CompareExchange(ref _reloadGeneration, 0, 0))
+            {
+                RequestReload();
+                return;
+            }
+            bool success = !_recoveringApply && (Status == "active" || Status == "ready" ||
+                (Status == "disabled" && PatchedMethods.Count == 0));
+            lock (Gate)
+            {
+                foreach (var waiter in ReloadWaiters) waiter.TrySetResult(success);
+                ReloadWaiters.Clear();
+            }
+        }
+
+        private static IEnumerator<int> RestorePreviousSteps(HardcodedUiPatchManifest previous)
+        {
+            using (var cleanup = ClearAppliedStateSteps()) while (cleanup.MoveNext()) yield return 0;
+            if (previous != null && PatchedMethods.Count == 0)
+            {
+                _restoring = true;
+                try
+                {
+                    using (var restore = ApplyManifest(previous, string.Empty))
+                        while (restore.MoveNext()) yield return 0;
+                }
+                finally { _restoring = false; }
+            }
+            SetStatus("error", "new manifest could not be applied; previous manifest restoration attempted");
         }
 
         private static HardcodedUiPatchManifest LoadManifestFromDisk(out string error)
@@ -167,22 +215,9 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
                 return null;
             }
 
-            FileInfo info = new FileInfo(path);
-            if (info.Length > MaximumManifestBytes)
-            {
-                error = "manifest exceeds size limit";
-                return null;
-            }
-
             string json;
             using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
-                if (stream.Length > MaximumManifestBytes)
-                {
-                    error = "manifest exceeds size limit";
-                    return null;
-                }
-
                 using (StreamReader reader = new StreamReader(stream, new UTF8Encoding(false, true), true))
                 {
                     json = reader.ReadToEnd();
@@ -274,30 +309,24 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
             return string.Format("{0} ({1}/{2})", status, AppliedCount, CandidateCount);
         }
 
-        private static void ApplyManifest(HardcodedUiPatchManifest manifest, string loadError)
+        private static IEnumerator<int> ApplyManifest(HardcodedUiPatchManifest manifest, string loadError)
         {
-            ClearAppliedState();
-            if (PatchedMethods.Count > 0)
-            {
-                SetStatus("error", "previous targeted patch cleanup failed");
-                return;
-            }
             if (manifest == null)
             {
                 SetStatus("unavailable", loadError);
-                return;
+                yield break;
             }
 
             if (manifest.ManifestVersion != ManifestVersion)
             {
                 SetStatus("rejected", "unsupported manifest version");
-                return;
+                yield break;
             }
 
             if (!manifest.Approved)
             {
                 SetStatus("awaiting approval", "manifest approved=false");
-                return;
+                yield break;
             }
 
             List<HardcodedUiPatchEntry> entries = (manifest.Entries ?? new List<HardcodedUiPatchEntry>())
@@ -306,13 +335,15 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
             Interlocked.Exchange(ref _candidateCount, entries.Count);
             if (entries.Count == 0)
             {
+                using (var cleanup = ClearAppliedStateSteps()) while (cleanup.MoveNext()) yield return 0;
+                if (PatchedMethods.Count != 0)
+                {
+                    SetStatus("error", "targeted patch cleanup is still pending");
+                    yield break;
+                }
+                _lastAppliedManifest = manifest;
                 SetStatus("ready", string.Empty);
-                return;
-            }
-            if (entries.Count > MaximumEntries)
-            {
-                SetStatus("rejected", "too many entries");
-                return;
+                yield break;
             }
 
             string duplicateEntryId;
@@ -321,19 +352,21 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
             {
                 SetStatus("rejected", "duplicate entry id");
                 Log.Warning("[AutoTranslationCore] Hardcoded UI manifest rejected: duplicate entry id " + duplicateEntryId);
-                return;
+                yield break;
             }
 
+            var validation = new ReloadValidationCache();
             Dictionary<string, List<PreparedEntry>> grouped =
                 new Dictionary<string, List<PreparedEntry>>(StringComparer.Ordinal);
             foreach (HardcodedUiPatchEntry entry in entries)
             {
+                yield return 0;
                 MethodBase method;
                 string reason;
                 bool prepared;
                 try
                 {
-                    prepared = TryPrepareEntry(entry, out method, out reason);
+                    prepared = TryPrepareEntry(entry, validation, out method, out reason);
                 }
                 catch (Exception ex)
                 {
@@ -367,12 +400,61 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
                 list.Add(new PreparedEntry { Entry = entry, Method = method });
             }
 
+            foreach (var pair in grouped.ToList())
+            {
+                yield return 0;
+                var specs = pair.Value.Select(item => new HardcodedUiTranspileSpec
+                { EntryId = item.Entry.EntryId, Literal = item.Entry.Literal, LiteralOrdinal = item.Entry.LiteralOrdinal }).ToList();
+                var plan = HardcodedUiDisplayCallPlanner.Plan(validation.GetBody(pair.Value[0].Method), specs);
+                var matched = new HashSet<string>(plan.SelectMany(site => site.Arguments.Values).Select(spec => spec.EntryId));
+                foreach (var item in pair.Value.Where(item => !matched.Contains(item.Entry.EntryId)))
+                    LogValidationFailure(item.Entry, "no unambiguous supported display argument");
+                pair.Value.RemoveAll(item => !matched.Contains(item.Entry.EntryId));
+                if (pair.Value.Count == 0) grouped.Remove(pair.Key);
+            }
+            if (grouped.Count == 0)
+            {
+                SetStatus("rejected", "no compatible display arguments; existing translations retained");
+                yield break;
+            }
+            HardcodedUiPatchManifest previous = _lastAppliedManifest;
+            _replacementStarted = true;
+            var desiredSpecs = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var pair in grouped)
+            {
+                yield return 0;
+                desiredSpecs[pair.Key] = JsonConvert.SerializeObject(pair.Value.OrderBy(item => item.Entry.EntryId, StringComparer.Ordinal)
+                    .Select(item => new { item.Entry.EntryId, item.Entry.Literal, item.Entry.LiteralOrdinal, item.Entry.CallSignature }));
+            }
+            foreach (var old in PatchedMethods.ToList())
+            {
+                yield return 0;
+                string signature;
+                if (desiredSpecs.TryGetValue(old.Key, out signature) && AppliedMethodSpecs.ContainsKey(old.Key) &&
+                    AppliedMethodSpecs[old.Key] == signature &&
+                    HarmonyLib.Harmony.GetPatchInfo(old.Value)?.Transpilers.Any(patch => patch.owner == HarmonyId) == true) continue;
+                Harmony.Unpatch(old.Value, TranspilerMethod);
+                HardcodedUiTargetedPatchTranspiler.RemoveSpecs(old.Value);
+                PatchedMethods.Remove(old.Key);
+                AppliedMethodSpecs.Remove(old.Key);
+            }
+            AppliedEntryIds.Clear();
+            Interlocked.Exchange(ref _appliedCount, 0);
             bool rollbackFailed = false;
+            bool applicationFailed = false;
             foreach (KeyValuePair<string, List<PreparedEntry>> group in grouped)
             {
+                yield return 0;
+                if (PatchedMethods.ContainsKey(group.Key))
+                {
+                    foreach (var prepared in group.Value) AppliedEntryIds.Add(prepared.Entry.EntryId);
+                    Interlocked.Add(ref _appliedCount, group.Value.Count);
+                    continue;
+                }
                 if (group.Value.GroupBy(item => item.Entry.LiteralOrdinal).Count() != group.Value.Count)
                 {
                     Log.Warning("[AutoTranslationCore] Hardcoded UI method skipped: duplicate literal ordinal.");
+                    applicationFailed = true;
                     continue;
                 }
 
@@ -392,6 +474,7 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
                     patchMayBeInstalled = true;
                     Harmony.Patch(group.Value[0].Method, transpiler: new HarmonyMethod(TranspilerMethod));
                     PatchedMethods[group.Key] = group.Value[0].Method;
+                    AppliedMethodSpecs[group.Key] = desiredSpecs[group.Key];
 
                     // Mark entries only after the whole method patch succeeds.
                     foreach (PreparedEntry prepared in group.Value)
@@ -400,6 +483,7 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
                 }
                 catch (Exception ex)
                 {
+                    applicationFailed = true;
                     bool rollbackSucceeded = !patchMayBeInstalled;
                     if (patchMayBeInstalled)
                     {
@@ -421,6 +505,7 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
                     if (rollbackSucceeded)
                     {
                         PatchedMethods.Remove(group.Key);
+                        AppliedMethodSpecs.Remove(group.Key);
                         try { HardcodedUiTargetedPatchTranspiler.RemoveSpecs(group.Value[0].Method); }
                         catch (Exception removeSpecsEx)
                         {
@@ -431,13 +516,18 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
                 }
             }
 
-            if (rollbackFailed)
+            if (rollbackFailed || applicationFailed)
             {
-                ClearAppliedState();
+                using (var cleanup = ClearAppliedStateSteps()) while (cleanup.MoveNext()) yield return 0;
+                if (!_restoring && previous != null && PatchedMethods.Count == 0)
+                {
+                    using (var restore = RestorePreviousSteps(previous)) while (restore.MoveNext()) yield return 0;
+                    yield break;
+                }
                 SetStatus("error", PatchedMethods.Count > 0
                     ? "targeted patch rollback is still pending"
                     : "targeted patch application failed");
-                return;
+                yield break;
             }
 
             // Rebuild one complete snapshot after all method groups have been applied.
@@ -445,6 +535,7 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
             Dictionary<string, string> allSources = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (HardcodedUiPatchEntry entry in entries)
             {
+                yield return 0;
                 if (!IsEntryApplied(entry)) continue;
                 string translated = SelectTranslation(entry);
                 if (!string.IsNullOrWhiteSpace(translated))
@@ -454,6 +545,7 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
                 }
             }
             HardcodedUiRuntime.ReplaceSnapshot(allTranslations, allSources);
+            _lastAppliedManifest = manifest;
             SetStatus(PatchedMethods.Count > 0 ? "active" : "no compatible entries", string.Empty);
         }
 
@@ -489,7 +581,7 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
             return string.Equals(value, source, StringComparison.Ordinal) ? string.Empty : value;
         }
 
-        private static bool TryPrepareEntry(HardcodedUiPatchEntry entry, out MethodBase method, out string reason)
+        private static bool TryPrepareEntry(HardcodedUiPatchEntry entry, ReloadValidationCache validation, out MethodBase method, out string reason)
         {
             method = null;
             reason = string.Empty;
@@ -554,7 +646,7 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
                 return false;
             }
             if (!File.Exists(assemblyPath) ||
-                !string.Equals(HardcodedUiMethodIdentity.ComputeFileSha256(assemblyPath), entry.AssemblySha256, StringComparison.OrdinalIgnoreCase))
+                !string.Equals(validation.GetFileHash(assemblyPath), entry.AssemblySha256, StringComparison.OrdinalIgnoreCase))
             {
                 reason = "assembly hash mismatch";
                 return false;
@@ -589,6 +681,10 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
                 return false;
             }
 
+            string methodCacheKey = loaded.ManifestModule.ModuleVersionId.ToString("D") + "\n" +
+                entry.DeclaringType + "\n" + entry.MethodSignature + "\n" + entry.MethodMetadataToken;
+            if (!validation.Methods.TryGetValue(methodCacheKey, out method))
+            {
             Type declaringType = loaded.GetType(entry.DeclaringType, false, false);
             if (declaringType == null)
             {
@@ -604,6 +700,8 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
                 .FirstOrDefault(candidate =>
                     string.Equals(HardcodedUiMethodIdentity.GetMethodSignature(candidate), entry.MethodSignature, StringComparison.Ordinal) &&
                     (entry.MethodMetadataToken <= 0 || candidate.MetadataToken == entry.MethodMetadataToken));
+                validation.Methods[methodCacheKey] = method;
+            }
             if (method == null || method.Name != entry.MethodName)
             {
                 reason = "method signature mismatch";
@@ -615,13 +713,13 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
                 method = null;
                 return false;
             }
-            if (!string.Equals(HardcodedUiMethodIdentity.ComputeMethodIlFingerprint(method), entry.MethodIlFingerprint, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(validation.GetMethodHash(method), entry.MethodIlFingerprint, StringComparison.OrdinalIgnoreCase))
             {
                 reason = "method IL fingerprint mismatch";
                 method = null;
                 return false;
             }
-            if (!HasUniqueLiteral(method, entry))
+            if (!HasUniqueLiteral(validation.GetBody(method), entry))
             {
                 reason = "literal/ordinal pattern mismatch";
                 method = null;
@@ -639,24 +737,22 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
             return true;
         }
 
-        private static bool HasUniqueLiteral(MethodBase method, HardcodedUiPatchEntry entry)
+        private static bool HasUniqueLiteral(List<CodeInstruction> instructions, HardcodedUiPatchEntry entry)
         {
             int ordinal = -1;
             int matches = 0;
-            IEnumerable<KeyValuePair<OpCode, object>> body = PatchProcessor.ReadMethodBody(method);
-            List<KeyValuePair<OpCode, object>> instructions = body.ToList();
             for (int i = 0; i < instructions.Count; i++)
             {
-                KeyValuePair<OpCode, object> instruction = instructions[i];
-                if (instruction.Key != OpCodes.Ldstr || !(instruction.Value is string)) continue;
+                CodeInstruction instruction = instructions[i];
+                if (instruction.opcode != OpCodes.Ldstr || !(instruction.operand is string)) continue;
                 ordinal++;
-                if (ordinal != entry.LiteralOrdinal || !string.Equals((string)instruction.Value, entry.Literal, StringComparison.Ordinal)) continue;
+                if (ordinal != entry.LiteralOrdinal || !string.Equals((string)instruction.operand, entry.Literal, StringComparison.Ordinal)) continue;
 
                 if (!string.IsNullOrWhiteSpace(entry.CallSignature))
                 {
                     int next = i + 1;
-                    while (next < instructions.Count && instructions[next].Key == OpCodes.Nop) next++;
-                    MethodBase call = next < instructions.Count ? instructions[next].Value as MethodBase : null;
+                    while (next < instructions.Count && instructions[next].opcode == OpCodes.Nop) next++;
+                    MethodBase call = next < instructions.Count ? instructions[next].operand as MethodBase : null;
                     if (!HardcodedUiCallTarget.Matches(call, entry)) continue;
                 }
                 matches++;
@@ -694,10 +790,11 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
             return true;
         }
 
-        private static void ClearAppliedState()
+        private static IEnumerator<int> ClearAppliedStateSteps()
         {
             foreach (KeyValuePair<string, MethodBase> pair in PatchedMethods.ToList())
             {
+                yield return 0;
                 bool unpatchSucceeded = false;
                 try
                 {
@@ -715,6 +812,7 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
                 {
                     HardcodedUiTargetedPatchTranspiler.RemoveSpecs(pair.Value);
                     PatchedMethods.Remove(pair.Key);
+                    AppliedMethodSpecs.Remove(pair.Key);
                 }
                 catch (Exception ex)
                 {
@@ -743,6 +841,36 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
         {
             Log.Warning("[AutoTranslationCore] Hardcoded UI entry rejected (" +
                 (entry != null ? entry.EntryId : "unknown") + "): " + reason);
+        }
+
+        private static HardcodedUiPatchManifest _lastAppliedManifest;
+        private static bool _restoring;
+        private static bool _replacementStarted;
+
+        private sealed class ReloadValidationCache
+        {
+            private readonly Dictionary<string, string> _fileHashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            private readonly Dictionary<MethodBase, string> _methodHashes = new Dictionary<MethodBase, string>();
+            private readonly Dictionary<MethodBase, List<CodeInstruction>> _bodies = new Dictionary<MethodBase, List<CodeInstruction>>();
+            public readonly Dictionary<string, MethodBase> Methods = new Dictionary<string, MethodBase>();
+            public string GetFileHash(string path)
+            {
+                if (!_fileHashes.TryGetValue(path, out string hash))
+                    _fileHashes[path] = hash = HardcodedUiMethodIdentity.ComputeFileSha256(path);
+                return hash;
+            }
+            public string GetMethodHash(MethodBase method)
+            {
+                if (!_methodHashes.TryGetValue(method, out string hash))
+                    _methodHashes[method] = hash = HardcodedUiMethodIdentity.ComputeMethodIlFingerprint(method);
+                return hash;
+            }
+            public List<CodeInstruction> GetBody(MethodBase method)
+            {
+                if (!_bodies.TryGetValue(method, out List<CodeInstruction> body))
+                    _bodies[method] = body = PatchProcessor.GetOriginalInstructions(method, (ILGenerator)null);
+                return body;
+            }
         }
 
         private sealed class PreparedEntry

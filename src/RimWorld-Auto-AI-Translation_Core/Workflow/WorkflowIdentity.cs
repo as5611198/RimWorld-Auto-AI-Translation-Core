@@ -11,7 +11,7 @@ namespace AutoTranslator_Core.Workflow
         public const string CandidateIdentitySchemaVersion = "atc-candidate-v1";
         // Small rule updates use decimal revisions within the released xml-3 series.
         public const string XmlAnalyzerVersion = "xml-3.01";
-        public const string DllAnalyzerVersion = "dll-3.07";
+        public const string DllAnalyzerVersion = "dll-3.08";
         // One revision covers UI capture, source-Mod attribution and candidate classification.
         public const string UiObservationPipelineVersion = "ui-1.02";
         // AI review metadata is retained for diagnostics. A non-empty AI layer is

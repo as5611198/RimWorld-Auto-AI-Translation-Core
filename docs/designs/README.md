@@ -28,6 +28,11 @@
 
 辅助工程资料：
 
+- [译文热重载分帧修改](../reports/framed-runtime-reload-2026-10-13.md)：已确认的 DLL 增量补丁、实际完成通知与 XML 变化条目分帧注入；独立 UI 缓存容量仍为提案。源码已修改，未经编译或运行验证。
+
+- [原作者 DLL 审阅修复记录](../reports/author-dll-review-fixes-2026-10-12.md)：显示参数注入、重载缓存、清单容量与复用接线；语言门槛及字形识别已确认并接入源码，未经编译或运行验证。
+- [编译与运行依赖](../standards/build-runtime-dependencies.md)：Cecil 获取、SQLite 配套库准备与用户数据库创建。
+
 - [独立模型工作流静态复审](../reports/independent-workflow-review-2026-10-08.md)：GPT-6 Astra 独立确认的原生译文失败保护、同步取消与缓存发布、首次弹窗取消入口问题；2026-10-09 已修复源码，未经运行验证。
 
 - [工作流入口与业务链静态复审](../reports/workflow-entry-chain-review-2026-10-08.md)：首次页面阻塞、分析失败隔离、公共任务线程与失败终态，以及复核、翻译、落盘、热重载和取消的调用链检查；未经运行验收。

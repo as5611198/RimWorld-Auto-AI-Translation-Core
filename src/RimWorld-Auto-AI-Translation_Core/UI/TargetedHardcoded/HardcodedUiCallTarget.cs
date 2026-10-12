@@ -38,6 +38,17 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
                    IsStringLike(parameters[parameters.Length - 1].ParameterType);
         }
 
+        internal static bool IsDisplayCall(MethodBase method)
+        {
+            if (method == null || method.DeclaringType == null || method is ConstructorInfo) return false;
+            HashSet<string> names;
+            if (AllowedMethods.TryGetValue(method.DeclaringType.FullName, out names) && names.Contains(method.Name))
+                return true;
+            return method.DeclaringType.FullName == "Verse.Messages" && method.Name == "Message" ||
+                method.DeclaringType.FullName == "Verse.Listing_Standard" &&
+                (method.Name == "Label" || method.Name == "CheckboxLabeled" || method.Name == "ButtonText");
+        }
+
         private static bool IsStringLike(Type type)
         {
             string name = type?.FullName ?? string.Empty;

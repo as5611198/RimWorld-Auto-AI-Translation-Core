@@ -2118,10 +2118,10 @@ namespace AutoTranslator_Core.Workflow.Persistence
                              translation_origin, relative_path, entry_key, desired_text,
                              desired_hash, source_text_hash, ai_provider, ai_model,
                              ai_prompt_version, ai_run_id, ai_batch_index,
-                             state, created_utc, error_text)
+                             state, created_utc, error_text, reuse_provenance_json)
                             SELECT @operation, candidate_id, @target, @kind, @origin, @path, @key,
                                    @text, @hash, source_text_hash, @ai_provider, @ai_model,
-                                   @ai_prompt_version, @ai_run_id, @ai_batch_index, 0, @created, ''
+                                   @ai_prompt_version, @ai_run_id, @ai_batch_index, 0, @created, '', @reuse
                             FROM Candidates WHERE candidate_id=@candidate;";
                         Add(command, "@operation", operation.OperationId.ToString("N"));
                         Add(command, "@candidate", operation.CandidateId);
@@ -2138,6 +2138,7 @@ namespace AutoTranslator_Core.Workflow.Persistence
                         Add(command, "@ai_run_id", operation.AiRunId);
                         Add(command, "@ai_batch_index", operation.AiBatchIndex);
                         Add(command, "@created", ToDbTime(DateTime.UtcNow));
+                        Add(command, "@reuse", operation.ReuseProvenanceJson);
                         if (command.ExecuteNonQuery() != 1)
                             throw new InvalidOperationException(
                                 "Cannot create a pending file operation for a missing candidate: " +
@@ -2290,6 +2291,7 @@ namespace AutoTranslator_Core.Workflow.Persistence
                             classification.ExecuteNonQuery();
                         }
                     }
+                    RestoreReuseProvenance(connection, transaction, completion);
                     using (DbCommand operation = connection.CreateCommand())
                     {
                         operation.Transaction = transaction;

@@ -42,7 +42,8 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
 
         public static IEnumerable<CodeInstruction> Transpile(
             IEnumerable<CodeInstruction> instructions,
-            MethodBase original)
+            MethodBase original,
+            ILGenerator generator = null)
         {
             List<CodeInstruction> source = instructions != null
                 ? instructions.ToList()
@@ -58,45 +59,34 @@ namespace AutoTranslator_Core.TargetedHardcodedUi
                 specs = specs.ToList();
             }
 
-            Dictionary<int, HardcodedUiTranspileSpec> byOrdinal = specs
-                .GroupBy(spec => spec.LiteralOrdinal)
-                .ToDictionary(group => group.Key, group => group.First());
-            List<CodeInstruction> output = new List<CodeInstruction>(source.Count + specs.Count * 2);
-            int literalOrdinal = -1;
-            int replacementCount = 0;
-
+            var sites = HardcodedUiDisplayCallPlanner.Plan(source, specs);
+            var matched = new HashSet<string>(sites.SelectMany(s => s.Arguments.Values).Select(s => s.EntryId));
+            if (specs.Any(s => !matched.Contains(s.EntryId)))
+                throw new InvalidOperationException("DLL text has no unambiguous supported display argument.");
+            var byIndex = sites.ToDictionary(s => s.InstructionIndex);
+            if (generator == null) PatchProcessor.GetOriginalInstructions(original, out generator);
+            var output = new List<CodeInstruction>();
             for (int index = 0; index < source.Count; index++)
             {
-                CodeInstruction instruction = source[index];
-                bool isLiteral = instruction.opcode == OpCodes.Ldstr && instruction.operand is string;
-                if (isLiteral) literalOrdinal++;
-                output.Add(instruction);
-
-                if (!isLiteral || !byOrdinal.ContainsKey(literalOrdinal)) continue;
-                HardcodedUiTranspileSpec spec = byOrdinal[literalOrdinal];
-                if (!string.Equals((string)instruction.operand, spec.Literal, StringComparison.Ordinal)) continue;
-
-                if (!string.IsNullOrWhiteSpace(spec.CallSignature))
+                if (byIndex.TryGetValue(index, out HardcodedUiDisplayCallPlanner.Site site))
                 {
-                    int next = index + 1;
-                    while (next < source.Count && source[next].opcode == OpCodes.Nop) next++;
-                    MethodBase call = next < source.Count ? source[next].operand as MethodBase : null;
-                    if (next >= source.Count || !HardcodedUiCallTarget.IsSupported(call) ||
-                        !string.Equals(HardcodedUiMethodIdentity.GetMethodSignature(call), spec.CallSignature, StringComparison.Ordinal)) continue;
+                    ParameterInfo[] parameters = site.Call.GetParameters();
+                    LocalBuilder[] temporary = parameters.Select(p => generator.DeclareLocal(p.ParameterType)).ToArray();
+                    // Preserve the receiver below the arguments, as well as all non-display values.
+                    for (int p = parameters.Length - 1; p >= 0; p--)
+                        output.Add(new CodeInstruction(OpCodes.Stloc, temporary[p]));
+                    for (int p = 0; p < parameters.Length; p++)
+                    {
+                        output.Add(new CodeInstruction(OpCodes.Ldloc, temporary[p]));
+                        if (site.Arguments.TryGetValue(p, out HardcodedUiTranspileSpec spec))
+                        {
+                            output.Add(new CodeInstruction(OpCodes.Ldstr, spec.EntryId));
+                            output.Add(new CodeInstruction(OpCodes.Call, ResolveMethod));
+                        }
+                    }
                 }
-
-                output.Add(new CodeInstruction(OpCodes.Ldstr, spec.EntryId));
-                output.Add(new CodeInstruction(OpCodes.Call, ResolveMethod));
-                replacementCount++;
+                output.Add(source[index]);
             }
-
-            if (replacementCount != byOrdinal.Count)
-            {
-                throw new InvalidOperationException(
-                    "Hardcoded UI transpiler matched " + replacementCount +
-                    " of " + byOrdinal.Count + " approved literals.");
-            }
-
             return output;
         }
 
