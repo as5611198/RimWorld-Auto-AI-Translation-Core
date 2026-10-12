@@ -104,7 +104,7 @@ namespace AutoTranslator_Core
                 meta.TargetModVersion = RimWorld.VersionControl.CurrentVersionStringWithoutBuild;
 
                 File.WriteAllText(metaPath, JsonConvert.SerializeObject(meta, Newtonsoft.Json.Formatting.Indented));
-                AutoTranslatorSettings.AddLog("📝 " + "ATC_Log_MetaUpdated".Translate(newAiCount));
+                AutoTranslatorSettings.AddLog("📝 " + AutoTranslatorAPI.TranslateText("ATC_Log_MetaUpdated", newAiCount));
 
 
             }
@@ -117,16 +117,16 @@ namespace AutoTranslator_Core
 
         // 這個方法負責建立 備份BeforeClear 物件或檔案。
         // EN: This method creates backup before clear.
-        private static void CreateBackupBeforeClear(ModMetaData mod, List<string> filesToBackup)
+        private static bool CreateBackupBeforeClear(ModMetaData mod, List<string> filesToBackup, bool logSuccess = true)
         {
-            if (mod == null) return;
-            CreateBackupBeforeClear(mod.PackageId, mod.Name, filesToBackup);
+            if (mod == null) return false;
+            return CreateBackupBeforeClear(mod.PackageId, mod.Name, filesToBackup, logSuccess);
         }
 
-        private static void CreateBackupBeforeClear(string packageId, string modName, List<string> filesToBackup)
+        private static bool CreateBackupBeforeClear(string packageId, string modName, List<string> filesToBackup, bool logSuccess = true)
         {
-            if (filesToBackup == null || filesToBackup.Count == 0) return;
-            if (string.IsNullOrWhiteSpace(packageId)) return;
+            if (filesToBackup == null || filesToBackup.Count == 0) return false;
+            if (string.IsNullOrWhiteSpace(packageId)) return false;
             try
             {
                 string packPath = GetLocalPackPath();
@@ -166,11 +166,16 @@ namespace AutoTranslator_Core
                     zipFiles[i].Delete();
                 }
 
-                AutoTranslatorSettings.AddLog("📦 " + "ATC_Log_BackupSuccess".Translate(string.IsNullOrWhiteSpace(modName) ? packageId : modName));
+                if (logSuccess)
+                {
+                    AutoTranslatorSettings.AddLog("📦 " + AutoTranslatorAPI.TranslateText("ATC_Log_BackupSuccess", string.IsNullOrWhiteSpace(modName) ? packageId : modName));
+                }
+                return true;
             }
             catch (Exception ex)
             {
                 Log.Warning($"[ATC Backup] Failed to backup {packageId}: {ex.Message}");
+                return false;
             }
         }
 
@@ -187,7 +192,7 @@ namespace AutoTranslator_Core
 
             if (result.DeletedFiles > 0)
             {
-                AutoTranslatorSettings.AddLog("ATC_ClearCacheSuccess".Translate(result.DeletedFiles));
+                AutoTranslatorSettings.AddLog(AutoTranslatorAPI.TranslateText("ATC_ClearCacheSuccess", result.DeletedFiles));
                 Log.Message($"[AutoTranslationCore] Auto-cleared {result.DeletedFiles} old files for updated mods (Backup created).");
             }
 
@@ -243,8 +248,17 @@ namespace AutoTranslator_Core
                 var allXmls = langsPathExists
                     ? GetXmlFilesCached(langsPath, SearchOption.AllDirectories)
                     : new List<string>();
+                List<string> requestedPackageIds = targetsToDelete
+                    .Where(target => target != null && !string.IsNullOrWhiteSpace(target.PackageId))
+                    .Select(target => target.PackageId)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                Dictionary<string, List<string>> filesByPackage =
+                    TranslationLoadOrderPolicy.GroupFilesByPackage(allXmls, requestedPackageIds);
                 var deletedPathSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 bool touchedSettings = false;
+                int backupCount = 0;
+                bool useCondensedBackupLog = requestedPackageIds.Count > 8;
 
                 foreach (var target in targetsToDelete)
                 {
@@ -252,17 +266,20 @@ namespace AutoTranslator_Core
 
                     string packageId = target.PackageId;
                     string modName = string.IsNullOrWhiteSpace(target.ModName) ? packageId : target.ModName;
-                    string id1 = packageId.ToLowerInvariant();
-                    string id2 = packageId.Replace(".", "_").ToLowerInvariant();
-
-                    List<string> filesToDelete = allXmls
-                        .Where(file => IsLocalTranslationFileForPackage(file, id1, id2))
-                        .Distinct(StringComparer.OrdinalIgnoreCase)
-                        .ToList();
+                    List<string> filesToDelete = filesByPackage.TryGetValue(packageId, out List<string> indexedFiles)
+                        ? indexedFiles.Distinct(StringComparer.OrdinalIgnoreCase).ToList()
+                        : new List<string>();
 
                     if (filesToDelete.Count > 0 && createBackup)
                     {
-                        CreateBackupBeforeClear(packageId, modName, filesToDelete.Where(File.Exists).ToList());
+                        if (CreateBackupBeforeClear(
+                            packageId,
+                            modName,
+                            filesToDelete.Where(File.Exists).ToList(),
+                            logSuccess: !useCondensedBackupLog))
+                        {
+                            backupCount++;
+                        }
                     }
 
                     var clearKeysByDefType = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
@@ -320,6 +337,11 @@ namespace AutoTranslator_Core
                     }
                 }
 
+                if (useCondensedBackupLog && backupCount > 0)
+                {
+                    AutoTranslatorSettings.AddLog("📦 " + AutoTranslatorAPI.TranslateText("ATC_Log_BatchBackupSuccess", backupCount));
+                }
+
                 if (result.DeletedFiles > 0 || touchedSettings)
                 {
                     if (langsPathExists)
@@ -336,7 +358,7 @@ namespace AutoTranslator_Core
 
                 if (logResult && result.DeletedFiles > 0)
                 {
-                    string logMsg = "ATC_Log_DeleteTransSuccess".Translate(result.RequestedMods, result.DeletedFiles);
+                    string logMsg = AutoTranslatorAPI.TranslateText("ATC_Log_DeleteTransSuccess", result.RequestedMods, result.DeletedFiles);
                     AutoTranslatorSettings.AddLog(logMsg);
                     Log.Message($"[AutoTranslationCore] {logMsg}");
                 }
@@ -344,7 +366,7 @@ namespace AutoTranslator_Core
             catch (Exception ex)
             {
                 result.Errors.Add(ex.Message);
-                AutoTranslatorSettings.AddErrorLog("ATC_Message_DeleteTransError".Translate(ex.Message));
+                AutoTranslatorSettings.AddErrorLog(AutoTranslatorAPI.TranslateText("ATC_Message_DeleteTransError", ex.Message));
                 Log.Warning($"[AutoTranslationCore] Delete local translations failed: {ex}");
             }
 
@@ -474,8 +496,8 @@ namespace AutoTranslator_Core
                     }
 
                     ModUpdateDetector.ClearStatusCache();
-                    TranslationWorkbenchTab.RequestRefresh();
-                    UIInterceptor.RefreshRuntimeUICache();
+                    AutoTranslator_Core.Workflow.WorkflowTaskCoordinator.Instance.NotifyWorkbenchDataChanged();
+                    UIInterceptor.ResetProbeCaches();
                 }
                 catch (Exception ex)
                 {

@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
+using System.Xml.Linq;
 using Verse;
 using static AutoTranslator_Core.DeleteTranslationWindow;
 // 這個檔案負責翻譯包維護與舊資料整理。
@@ -77,7 +78,7 @@ namespace AutoTranslator_Core
                                     NotifyTranslationFileChanged(oldFile);
                                     NotifyTranslationFileChanged(newFile);
                                 }
-                                AutoTranslatorSettings.AddLog("ATC_Log_MigrateSuccess".Translate(packageName, defType));
+                                AutoTranslatorSettings.AddLog(AutoTranslatorAPI.TranslateText("ATC_Log_MigrateSuccess", packageName, defType));
                             }
                         }
 
@@ -153,6 +154,14 @@ namespace AutoTranslator_Core
             }
         }
 
+        // The workflow backend owns its own exclusive synchronization task.  It
+        // only needs the generated pack storage to exist; queuing legacy pack
+        // maintenance here would create a second, uncoordinated file writer.
+        internal static void EnsureWorkflowPackStorageReady()
+        {
+            EnsurePackSkeleton();
+        }
+
         // 這個方法負責確保 翻譯包Skeleton 已準備完成。
         // EN: This method ensures pack skeleton is ready.
         private static void EnsurePackSkeleton()
@@ -162,7 +171,33 @@ namespace AutoTranslator_Core
             if (!File.Exists(aboutPath))
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(aboutPath));
-                File.WriteAllText(aboutPath, "<?xml version=\"1.0\" encoding=\"utf-8\"?><ModMetaData><name>! AutoTranslation AI Pack</name><author>Auto Translator Core</author><packageId>AITranslation.Pack</packageId><supportedVersions><li>1.6</li></supportedVersions></ModMetaData>");
+                File.WriteAllText(aboutPath, "<?xml version=\"1.0\" encoding=\"utf-8\"?><ModMetaData><name>! AutoTranslation AI Pack</name><author>Auto Translator Core</author><packageId>AITranslation.Pack</packageId><description>这是 AI Translation Core 自动生成的数据文件 Mod，用于保存本地分析数据库和游戏可加载的翻译文件。请不要在 Mod 列表中启用或加载它，以免产生重复加载、顺序冲突或翻译覆盖异常。删除此目录会清除本地分析、分类和翻译数据，系统将在下次运行时重新建立。 / Generated data pack. Do not enable this mod.</description><supportedVersions><li>1.6</li></supportedVersions></ModMetaData>");
+            }
+            EnsureGeneratedPackDescription(aboutPath);
+        }
+
+        private static void EnsureGeneratedPackDescription(string aboutPath)
+        {
+            try
+            {
+                XDocument document = XDocument.Load(aboutPath, LoadOptions.PreserveWhitespace);
+                if (document.Root == null) return;
+                const string description = "这是 AI Translation Core 自动生成的数据文件 Mod，用于保存本地分析数据库和游戏可加载的翻译文件。请不要在 Mod 列表中启用或加载它，以免产生重复加载、顺序冲突或翻译覆盖异常。删除此目录会清除本地分析、分类和翻译数据，系统将在下次运行时重新建立。 / Generated data pack. Do not enable this mod.";
+                XElement node = document.Root.Element("description");
+                if (node != null && string.Equals(node.Value, description, StringComparison.Ordinal)) return;
+                if (node == null)
+                {
+                    node = new XElement("description", description);
+                    XElement packageId = document.Root.Element("packageId");
+                    if (packageId != null) packageId.AddAfterSelf(node);
+                    else document.Root.Add(node);
+                }
+                else node.Value = description;
+                TranslationXmlAtomicFileStore.Save(aboutPath, stream => document.Save(stream));
+            }
+            catch (Exception ex)
+            {
+                Log.Warning("[AutoTranslationCore] Generated pack description update failed: " + ex.Message);
             }
         }
 
@@ -210,7 +245,6 @@ namespace AutoTranslator_Core
                     ApplyEmergencyHotfix();
                     ApplyOfficialDlcKeyedHotfix();
                     ApplyBuiltInKeyedHotfix();
-                    RemovePlaceholderTranslationsFromGeneratedPack();
                     if (repairPlaceholders)
                     {
                         RepairGeneratedPlaceholderTokens();
@@ -218,7 +252,6 @@ namespace AutoTranslator_Core
                     RunDetoxScanner();
                     RunAdvancedDetoxScanner();
                     RunNewlineDetoxScanner();
-                    AutoTranslatorLegacyRepairer.QueueBackgroundRepairOnce();
                 }
             }
             catch (Exception ex)
@@ -228,64 +261,6 @@ namespace AutoTranslator_Core
             finally
             {
                 Interlocked.Exchange(ref _packMaintenanceRunning, 0);
-            }
-        }
-
-        private static void RemovePlaceholderTranslationsFromGeneratedPack()
-        {
-            try
-            {
-                if (AutoTranslatorMod.Settings == null) return;
-
-                string packPath = GetLocalPackPath();
-                string targetFolder = GetFolderNameByLanguage(AutoTranslatorMod.Settings.TargetLang);
-                string languageRoot = Path.Combine(packPath, "Languages", targetFolder);
-                if (!Directory.Exists(languageRoot)) return;
-
-                int removedEntries = 0;
-                int fixedFiles = 0;
-                foreach (string file in GetXmlFilesCached(languageRoot, SearchOption.AllDirectories))
-                {
-                    XmlDocument doc = new XmlDocument();
-                    try
-                    {
-                        doc.Load(file);
-                    }
-                    catch
-                    {
-                        continue;
-                    }
-
-                    if (doc.DocumentElement == null || doc.DocumentElement.Name != "LanguageData") continue;
-
-                    bool changed = false;
-                    foreach (XmlNode node in doc.DocumentElement.ChildNodes.Cast<XmlNode>().ToList())
-                    {
-                        if (node.NodeType != XmlNodeType.Element) continue;
-                        if (!LanguageDetector.LooksLikePlaceholderTranslation(node.InnerText, AutoTranslatorMod.Settings.TargetLang)) continue;
-
-                        doc.DocumentElement.RemoveChild(node);
-                        removedEntries++;
-                        changed = true;
-                    }
-
-                    if (changed)
-                    {
-                        SaveLanguageXmlDocumentAtomic(file, doc);
-                        NotifyTranslationFileChanged(file);
-                        fixedFiles++;
-                    }
-                }
-
-                if (removedEntries > 0)
-                {
-                    AutoTranslatorSettings.AddLog($"🧹 [System] 已移除 {removedEntries} 個 TODO/佔位翻譯，影響 {fixedFiles} 個檔案。下次翻譯會重新補齊。");
-                    Log.Message($"[AutoTranslationCore] Removed placeholder translations: {removedEntries} entries across {fixedFiles} files.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Warning($"[AutoTranslationCore] Placeholder translation cleanup failed: {ex.Message}");
             }
         }
 
@@ -585,7 +560,8 @@ namespace AutoTranslator_Core
 
                 string fixedValue = SanitizeTranslationResult(pair.Value, sourceText);
                 if (string.Equals(fixedValue, pair.Value, StringComparison.Ordinal)) continue;
-                if (HasProtectedTokenMismatch(fixedValue, sourceText)) continue;
+                if (HasProtectedTokenMismatch(fixedValue, sourceText) ||
+                    HasTranslatableTitleTagMismatch(fixedValue, sourceText)) continue;
 
                 repaired[pair.Key] = fixedValue;
                 changed = true;

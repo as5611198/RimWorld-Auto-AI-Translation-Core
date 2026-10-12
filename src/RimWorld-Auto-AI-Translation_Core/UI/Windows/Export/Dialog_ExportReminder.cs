@@ -110,7 +110,8 @@ namespace AutoTranslator_Core
             Rect rereadRect = new Rect(0, btnY, btnWidth, 40f);
             Rect continueRect = new Rect(btnWidth + 20f, btnY, btnWidth, 40f);
 
-            if (Widgets.ButtonText(rereadRect, "ATC_ExportReminder_RereadEula".Translate()))
+            if (WorkflowUiStyle.Button(rereadRect, "ATC_ExportReminder_RereadEula".Translate(),
+                    WorkflowButtonStyle.Quiet))
             {
                 Close();
                 Find.WindowStack.Add(new Dialog_ExportEula(() =>
@@ -127,21 +128,11 @@ namespace AutoTranslator_Core
                 return;
             }
 
-            if (countdownDone)
+            if (WorkflowUiStyle.Button(continueRect, "ATC_ExportReminder_Continue".Translate(),
+                    WorkflowButtonStyle.Primary, countdownDone))
             {
-                GUI.color = new Color(0.4f, 1f, 0.4f);
-            }
-            else
-            {
-                GUI.color = new Color(0.4f, 0.4f, 0.4f);
-            }
-            if (Widgets.ButtonText(continueRect, "ATC_ExportReminder_Continue".Translate()))
-            {
-                if (countdownDone)
-                {
-                    Close();
-                    _onConfirm?.Invoke();
-                }
+                Close();
+                _onConfirm?.Invoke();
             }
             GUI.color = Color.white;
         }

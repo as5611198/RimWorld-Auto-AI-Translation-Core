@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using Verse;
 using static AutoTranslator_Core.DeleteTranslationWindow;
+using AutoTranslator_Core.Workflow;
 // 這個檔案負責上傳預覽的保存與還原。
 // EN: This file saves and restores upload preview edits.
 
@@ -25,6 +26,7 @@ namespace AutoTranslator_Core
         {
             public string SourceDir;
             public string PackageId;
+            public string TargetLanguage;
             public List<UploadPreviewSaveCategorySnapshot> Categories = new List<UploadPreviewSaveCategorySnapshot>();
         }
 
@@ -37,6 +39,7 @@ namespace AutoTranslator_Core
         private sealed class UploadPreviewSaveItemSnapshot
         {
             public string Key;
+            public string SourceFile;
             public string TranslatedText;
         }
 
@@ -59,9 +62,9 @@ namespace AutoTranslator_Core
             }
 
             _isSavingChanges = true;
-            Task.Run(() =>
+            Task.Run(async () =>
             {
-                UploadPreviewSaveResult result = SaveSnapshot(snapshot);
+                UploadPreviewSaveResult result = await SaveSnapshotAsync(snapshot);
                 ATC_Dispatcher.RunOnMainThread(() =>
                 {
                     _isSavingChanges = false;
@@ -72,12 +75,6 @@ namespace AutoTranslator_Core
                     }
 
                     MarkSavedSnapshotItems(snapshot);
-                    if (result.SaveCount > 0)
-                    {
-                        AutoTranslatorScanner.RequestMemoryDrop();
-                        UIInterceptor.ClearUICache();
-                    }
-
                     ExecuteActualUpload();
                     Close();
                 });
@@ -89,7 +86,8 @@ namespace AutoTranslator_Core
             UploadPreviewSaveSnapshot snapshot = new UploadPreviewSaveSnapshot
             {
                 SourceDir = _sourceDir,
-                PackageId = _mod != null ? _mod.PackageId : ""
+                PackageId = _mod != null ? _mod.PackageId : "",
+                TargetLanguage = _targetLangFolder
             };
 
             foreach (var pair in _categorizedData)
@@ -99,6 +97,7 @@ namespace AutoTranslator_Core
                     .Select(i => new UploadPreviewSaveItemSnapshot
                     {
                         Key = i.Key,
+                        SourceFile = i.SourceFile,
                         TranslatedText = i.TranslatedText
                     })
                     .ToList();
@@ -114,78 +113,30 @@ namespace AutoTranslator_Core
             return snapshot;
         }
 
-        private static UploadPreviewSaveResult SaveSnapshot(UploadPreviewSaveSnapshot snapshot)
+        private static async Task<UploadPreviewSaveResult> SaveSnapshotAsync(UploadPreviewSaveSnapshot snapshot)
         {
             UploadPreviewSaveResult result = new UploadPreviewSaveResult();
             if (snapshot == null || string.IsNullOrWhiteSpace(snapshot.SourceDir) || string.IsNullOrWhiteSpace(snapshot.PackageId)) return result;
 
             try
             {
-                string cleanPackageId = snapshot.PackageId.Replace(".", "_").ToLower();
-                foreach (UploadPreviewSaveCategorySnapshot category in snapshot.Categories)
-                {
-                    if (category == null || category.Items == null || category.Items.Count == 0) continue;
-
-                    string fileDir = category.Category == "Keyed"
-                        ? Path.Combine(snapshot.SourceDir, "Keyed")
-                        : Path.Combine(snapshot.SourceDir, "DefInjected", category.Category);
-
-                    Directory.CreateDirectory(fileDir);
-                    string targetFile = Path.Combine(fileDir, $"{cleanPackageId}_AutoTranslated.xml");
-                    Dictionary<string, string> existing = AutoTranslatorScanner.LoadXmlFileToDict(targetFile);
-
-                    foreach (UploadPreviewSaveItemSnapshot item in category.Items)
+                List<UploadPreviewTranslationEdit> edits = snapshot.Categories
+                    .SelectMany(category => category.Items)
+                    .Where(item => item != null && !string.IsNullOrWhiteSpace(item.Key))
+                    .Select(item => new UploadPreviewTranslationEdit
                     {
-                        if (item == null || string.IsNullOrWhiteSpace(item.Key)) continue;
-                        existing[item.Key] = item.TranslatedText;
-                        result.SaveCount++;
-                    }
-
-                    AutoTranslatorScanner.SaveXml(targetFile, existing);
-                    AutoTranslatorScanner.SaveProvenanceForFile(
-                        snapshot.SourceDir,
-                        snapshot.PackageId,
-                        targetFile,
-                        existing,
-                        BuildManualEditProvenance(snapshot, category, targetFile, existing));
-                }
+                        File = item.SourceFile, Key = item.Key, Text = item.TranslatedText
+                    }).ToList();
+                if (edits.Any(item => string.IsNullOrWhiteSpace(item.File)))
+                    throw new InvalidOperationException("Upload preview source file is missing.");
+                await WorkflowBackendRuntime.GetOrCreate().SaveUploadPreviewEditsAsync(
+                    snapshot.SourceDir, snapshot.PackageId, snapshot.TargetLanguage, edits);
+                result.SaveCount = edits.Count;
             }
             catch (Exception ex)
             {
                 result.Error = ex.Message;
                 Log.Warning($"[AutoTranslationCore] Upload preview background save failed: {ex}");
-            }
-
-            return result;
-        }
-
-        private static Dictionary<string, AutoTranslatorScanner.TranslationProvenanceEntry> BuildManualEditProvenance(
-            UploadPreviewSaveSnapshot snapshot,
-            UploadPreviewSaveCategorySnapshot category,
-            string targetFile,
-            Dictionary<string, string> savedData)
-        {
-            Dictionary<string, AutoTranslatorScanner.TranslationProvenanceEntry> result =
-                new Dictionary<string, AutoTranslatorScanner.TranslationProvenanceEntry>(StringComparer.OrdinalIgnoreCase);
-            if (snapshot == null || category == null || category.Items == null || savedData == null) return result;
-
-            HashSet<string> modifiedKeys = new HashSet<string>(
-                category.Items
-                    .Where(i => i != null && !string.IsNullOrWhiteSpace(i.Key))
-                    .Select(i => i.Key),
-                StringComparer.OrdinalIgnoreCase);
-
-            foreach (KeyValuePair<string, string> pair in savedData)
-            {
-                if (!modifiedKeys.Contains(pair.Key)) continue;
-
-                result[pair.Key] = AutoTranslatorScanner.CreateProvenance(
-                    AutoTranslatorScanner.ProvenanceKindManualEdit,
-                    snapshot.PackageId,
-                    "",
-                    targetFile,
-                    "",
-                    pair.Value);
             }
 
             return result;

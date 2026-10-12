@@ -3,6 +3,7 @@ using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
 using Verse;
+using AutoTranslator_Core.Workflow;
 // 這個檔案負責啟動時的掛鉤注入。
 // EN: This file installs startup hooks for main-thread pumping.
 
@@ -54,6 +55,7 @@ namespace AutoTranslator_Core
                 hook.AddComponent<AutoTranslator_PumpBehaviour>();
                 hook.AddComponent<UIInterceptorLifecycle>();
                 AutoTranslatorScanner.ApplyStartupKeyedHotfixes();
+                TargetedHardcodedUi.HardcodedUiTargetedPatchManager.Initialize();
                 AutoTranslatorScanner.RequestKeyedMemoryDrop();
             }
             catch (Exception ex)
@@ -133,7 +135,8 @@ namespace AutoTranslator_Core
             {
                 AutoTranslatorMod.EnsureNetworkDispatchReady();
                 EnsureInstalled();
-                AutoTranslatorScanner.QueueStartupFullMemoryDrop(1000);
+                AutoTranslatorMod.RefreshWorkflowModMetadataCacheIfNeeded(force: true);
+                WorkflowBackendRuntime.QueueStartupTranslationLoading();
             }
             catch (Exception ex)
             {

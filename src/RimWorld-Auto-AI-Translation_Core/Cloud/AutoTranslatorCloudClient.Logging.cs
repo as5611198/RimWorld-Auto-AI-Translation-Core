@@ -62,6 +62,11 @@ namespace AutoTranslator_Core
             ATC_Dispatcher.RunOnMainThread(() => Verse.Log.Message("[ATC Cloud] " + key.Translate(arg)));
         }
 
+        private static void LogCloudTranslatedMessage(string key, string arg)
+        {
+            ATC_Dispatcher.RunOnMainThread(() => Verse.Log.Message("[ATC Cloud] " + key.Translate(arg)));
+        }
+
 
         // 這個方法負責處理 Log雲端TranslatedWarning 相關流程。
         // EN: This method handles log cloud translated warning.
@@ -76,6 +81,11 @@ namespace AutoTranslator_Core
         private static void LogCloudTranslatedError(string key, string arg)
         {
             ATC_Dispatcher.RunOnMainThread(() => Verse.Log.Error("[ATC Cloud] " + key.Translate(arg)));
+        }
+
+        private static void LogCloudTranslatedError(string key, string arg1, long arg2, string arg3)
+        {
+            ATC_Dispatcher.RunOnMainThread(() => Verse.Log.Error("[ATC Cloud] " + key.Translate(arg1, arg2, arg3)));
         }
 
     }

@@ -132,21 +132,14 @@ namespace AutoTranslator_Core
             Rect cancelBtnRect = new Rect(0, yCursor, btnWidth, 40f);
             Rect confirmBtnRect = new Rect(btnWidth + 20f, yCursor, btnWidth, 40f);
 
-            if (Widgets.ButtonText(cancelBtnRect, "ATC_ExportEula_CancelBtn".Translate()))
+            if (WorkflowUiStyle.Button(cancelBtnRect, "ATC_ExportEula_CancelBtn".Translate(),
+                    WorkflowButtonStyle.Quiet))
             {
                 Close();
             }
 
-            if (canConfirm)
-            {
-                GUI.color = new Color(0.4f, 1f, 0.4f);
-            }
-            else
-            {
-                GUI.color = new Color(0.4f, 0.4f, 0.4f);
-            }
-
-            if (Widgets.ButtonText(confirmBtnRect, "ATC_ExportEula_ConfirmBtn".Translate()))
+            if (WorkflowUiStyle.Button(confirmBtnRect, "ATC_ExportEula_ConfirmBtn".Translate(),
+                    WorkflowButtonStyle.Primary, canConfirm))
             {
                 if (!canConfirm)
                 {

@@ -18,7 +18,7 @@ namespace AutoTranslator_Core
         internal sealed class UploadTranslationResult
         {
             public bool Success;
-            public AutoTranslatorScanner.TranslationUploadProvenanceSummary ProvenanceSummary;
+            public AutoTranslatorScanner.UploadLabelValidationSummary ValidationSummary;
         }
 
         // 這個方法負責上傳 翻譯Async 到雲端。
@@ -44,13 +44,13 @@ namespace AutoTranslator_Core
             try
             {
                 if (!System.IO.Directory.Exists(sourceFolder)) return result;
-                AutoTranslatorScanner.TranslationUploadProvenanceSummary provenanceSummary;
+                AutoTranslatorScanner.UploadLabelValidationSummary provenanceSummary;
                 if (!AutoTranslatorScanner.TryPrepareUploadSourceFolder(sourceFolder, packageId, language, translationType, out preparedSourceFolder, out provenanceSummary))
                 {
-                    result.ProvenanceSummary = provenanceSummary;
+                    result.ValidationSummary = provenanceSummary;
                     return result;
                 }
-                result.ProvenanceSummary = provenanceSummary;
+                result.ValidationSummary = provenanceSummary;
 
                 string stagingDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "ATC_Upload_" + packageId);
                 if (System.IO.Directory.Exists(stagingDir)) System.IO.Directory.Delete(stagingDir, true);
@@ -64,7 +64,7 @@ namespace AutoTranslator_Core
 
                 foreach (string file in AutoTranslatorScanner.GetXmlFilesForTranslationCache(preparedSourceFolder, System.IO.SearchOption.AllDirectories))
                 {
-                    if (AutoTranslatorScanner.IsWorkbenchManualExportPath(file)) continue;
+                    if (!AutoTranslatorScanner.ShouldIncludeUploadFile(preparedSourceFolder, file, packageId)) continue;
                     string fileName = System.IO.Path.GetFileName(file).ToLower();
                     bool shouldPack = isWorkspace;
 
@@ -246,8 +246,7 @@ namespace AutoTranslator_Core
 
         internal static string GetCloudTranslationSourceKind(string translationType)
         {
-            if (string.Equals(translationType, "AI_Auto", StringComparison.OrdinalIgnoreCase)) return AutoTranslatorScanner.ProvenanceKindAI;
-            if (string.Equals(translationType, "Manual", StringComparison.OrdinalIgnoreCase)) return AutoTranslatorScanner.ProvenanceKindManualEdit;
+            // Package categories are labels, not proof of every entry's origin.
             if (string.Equals(translationType, "Official_Group", StringComparison.OrdinalIgnoreCase)) return AutoTranslatorScanner.ProvenanceKindModNativeTarget;
             return AutoTranslatorScanner.ProvenanceKindUnknownLegacy;
         }

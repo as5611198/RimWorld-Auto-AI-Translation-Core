@@ -193,32 +193,19 @@ namespace AutoTranslator_Core
 
 
             bool canClickConfirm = cooldown.CanExport && _selectedPackageIds.Count > 0;
-            if (canClickConfirm)
+            if (WorkflowUiStyle.Button(btnRect,
+                    "ATC_ExportWindow_ConfirmBtn".Translate(_selectedPackageIds.Count),
+                    WorkflowButtonStyle.Primary,
+                    canClickConfirm))
             {
-                GUI.color = new Color(1f, 0.6f, 0.3f);
-            }
-            else
-            {
-                GUI.color = new Color(0.5f, 0.5f, 0.5f);
-            }
-
-            if (Widgets.ButtonText(btnRect,
-                "ATC_ExportWindow_ConfirmBtn".Translate(_selectedPackageIds.Count)))
-            {
-
-                if (_selectedPackageIds.Count == 0)
-                {
-                    Messages.Message("ATC_ExportWindow_NoModSelected".Translate(),
-                        MessageTypeDefOf.RejectInput, false);
-                }
-                else if (_selectedPackageIds.Count > ExportCooldownManager.PER_EXPORT_MOD_LIMIT)
+                if (_selectedPackageIds.Count > ExportCooldownManager.PER_EXPORT_MOD_LIMIT)
                 {
                     Messages.Message("ATC_Export_TooManyAtOnce".Translate(_selectedPackageIds.Count),
                         MessageTypeDefOf.RejectInput, false);
                 }
                 else if (cooldown.DailyLimitReached)
                 {
-                    Find.WindowStack.Add(new Dialog_MessageBox(
+                    Find.WindowStack.Add(new Window_AtcDialog(
                         "ATC_Export_TooManyToday".Translate(cooldown.TodayCount),
                         null, null, null, null,
                         "ATC_Export_CooldownDialogTitle".Translate()
@@ -227,7 +214,7 @@ namespace AutoTranslator_Core
                 }
                 else if (!cooldown.CanExport)
                 {
-                    Find.WindowStack.Add(new Dialog_MessageBox(
+                    Find.WindowStack.Add(new Window_AtcDialog(
                         "ATC_Export_CooldownDialogMsg".Translate(cooldown.RemainingSeconds),
                         null, null, null, null,
                         "ATC_Export_CooldownDialogTitle".Translate()
@@ -277,7 +264,9 @@ namespace AutoTranslator_Core
             if (_isLoading) return;
 
             List<ExportInstalledModSnapshot> installedMods = ModLister.AllInstalledMods
-                .Where(m => m != null && !string.IsNullOrWhiteSpace(m.PackageId))
+                .Where(m => m != null && m.Active &&
+                            !string.IsNullOrWhiteSpace(m.PackageId) &&
+                            !AutoTranslatorScanner.IsOfficialBaseGameOrDlcPackage(m.PackageId))
                 .Select(m => new ExportInstalledModSnapshot
                 {
                     ModName = m.Name,

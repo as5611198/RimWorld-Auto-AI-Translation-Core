@@ -123,7 +123,7 @@ namespace AutoTranslator_Core
             string message = "ATC_Export_Success_Message".Translate(mods.Count, totalFiles, exportPath);
             string title = "ATC_Export_Success_Title".Translate();
 
-            Find.WindowStack.Add(new Dialog_MessageBox(
+            Find.WindowStack.Add(new Window_AtcDialog(
                 text: message,
                 buttonAText: "ATC_Export_Success_ContactAuthorBtn".Translate(),
                 buttonAAction: () =>

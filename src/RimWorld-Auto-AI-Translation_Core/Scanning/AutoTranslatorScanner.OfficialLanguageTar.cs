@@ -10,6 +10,18 @@ namespace AutoTranslator_Core
 {
     public static partial class AutoTranslatorScanner
     {
+        private static readonly string[] NonTranslatableSystemPackages =
+        {
+            "ludeon.rimworld",
+            "ludeon.rimworld.royalty",
+            "ludeon.rimworld.ideology",
+            "ludeon.rimworld.biotech",
+            "ludeon.rimworld.anomaly",
+            "ludeon.rimworld.odyssey",
+            "auto.aitranslation.core",
+            "aitranslation.pack"
+        };
+
         private const string OfficialTarKeyedCategory = "Keyed";
         private static readonly object OfficialTarCacheLock = new object();
         private static readonly Dictionary<string, OfficialTarIndexCacheEntry> OfficialTarIndexCache =
@@ -33,14 +45,25 @@ namespace AutoTranslator_Core
 
         public static bool IsOfficialBaseGameOrDlcPackage(string packageId)
         {
-            if (string.IsNullOrWhiteSpace(packageId)) return false;
+            int order = GetNonTranslatableSystemPackageOrder(packageId);
+            return order >= 0 && order <= 5;
+        }
 
-            return packageId.Equals("ludeon.rimworld", StringComparison.OrdinalIgnoreCase) ||
-                   packageId.Equals("ludeon.rimworld.royalty", StringComparison.OrdinalIgnoreCase) ||
-                   packageId.Equals("ludeon.rimworld.ideology", StringComparison.OrdinalIgnoreCase) ||
-                   packageId.Equals("ludeon.rimworld.biotech", StringComparison.OrdinalIgnoreCase) ||
-                   packageId.Equals("ludeon.rimworld.anomaly", StringComparison.OrdinalIgnoreCase) ||
-                   packageId.Equals("ludeon.rimworld.odyssey", StringComparison.OrdinalIgnoreCase);
+        public static bool IsNonTranslatableSystemPackage(string packageId)
+        {
+            return GetNonTranslatableSystemPackageOrder(packageId) >= 0;
+        }
+
+        public static int GetNonTranslatableSystemPackageOrder(string packageId)
+        {
+            if (string.IsNullOrWhiteSpace(packageId)) return -1;
+            packageId = packageId.Trim();
+            for (int i = 0; i < NonTranslatableSystemPackages.Length; i++)
+            {
+                if (packageId.Equals(
+                        NonTranslatableSystemPackages[i], StringComparison.OrdinalIgnoreCase)) return i;
+            }
+            return -1;
         }
 
         public static List<OfficialTarTranslationFile> GetOfficialTarTranslationFiles(
@@ -121,16 +144,6 @@ namespace AutoTranslator_Core
             TargetLanguage targetLang)
         {
             Dictionary<string, string> dict = LoadRawOfficialTarXmlFileToDictCached(file);
-            TargetLanguage placeholderLang = targetLang;
-
-            foreach (string key in dict
-                         .Where(pair => LanguageDetector.LooksLikePlaceholderTranslation(pair.Value, placeholderLang))
-                         .Select(pair => pair.Key)
-                         .ToList())
-            {
-                dict.Remove(key);
-            }
-
             return dict;
         }
 

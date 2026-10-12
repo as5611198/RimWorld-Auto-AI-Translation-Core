@@ -1,6 +1,6 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <ModMetaData>
-  <name>AI 智能漢化網絡(AI Translation Network)</name>
+  <name>AI 智能漢化網絡 (AI Translation Network) V4.6 內測版</name>
   <author> anln9487</author>
   <packageId>Auto.AITranslation.Core</packageId>
   <supportedVersions>
@@ -8,7 +8,7 @@
     <li>1.6</li>
   </supportedVersions>
   <description>
-這是一套具備 AI 自動補位與繁簡轉換功能的翻譯引擎。
-利用產線的最新技術，讓玩家玩遊戲再也不用看英文！
+V4.6 內測版：整合雲端譯文、本地分析、AI 複核、AI 翻譯、譯文編輯與 XML／DLL 熱重載。
+翻譯結果以本機資料庫管理，可續作、可人工修訂，並保護原文占位符與格式。
   </description>
 </ModMetaData>

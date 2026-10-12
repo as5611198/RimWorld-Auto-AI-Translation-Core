@@ -1,0 +1,27 @@
+{
+  "manifestVersion": 1,
+  "approved": false,
+  "entries": [
+    {
+      "entryId": "hardcoded-ui:0c89435cafbcdd24749312c2068509e5",
+      "enabled": true,
+      "packageId": "atc.hardcodedui.fixture",
+      "assemblyRelativePath": "Assemblies/HardcodedUiFixture.dll",
+      "assemblySha256": "358aa75c1d32268065b37c4adcd70d49f453a6831b6deaa13c1ed0afe63e6261",
+      "assemblyMvid": "90b18548-91ac-4c3c-b6ab-391212f5be1a",
+      "declaringType": "Atc.HardcodedUiFixture.FixtureWindow",
+      "methodName": "DoWindowContents",
+      "methodSignature": "Atc.HardcodedUiFixture.FixtureWindow::DoWindowContents(UnityEngine.Rect)->System.Void",
+      "methodMetadataToken": 100663297,
+      "methodIlFingerprint": "057e4bb7e5d4162c66a7db45562056cd30af14f94a2eadb0b27cd1fbf892321b",
+      "literal": "ATC fixture hardcoded label",
+      "literalOrdinal": 0,
+      "callDeclaringType": "Verse.Widgets",
+      "callMethodName": "Label",
+      "callSignature": "Verse.Widgets::Label(UnityEngine.Rect,System.String)->System.Void",
+      "translations": {
+        "ChineseTraditional": "硬編碼測試標籤"
+      }
+    }
+  ]
+}

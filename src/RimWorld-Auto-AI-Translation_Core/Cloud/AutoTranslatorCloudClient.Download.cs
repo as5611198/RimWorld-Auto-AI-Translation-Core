@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using UnityEngine.Networking;
 using Verse;
 using static AutoTranslator_Core.DeleteTranslationWindow;
 // 這個檔案負責雲端下載流程。
@@ -16,62 +18,117 @@ namespace AutoTranslator_Core
     // EN: This class manages the main workflow and state for AutoTranslatorCloudClient.
     public static partial class AutoTranslatorCloudClient
     {
+        private sealed class CloudDownloadAttemptResult
+        {
+            public bool Success;
+            public long StatusCode;
+            public string Error;
+            public string FilePath;
+            public string ServedRecordId;
+            public string FallbackReason;
+        }
+
         // 這個方法負責下載 AndInjectAsync 資料。
         // EN: This method downloads and inject async.
-        public static async Task<bool> DownloadAndInjectAsync(string packageId, string targetLangFolder, CloudModRecord targetRecord = null, bool requestMemoryDrop = true, bool requestRuntimeRefreshAfterClear = true, AutoTranslatorScanner.LocalTranslationDeleteTarget clearTarget = null, bool clearExistingTranslations = true, bool restoreBackupOnFailure = true)
+        public static async Task<bool> DownloadAndInjectAsync(string packageId, string targetLangFolder, CloudModRecord targetRecord = null, bool requestMemoryDrop = true, bool requestRuntimeRefreshAfterClear = true, AutoTranslatorScanner.LocalTranslationDeleteTarget clearTarget = null, bool clearExistingTranslations = true, bool restoreBackupOnFailure = true, CancellationToken cancellationToken = default(CancellationToken))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (AutoTranslatorMod.Settings != null && AutoTranslatorMod.Settings.IsCloudDownloadBlacklisted(packageId))
             {
-                AutoTranslatorSettings.AddLog("ATC_Blacklist_DownloadSkipped".Translate(packageId));
+                AutoTranslatorSettings.AddLog(AutoTranslatorAPI.TranslateText("ATC_Blacklist_DownloadSkipped", packageId));
                 return false;
             }
 
             Verse.ModMetaData targetMod = null;
             int maxRetries = 4;
-            byte[] zipBytes = null;
+            string downloadedZipPath = null;
+            CloudModRecord resolvedRecord = targetRecord;
+            bool registryRefreshAttempted = false;
 
             for (int attempt = 0; attempt <= maxRetries; attempt++)
             {
-                if (attempt >= 3 && CloudApiBaseUrl == PrimaryApiBaseUrl)
-                {
-                    CloudApiBaseUrl = BackupApiBaseUrl;
-                }
-
+                cancellationToken.ThrowIfCancellationRequested();
                 try
                 {
-                    string url = $"{CloudApiBaseUrl}/download/{packageId}/{targetLangFolder}";
-                    if (targetRecord != null && !string.IsNullOrEmpty(targetRecord.RecordId))
+                    string baseUrl = attempt >= 3 ? BackupApiBaseUrl : PrimaryApiBaseUrl;
+                    string url = $"{baseUrl}/download/{Uri.EscapeDataString(packageId)}/{Uri.EscapeDataString(targetLangFolder)}";
+                    bool usedRecordId = resolvedRecord != null && !string.IsNullOrEmpty(resolvedRecord.RecordId);
+                    if (usedRecordId)
                     {
-                        url += $"?recordId={targetRecord.RecordId}";
+                        url += $"?recordId={Uri.EscapeDataString(resolvedRecord.RecordId)}";
                     }
 
-                    var tcs = new TaskCompletionSource<byte[]>();
-                    ATC_Dispatcher.RunOnMainThread(() =>
+                    string attemptZipPath = Path.Combine(
+                        Path.GetTempPath(),
+                        "ATC_Cloud_" + Guid.NewGuid().ToString("N") + ".zip");
+                    CloudDownloadAttemptResult response = await DownloadCloudArchiveAttemptAsync(
+                        url,
+                        attemptZipPath,
+                        120 + attempt * 60,
+                        cancellationToken);
+                    if (response.Success)
                     {
-                        try
+                        downloadedZipPath = response.FilePath;
+                        if (!string.IsNullOrWhiteSpace(response.ServedRecordId) &&
+                            (resolvedRecord == null || !string.Equals(response.ServedRecordId, resolvedRecord.RecordId, StringComparison.OrdinalIgnoreCase)))
                         {
-                            var request = UnityEngine.Networking.UnityWebRequest.Get(url);
-                            request.timeout = 120 + attempt * 60;
-                            var operation = request.SendWebRequest();
-                            operation.completed += (op) =>
+                            resolvedRecord = FindCloudRecordById(response.ServedRecordId) ?? new CloudModRecord
                             {
-                                try
-                                {
-                                    if (UnityWebRequestCompat.IsSuccess(request))
-                                        tcs.TrySetResult(request.downloadHandler.data);
-                                    else
-                                        tcs.TrySetException(new Exception(request.error));
-                                }
-                                catch (Exception innerEx) { tcs.TrySetException(innerEx); }
-                                finally { request.Dispose(); }
+                                RecordId = response.ServedRecordId,
+                                PackageId = packageId,
+                                Language = targetLangFolder,
+                                TargetModVersion = resolvedRecord?.TargetModVersion ?? "Unknown",
+                                TranslationDate = DateTime.UtcNow
                             };
                         }
-                        catch (Exception dispatchEx) { tcs.TrySetException(dispatchEx); }
-                    });
+                        if (!string.IsNullOrWhiteSpace(response.FallbackReason))
+                        {
+                            LogCloudTranslatedMessage("ATC_Cloud_RecordRecovered", packageId);
+                        }
+                        break;
+                    }
 
-                    int timeoutSeconds = 120 + attempt * 60;
-                    zipBytes = await WaitForCloudTask(tcs.Task, timeoutSeconds + 10, "cloud download");
-                    if (zipBytes != null && zipBytes.Length > 0) break;
+                    TryDeleteCloudTempFile(response.FilePath);
+                    if (CloudDownloadRecoveryPolicy.ShouldRefreshRegistry(response.StatusCode, usedRecordId) && !registryRefreshAttempted)
+                    {
+                        registryRefreshAttempted = true;
+                        List<CloudModRecord> refreshed = await FetchRegistryAsync();
+                        cancellationToken.ThrowIfCancellationRequested();
+                        CloudModRecord replacement = CloudDownloadRecoveryPolicy.SelectReplacement(
+                            refreshed,
+                            packageId,
+                            targetLangFolder,
+                            resolvedRecord);
+                        if (replacement != null)
+                        {
+                            resolvedRecord = replacement;
+                            AutoTranslatorMod.ReplaceCloudRegistryAfterRecovery(refreshed, packageId, replacement);
+                            LogCloudTranslatedMessage("ATC_Cloud_RecordRecovered", packageId);
+                            attempt--;
+                            continue;
+                        }
+
+                        // Older Workers can still recover by selecting their latest active record.
+                        resolvedRecord = null;
+                        attempt--;
+                        continue;
+                    }
+
+                    if (!CloudDownloadRecoveryPolicy.ShouldRetry(response.StatusCode))
+                    {
+                        LogCloudTranslatedError("ATC_Cloud_DownloadHttpFailed", packageId, response.StatusCode, response.Error ?? string.Empty);
+                        return false;
+                    }
+                    if (attempt == maxRetries)
+                    {
+                        LogCloudTranslatedError("ATC_Cloud_DownloadHttpFailed", packageId, response.StatusCode, response.Error ?? string.Empty);
+                        return false;
+                    }
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    TryDeleteCloudTempFile(downloadedZipPath);
+                    throw;
                 }
                 catch (Exception ex)
                 {
@@ -83,13 +140,19 @@ namespace AutoTranslator_Core
                 }
 
                 int delayMs = (int)Math.Pow(2, attempt + 1) * 1000 + new System.Random().Next(100, 500);
-                await Task.Delay(delayMs);
+                await Task.Delay(delayMs, cancellationToken);
             }
 
-            if (zipBytes == null || zipBytes.Length == 0) return false;
+            cancellationToken.ThrowIfCancellationRequested();
+            if (string.IsNullOrEmpty(downloadedZipPath) || !File.Exists(downloadedZipPath) || new FileInfo(downloadedZipPath).Length == 0)
+            {
+                TryDeleteCloudTempFile(downloadedZipPath);
+                return false;
+            }
 
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (clearTarget == null)
                 {
                     foreach (var m in Verse.ModLister.AllInstalledMods)
@@ -113,63 +176,181 @@ namespace AutoTranslator_Core
                     AutoTranslatorScanner.NotifyTranslationFilesChanged(workspaceDir);
                 }
                 System.IO.Directory.CreateDirectory(workspaceDir);
+                var extractedLanguageFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var extractedWorkspaceFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                string tempZipFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{packageId}_{targetLangFolder}_cloud.zip");
-                System.IO.File.WriteAllBytes(tempZipFile, zipBytes);
-
-                using (var archive = System.IO.Compression.ZipFile.OpenRead(tempZipFile))
+                using (var archive = System.IO.Compression.ZipFile.OpenRead(downloadedZipPath))
                 {
                     foreach (var entry in archive.Entries)
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         if (string.IsNullOrEmpty(entry.Name)) continue;
 
                         string destPath = GetSafeCloudExtractPath(extractRoot, entry.FullName);
                         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(destPath));
                         entry.ExtractToFile(destPath, true);
+                        if (string.Equals(System.IO.Path.GetExtension(destPath), ".xml", StringComparison.OrdinalIgnoreCase))
+                            extractedLanguageFiles.Add(destPath);
                         AutoTranslatorScanner.NotifyTranslationFileChanged(destPath);
 
                         string wsDestPath = GetSafeCloudExtractPath(workspaceDir, entry.FullName);
                         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(wsDestPath));
                         entry.ExtractToFile(wsDestPath, true);
+                        if (string.Equals(System.IO.Path.GetExtension(wsDestPath), ".xml", StringComparison.OrdinalIgnoreCase))
+                            extractedWorkspaceFiles.Add(wsDestPath);
                         AutoTranslatorScanner.NotifyTranslationFileChanged(wsDestPath);
                     }
                 }
-                System.IO.File.Delete(tempZipFile);
+                TryDeleteCloudTempFile(downloadedZipPath);
 
-                if (targetRecord != null)
+                cancellationToken.ThrowIfCancellationRequested();
+                if (resolvedRecord != null)
                 {
                     var meta = new LocalModMeta
                     {
-                        OriginalRecordId = targetRecord.RecordId,
-                        TargetModVersion = targetRecord.TargetModVersion ?? "Unknown",
-                        TranslationDate = targetRecord.TranslationDate,
-                        IsSmartMerged = targetRecord.IsSmartMerged,
-                        MergedAiCount = targetRecord.MergedAiCount
+                        OriginalRecordId = resolvedRecord.RecordId,
+                        TargetModVersion = resolvedRecord.TargetModVersion ?? "Unknown",
+                        TranslationDate = resolvedRecord.TranslationDate,
+                        IsSmartMerged = resolvedRecord.IsSmartMerged,
+                        MergedAiCount = resolvedRecord.MergedAiCount
                     };
                     string cleanPackageId = packageId.Replace(".", "_").ToLower();
                     string metaPath = System.IO.Path.Combine(extractRoot, $"{cleanPackageId}_ATC_Meta.json");
                     System.IO.File.WriteAllText(metaPath, JsonConvert.SerializeObject(meta, Newtonsoft.Json.Formatting.Indented));
                 }
 
+                cancellationToken.ThrowIfCancellationRequested();
                 AutoTranslatorScanner.NotifyTranslationFilesChanged(extractRoot);
                 AutoTranslatorScanner.NotifyTranslationFilesChanged(workspaceDir);
 
                 if (requestMemoryDrop)
                 {
-                    AutoTranslatorLegacyRepairer.RepairPackage(packageId, targetLangFolder, requestMemoryDrop: false);
+                    TranslationFileRepairService.RepairPackage(packageId, targetLangFolder, requestMemoryDrop: false);
                     AutoTranslatorScanner.RequestMemoryDrop();
                 }
+                AutoTranslatorScanner.MarkCloudDownloadedTranslations(
+                    extractRoot,
+                    packageId,
+                    targetLangFolder,
+                    targetRecord != null ? targetRecord.RecordId : string.Empty,
+                    extractedLanguageFiles);
+                AutoTranslatorScanner.MarkCloudDownloadedTranslations(
+                    workspaceDir,
+                    packageId,
+                    targetLangFolder,
+                    targetRecord != null ? targetRecord.RecordId : string.Empty,
+                    extractedWorkspaceFiles);
                 return true;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                RollbackFailedCloudDownload(targetMod, clearTarget, requestRuntimeRefreshAfterClear, restoreBackupOnFailure);
+                TryDeleteCloudTempFile(downloadedZipPath);
+                throw;
             }
             catch (Exception ex)
             {
                 RollbackFailedCloudDownload(targetMod, clearTarget, requestRuntimeRefreshAfterClear, restoreBackupOnFailure);
-                string fallbackZip = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{packageId}_{targetLangFolder}_cloud.zip");
-                if (System.IO.File.Exists(fallbackZip)) System.IO.File.Delete(fallbackZip);
+                TryDeleteCloudTempFile(downloadedZipPath);
 
-                ATC_Dispatcher.RunOnMainThread(() => AutoTranslatorSettings.AddErrorLog("ATC_LogError_DownloadCorrupted".Translate(packageId, ex.Message)));
+                ATC_Dispatcher.RunOnMainThread(() => AutoTranslatorSettings.AddErrorLog(
+                    AutoTranslatorAPI.TranslateText("ATC_LogError_DownloadCorrupted", packageId, ex.Message)));
                 return false;
             }
+        }
+
+        private static async Task<CloudDownloadAttemptResult> DownloadCloudArchiveAttemptAsync(
+            string url,
+            string tempFilePath,
+            int timeoutSeconds,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var tcs = new TaskCompletionSource<CloudDownloadAttemptResult>();
+            ATC_Dispatcher.RunOnMainThread(() =>
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    tcs.TrySetCanceled();
+                    return;
+                }
+                UnityWebRequest request = null;
+                CancellationTokenRegistration cancellationRegistration = default(CancellationTokenRegistration);
+                try
+                {
+                    TryDeleteCloudTempFile(tempFilePath);
+                    request = new UnityWebRequest(url, "GET")
+                    {
+                        timeout = timeoutSeconds,
+                        downloadHandler = new DownloadHandlerFile(tempFilePath) { removeFileOnAbort = true }
+                    };
+                    UnityWebRequestAsyncOperation operation = request.SendWebRequest();
+                    cancellationRegistration = cancellationToken.Register(() =>
+                    {
+                        ATC_Dispatcher.RunOnMainThread(() =>
+                        {
+                            try { request.Abort(); }
+                            catch (Exception) { }
+                            finally { tcs.TrySetCanceled(); }
+                        });
+                    });
+                    operation.completed += _ =>
+                    {
+                        try
+                        {
+                            if (cancellationToken.IsCancellationRequested)
+                            {
+                                tcs.TrySetCanceled();
+                            }
+                            else
+                            {
+                                tcs.TrySetResult(new CloudDownloadAttemptResult
+                                {
+                                    Success = UnityWebRequestCompat.IsSuccess(request),
+                                    StatusCode = request.responseCode,
+                                    Error = request.error,
+                                    FilePath = tempFilePath,
+                                    ServedRecordId = request.GetResponseHeader("X-ATC-Record-Id"),
+                                    FallbackReason = request.GetResponseHeader("X-ATC-Record-Fallback")
+                                });
+                            }
+                        }
+                        catch (Exception innerEx)
+                        {
+                            tcs.TrySetException(innerEx);
+                        }
+                        finally
+                        {
+                            cancellationRegistration.Dispose();
+                            request.Dispose();
+                        }
+                    };
+                }
+                catch (Exception dispatchEx)
+                {
+                    cancellationRegistration.Dispose();
+                    request?.Dispose();
+                    tcs.TrySetException(dispatchEx);
+                }
+            });
+            return await WaitForCloudTask(tcs.Task, timeoutSeconds + 10, "cloud download");
+        }
+
+        private static CloudModRecord FindCloudRecordById(string recordId)
+        {
+            if (string.IsNullOrWhiteSpace(recordId)) return null;
+            return AutoTranslatorSettings.CloudRegistry.FirstOrDefault(record =>
+                record != null && string.Equals(record.RecordId, recordId, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static void TryDeleteCloudTempFile(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return;
+            try
+            {
+                if (File.Exists(path)) File.Delete(path);
+            }
+            catch { }
         }
 
         private static void RollbackFailedCloudDownload(ModMetaData targetMod, AutoTranslatorScanner.LocalTranslationDeleteTarget clearTarget, bool requestRuntimeRefresh, bool restoreBackup)
@@ -240,7 +421,7 @@ namespace AutoTranslator_Core
 
                 if (result.DeletedFiles > 0)
                 {
-                    AutoTranslatorSettings.AddLog("ATC_ClearCacheSuccess".Translate(result.DeletedFiles));
+                    AutoTranslatorSettings.AddLog(AutoTranslatorAPI.TranslateText("ATC_ClearCacheSuccess", result.DeletedFiles));
                     Log.Message($"[AutoTranslationCore] Auto-cleared {result.DeletedFiles} old files for updated mods (Backup created).");
                 }
 

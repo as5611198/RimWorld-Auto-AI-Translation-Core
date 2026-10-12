@@ -81,13 +81,18 @@ namespace AutoTranslator_Core
 
                 y = inRect.height - 42f;
                 GUI.color = new Color(1f, 0.5f, 0.5f);
-                if (Widgets.ButtonText(new Rect(0f, y, 130f, 36f), "ATC_Btn_Cancel".Translate()))
+                if (WorkflowUiStyle.Button(new Rect(0f, y, 130f, 36f), "ATC_Btn_Cancel".Translate(),
+                        WorkflowButtonStyle.Quiet))
                 {
                     Close();
                 }
 
                 GUI.color = _isSubmitting ? Color.yellow : new Color(0.4f, 1f, 0.4f);
-                if (Widgets.ButtonText(new Rect(inRect.width - 190f, y, 190f, 36f), _isSubmitting ? "ATC_Correction_Submitting".Translate().ToString() : "ATC_Correction_SubmitBtn".Translate().ToString()))
+                if (WorkflowUiStyle.Button(
+                        new Rect(inRect.width - 190f, y, 190f, 36f),
+                        _isSubmitting ? "ATC_Correction_Submitting".Translate().ToString() : "ATC_Correction_SubmitBtn".Translate().ToString(),
+                        WorkflowButtonStyle.Primary,
+                        !_isSubmitting))
                 {
                     TrySubmit();
                 }

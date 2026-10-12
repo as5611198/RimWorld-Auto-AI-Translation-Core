@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 
 
 [assembly: AssemblyTitle("RimWorld_Auto_AI_Translation_Core")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("AI Translation Network V4.6 Internal Beta")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("RimWorld_Auto_AI_Translation_Core")]
@@ -21,5 +21,5 @@ using System.Runtime.InteropServices;
 [assembly: Guid("f05d2189-3bbf-43af-a83e-3d8e407e69d4")]
 
 
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("4.6.0.0")]
+[assembly: AssemblyFileVersion("4.6.0.0")]

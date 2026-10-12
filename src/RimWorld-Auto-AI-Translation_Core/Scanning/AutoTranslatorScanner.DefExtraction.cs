@@ -30,11 +30,6 @@ namespace AutoTranslator_Core
         {
 
             if (string.IsNullOrWhiteSpace(value) || value.Length < 2) return false;
-            if (AutoTranslatorMod.Settings != null &&
-                LanguageDetector.LooksLikePlaceholderTranslation(value, AutoTranslatorMod.Settings.TargetLang))
-            {
-                return false;
-            }
 
             if (value.All(char.IsDigit) || Regex.IsMatch(value, @"^[^\w\s]+$")) return false;
 
@@ -75,7 +70,28 @@ namespace AutoTranslator_Core
                    lower.EndsWith("theme") || lower.EndsWith("member") ||
                    lower.EndsWith("tooltip") || lower.EndsWith("caption") ||
                    lower.EndsWith("prompt") || lower.EndsWith("hint") ||
-                   lower.EndsWith("reason");
+                   lower.EndsWith("reason") || lower.EndsWith("header") ||
+                   lower.EndsWith("subheader") || lower.EndsWith("option") ||
+                   lower.EndsWith("setting") || lower.EndsWith("category") ||
+                   lower.EndsWith("button") || lower.EndsWith("toggle") ||
+                   lower.EndsWith("tab");
+        }
+
+        private static bool LooksLikeNaturalLanguageText(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return false;
+            string trimmed = value.Trim();
+            int letterCount = trimmed.Count(char.IsLetter);
+            if (letterCount < 2) return false;
+            if (trimmed.Any(char.IsWhiteSpace)) return true;
+            if (trimmed.IndexOfAny(new[] { '.', '!', '?', ':', ';', ',', '\n', '\r' }) >= 0 && letterCount >= 4) return true;
+
+            return trimmed.Any(c =>
+                (c >= '\u3400' && c <= '\u9FFF') ||
+                (c >= '\u3040' && c <= '\u30FF') ||
+                (c >= '\uAC00' && c <= '\uD7AF') ||
+                (c >= '\u0400' && c <= '\u052F') ||
+                (c >= '\u0E00' && c <= '\u0E7F'));
         }
 
         private static bool IsUnsafeRuntimeDefInjectionPath(string path)
@@ -209,7 +225,14 @@ namespace AutoTranslator_Core
 
         // 這個方法負責處理 TraverseDefNode 相關流程。
         // EN: This method handles traverse Def node.
-        private static void TraverseDefNode(XmlNode node, string currentPath, string defType, Dictionary<string, Dictionary<string, string>> result)
+        private static void TraverseDefNode(
+            XmlNode node,
+            string currentPath,
+            string defType,
+            Dictionary<string, Dictionary<string, string>> result,
+            bool includePolicyCandidates,
+            string sourceFile,
+            Dictionary<string, Dictionary<string, string>> sourceFilesByType)
         {
             int liIndex = 0;
             foreach (XmlNode child in node.ChildNodes)
@@ -252,10 +275,14 @@ namespace AutoTranslator_Core
                         if (IsUntranslatableGrammarRule(text)) continue;
 
                         bool isKnownTranslatablePath = IsKnownTranslatablePath(childPath);
-                        bool isExactTextTag = ExactTextTags.Contains(child.Name);
                         bool shouldTranslate = !IsProtectedDefPath(childPath) &&
-                                               (isKnownTranslatablePath || isExactTextTag || !LooksLikeDefReferenceValue(text)) &&
-                                               (isKnownTranslatablePath || IsTranslationTarget(child.Name, text));
+                                                (isKnownTranslatablePath ||
+                                                 IsTranslationTarget(child.Name, text) ||
+                                                 (!LooksLikeDefReferenceValue(text) && LooksLikeNaturalLanguageText(text)));
+                        if (includePolicyCandidates && !IsProtectedDefPath(childPath))
+                        {
+                            shouldTranslate = true;
+                        }
 
 
                         if (isListItem && ShouldForceTranslateListItem(node, currentPath, text))
@@ -267,12 +294,28 @@ namespace AutoTranslator_Core
                         {
                             if (!result.ContainsKey(defType)) result[defType] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                             result[defType][childPath] = text;
+                            if (sourceFilesByType != null)
+                            {
+                                if (!sourceFilesByType.ContainsKey(defType))
+                                {
+                                    sourceFilesByType[defType] =
+                                        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                                }
+                                sourceFilesByType[defType][childPath] = sourceFile ?? string.Empty;
+                            }
                         }
                     }
                 }
                 else if (child.HasChildNodes)
                 {
-                    TraverseDefNode(child, childPath, defType, result);
+                    TraverseDefNode(
+                        child,
+                        childPath,
+                        defType,
+                        result,
+                        includePolicyCandidates,
+                        sourceFile,
+                        sourceFilesByType);
                 }
             }
         }
@@ -280,40 +323,84 @@ namespace AutoTranslator_Core
         // EN: This method handles extract english from raw defs.
         public static Dictionary<string, Dictionary<string, string>> ExtractEnglishFromRawDefs(string defsRoot)
         {
+            return ExtractEnglishFromRawDefs(defsRoot, false);
+        }
+
+        internal static Dictionary<string, Dictionary<string, string>> ExtractEnglishFromRawDefs(
+            string defsRoot,
+            bool includePolicyCandidates)
+        {
+            return ExtractEnglishFromRawDefs(defsRoot, includePolicyCandidates, null);
+        }
+
+        internal static Dictionary<string, Dictionary<string, string>> ExtractEnglishFromRawDefs(
+            string defsRoot,
+            bool includePolicyCandidates,
+            Dictionary<string, Dictionary<string, string>> sourceFilesByType)
+        {
+            List<string> ignoredFailures;
+            return ExtractEnglishFromRawDefs(
+                defsRoot,
+                includePolicyCandidates,
+                sourceFilesByType,
+                out ignoredFailures);
+        }
+
+        internal static Dictionary<string, Dictionary<string, string>> ExtractEnglishFromRawDefs(
+            string defsRoot,
+            bool includePolicyCandidates,
+            Dictionary<string, Dictionary<string, string>> sourceFilesByType,
+            out List<string> failedFiles)
+        {
             var result = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+            failedFiles = new List<string>();
             if (!Directory.Exists(defsRoot)) return result;
 
+            var sourceDocuments = new List<DefXmlSourceDocument>();
             foreach (var file in GetXmlFilesCached(defsRoot, SearchOption.AllDirectories))
             {
                 if (AutoTranslatorSettings.IsCancellationRequested) return result;
 
                 try
                 {
-                    XmlDocument doc = new XmlDocument();
-                    doc.Load(file);
-                    if (doc.DocumentElement == null || doc.DocumentElement.Name.ToLower() != "defs") continue;
-
-                    foreach (XmlNode defNode in doc.DocumentElement.ChildNodes)
+                    XmlReaderSettings readerSettings = new XmlReaderSettings
                     {
-                        if (defNode.NodeType != XmlNodeType.Element) continue;
-                        string defType = defNode.Name;
-                        string defName = "";
-
-                        foreach (XmlNode child in defNode.ChildNodes)
-                        {
-                            if (child.NodeType == XmlNodeType.Element && child.Name == "defName")
-                            {
-                                defName = child.InnerText;
-                                break;
-                            }
-                        }
-
-                        if (string.IsNullOrEmpty(defName)) continue;
-
-                        TraverseDefNode(defNode, defName, defType, result);
+                        DtdProcessing = DtdProcessing.Prohibit,
+                        IgnoreComments = true,
+                        IgnoreProcessingInstructions = true,
+                        XmlResolver = null
+                    };
+                    XmlDocument doc = new XmlDocument { XmlResolver = null };
+                    using (XmlReader reader = XmlReader.Create(file, readerSettings))
+                    {
+                        doc.Load(reader);
                     }
+                    if (doc.DocumentElement == null || !doc.DocumentElement.Name.Equals("Defs", StringComparison.OrdinalIgnoreCase)) continue;
+                    sourceDocuments.Add(new DefXmlSourceDocument { Document = doc, SourceFile = file });
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    failedFiles.Add(file);
+                    Log.Warning("[AutoTranslationCore] Could not process source Def XML " + file + ": " + ex.Message);
+                }
+            }
+
+            foreach (ResolvedDefXmlNode resolved in DefXmlInheritanceResolver.Resolve(
+                sourceDocuments,
+                message => Log.Warning("[AutoTranslationCore] " + message)))
+            {
+                if (AutoTranslatorSettings.IsCancellationRequested) return result;
+                string defName = DefXmlInheritanceResolver.GetDirectChildText(resolved.OriginalNode, "defName").Trim();
+                if (string.IsNullOrEmpty(defName) || resolved.ResolvedNode == null) continue;
+
+                TraverseDefNode(
+                    resolved.ResolvedNode,
+                    defName,
+                    resolved.OriginalNode.Name,
+                    result,
+                    includePolicyCandidates,
+                    resolved.SourceFile,
+                    sourceFilesByType);
             }
             return result;
         }

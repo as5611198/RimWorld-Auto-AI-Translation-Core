@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_Lang_Thai>Thaï</ATC_Lang_Thai>
+  <ATC_Log_BatchBackupSuccess>Sauvegarde des traductions créée pour {0} mods.</ATC_Log_BatchBackupSuccess>
+  <ATC_Cloud_RecordRecovered>L'enregistrement de {0} n'étant plus disponible, une traduction téléchargeable a été sélectionnée automatiquement.</ATC_Cloud_RecordRecovered>
+  <ATC_Cloud_DownloadHttpFailed>Échec du téléchargement cloud pour {0} (HTTP {1}) : {2}</ATC_Cloud_DownloadHttpFailed>
+  <ATC_Cloud_OrderTitle>Ordre de chargement des traductions cloud</ATC_Cloud_OrderTitle>
+  <ATC_Cloud_OrderSummary>Les éléments placés plus haut remplacent ceux situés plus bas. {0} mods sont affichés.</ATC_Cloud_OrderSummary>
+  <ATC_Cloud_OrderReset>Rétablir l'ordre de chargement du jeu</ATC_Cloud_OrderReset>
+  <ATC_Cloud_OrderApply>Appliquer maintenant</ATC_Cloud_OrderApply>
+  <ATC_Cloud_OrderMoveUp>Augmenter la priorité</ATC_Cloud_OrderMoveUp>
+  <ATC_Cloud_OrderMoveDown>Réduire la priorité</ATC_Cloud_OrderMoveDown>
+  <ATC_Cloud_OrderApplied>Ordre de chargement des traductions appliqué.</ATC_Cloud_OrderApplied>
+  <ATC_Cloud_OrderButton>Ordre des traductions</ATC_Cloud_OrderButton>
+  <ATC_Cloud_OrderButtonTip>Choisissez la traduction prioritaire lorsque plusieurs mods remplacent la même clé.</ATC_Cloud_OrderButtonTip>
+  <ATC_Cloud_ParallelDownloads>Téléchargements simultanés : {0}</ATC_Cloud_ParallelDownloads>
+  <ATC_UIManager_Open>Gérer l'interface codée en dur ({0})</ATC_UIManager_Open>
+  <ATC_UIManager_OpenTip>Modifiez, ignorez ou filtrez les traductions d'interface interceptées.</ATC_UIManager_OpenTip>
+  <ATC_UIManager_Title>Gestion des traductions d'interface codées en dur</ATC_UIManager_Title>
+  <ATC_UIManager_Search>Rechercher le texte, la traduction ou l'ID du mod</ATC_UIManager_Search>
+  <ATC_UIManager_AllMods>Tous les mods sources</ATC_UIManager_AllMods>
+  <ATC_UIManager_UnknownMod>Source inconnue</ATC_UIManager_UnknownMod>
+  <ATC_UIManager_StatusIgnored>ignoré</ATC_UIManager_StatusIgnored>
+  <ATC_UIManager_StatusPending>non traduit</ATC_UIManager_StatusPending>
+  <ATC_UIManager_StatusTranslated>traduit</ATC_UIManager_StatusTranslated>
+  <ATC_UIManager_SelectEntry>Sélectionnez un texte intercepté à modifier.</ATC_UIManager_SelectEntry>
+  <ATC_UIManager_Original>Texte original</ATC_UIManager_Original>
+  <ATC_UIManager_Translation>Traduction</ATC_UIManager_Translation>
+  <ATC_UIManager_SourceMod>Mod source : {0}</ATC_UIManager_SourceMod>
+  <ATC_UIManager_IgnoreEntry>Ne jamais traduire ce texte</ATC_UIManager_IgnoreEntry>
+  <ATC_UIManager_BlockMod>Désactiver la traduction d'interface pour ce mod</ATC_UIManager_BlockMod>
+  <ATC_UIManager_Save>Enregistrer</ATC_UIManager_Save>
+  <ATC_UIManager_Reset>Supprimer la traduction</ATC_UIManager_Reset>
+  <ATC_UIManager_Saved>Traduction enregistrée et actualisée.</ATC_UIManager_Saved>
+  <ATC_UIManager_InvalidTranslation>La traduction a été refusée. Conservez les paramètres de remplacement et utilisez la langue cible sélectionnée.</ATC_UIManager_InvalidTranslation>
+  <ATC_UIManager_OpenFolder>Ouvrir le dossier du cache</ATC_UIManager_OpenFolder>
+  <ATC_UIManager_OpenFolderFailed>Impossible d'ouvrir le dossier du cache : {0}</ATC_UIManager_OpenFolderFailed>
+  <ATC_UIManager_Refresh>Actualiser la liste</ATC_UIManager_Refresh>
+</LanguageData>

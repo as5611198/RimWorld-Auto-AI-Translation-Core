@@ -36,6 +36,7 @@ namespace AutoTranslator_Core
                 {
                     _accumulator = 0f;
                     AutoTranslator_StartupHook.PollForLoadedPlayData();
+                    ATC_Dispatcher.PumpPending();
                     AutoTranslatorScanner.PumpMainThreadDispatcher();
                 }
             }

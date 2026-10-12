@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_Lang_Thai>Thai</ATC_Lang_Thai>
+  <ATC_Log_BatchBackupSuccess>Created translation backups for {0} mods.</ATC_Log_BatchBackupSuccess>
+  <ATC_Cloud_RecordRecovered>Recovered an available cloud translation for {0} after the saved record became unavailable.</ATC_Cloud_RecordRecovered>
+  <ATC_Cloud_DownloadHttpFailed>Cloud download failed for {0} (HTTP {1}): {2}</ATC_Cloud_DownloadHttpFailed>
+  <ATC_Cloud_OrderTitle>Cloud translation load order</ATC_Cloud_OrderTitle>
+  <ATC_Cloud_OrderSummary>Higher entries override lower entries. {0} translated mods are listed.</ATC_Cloud_OrderSummary>
+  <ATC_Cloud_OrderReset>Reset to game load order</ATC_Cloud_OrderReset>
+  <ATC_Cloud_OrderApply>Apply now</ATC_Cloud_OrderApply>
+  <ATC_Cloud_OrderMoveUp>Increase override priority</ATC_Cloud_OrderMoveUp>
+  <ATC_Cloud_OrderMoveDown>Decrease override priority</ATC_Cloud_OrderMoveDown>
+  <ATC_Cloud_OrderApplied>Cloud translation load order applied.</ATC_Cloud_OrderApplied>
+  <ATC_Cloud_OrderButton>Translation load order</ATC_Cloud_OrderButton>
+  <ATC_Cloud_OrderButtonTip>Choose which mod translation wins when multiple files replace the same key.</ATC_Cloud_OrderButtonTip>
+  <ATC_Cloud_ParallelDownloads>Parallel downloads: {0}</ATC_Cloud_ParallelDownloads>
+  <ATC_UIManager_Open>Manage hardcoded UI ({0})</ATC_UIManager_Open>
+  <ATC_UIManager_OpenTip>Edit, ignore, or filter intercepted UI translations.</ATC_UIManager_OpenTip>
+  <ATC_UIManager_Title>Hardcoded UI translation manager</ATC_UIManager_Title>
+  <ATC_UIManager_Search>Search original text, translation, or package ID</ATC_UIManager_Search>
+  <ATC_UIManager_AllMods>All source mods</ATC_UIManager_AllMods>
+  <ATC_UIManager_UnknownMod>Unknown source</ATC_UIManager_UnknownMod>
+  <ATC_UIManager_StatusIgnored>ignored</ATC_UIManager_StatusIgnored>
+  <ATC_UIManager_StatusPending>not translated</ATC_UIManager_StatusPending>
+  <ATC_UIManager_StatusTranslated>translated</ATC_UIManager_StatusTranslated>
+  <ATC_UIManager_SelectEntry>Select an intercepted string to edit it.</ATC_UIManager_SelectEntry>
+  <ATC_UIManager_Original>Original text</ATC_UIManager_Original>
+  <ATC_UIManager_Translation>Translation</ATC_UIManager_Translation>
+  <ATC_UIManager_SourceMod>Source mod: {0}</ATC_UIManager_SourceMod>
+  <ATC_UIManager_IgnoreEntry>Never translate this string</ATC_UIManager_IgnoreEntry>
+  <ATC_UIManager_BlockMod>Disable hardcoded UI translation for this mod</ATC_UIManager_BlockMod>
+  <ATC_UIManager_Save>Save translation</ATC_UIManager_Save>
+  <ATC_UIManager_Reset>Remove translation</ATC_UIManager_Reset>
+  <ATC_UIManager_Saved>UI translation saved and refreshed.</ATC_UIManager_Saved>
+  <ATC_UIManager_InvalidTranslation>The translation was rejected. Keep the original placeholders and enter text in the selected target language.</ATC_UIManager_InvalidTranslation>
+  <ATC_UIManager_OpenFolder>Open cache folder</ATC_UIManager_OpenFolder>
+  <ATC_UIManager_OpenFolderFailed>Could not open the cache folder: {0}</ATC_UIManager_OpenFolderFailed>
+  <ATC_UIManager_Refresh>Refresh list</ATC_UIManager_Refresh>
+</LanguageData>

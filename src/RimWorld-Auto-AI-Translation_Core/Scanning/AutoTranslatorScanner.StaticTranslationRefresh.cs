@@ -369,6 +369,9 @@ namespace AutoTranslator_Core
                 case TargetLanguage.Ukrainian:
                     return CountChars(value, IsStaticCyrillicChar) > 0;
 
+                case TargetLanguage.Thai:
+                    return CountChars(value, IsStaticThaiChar) > 0;
+
                 default:
                     return false;
             }
@@ -635,6 +638,11 @@ namespace AutoTranslator_Core
             return (c >= 'A' && c <= 'Z') ||
                    (c >= 'a' && c <= 'z') ||
                    (c >= '\u00C0' && c <= '\u024F');
+        }
+
+        private static bool IsStaticThaiChar(char c)
+        {
+            return c >= '\u0E00' && c <= '\u0E7F';
         }
 
         private static string NormalizeStaticTranslationSourceText(string text)

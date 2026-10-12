@@ -37,7 +37,7 @@ namespace AutoTranslator_Core
             string uploaderId = UnityEngine.SystemInfo.deviceUniqueIdentifier;
             string token = AutoTranslatorMod.Settings.CloudAdminToken;
             string uNick = AutoTranslatorMod.Settings.CloudNickname;
-            string uType = AutoTranslatorMod.NormalizeCloudUploadType(AutoTranslatorMod.Settings.CloudUploadType, !string.IsNullOrWhiteSpace(token));
+            string uType = AutoTranslatorMod.NormalizeCloudUploadType(_uploadType, !string.IsNullOrWhiteSpace(token));
             string sDir = _sourceDir; string finalLog = _updateLogText;
 
             System.Threading.Tasks.Task.Run(async () => {
@@ -45,19 +45,13 @@ namespace AutoTranslator_Core
                 try
                 {
                     if (!Directory.Exists(sDir)) return;
-                    AutoTranslatorScanner.TranslationUploadProvenanceSummary provenanceSummary;
+                    AutoTranslatorScanner.UploadLabelValidationSummary provenanceSummary;
                     if (!AutoTranslatorScanner.TryPrepareUploadSourceFolder(sDir, pkgId, mLang, uType, out preparedSourceDir, out provenanceSummary))
                     {
                         ATC_Dispatcher.RunOnMainThread(() => {
-                            if (AutoTranslatorScanner.IsAiUploadBlockedByProvenance(provenanceSummary))
-                            {
-                                AutoTranslatorSettings.AddLog("⚠️ " + AutoTranslatorScanner.FormatAiUploadNoCleanLog(mName, provenanceSummary));
-                                PromptPureAiRebuildForUpload();
-                            }
-                            else
-                            {
-                                Messages.Message("ATC_Msg_UploadFailedNoFiles".Translate(), MessageTypeDefOf.RejectInput, false);
-                            }
+                            Messages.Message(!string.IsNullOrWhiteSpace(provenanceSummary.BlockReason)
+                                ? provenanceSummary.BlockReason : "ATC_Msg_UploadFailedNoFiles".Translate().ToString(),
+                                MessageTypeDefOf.RejectInput, false);
                         });
                         return;
                     }
@@ -74,6 +68,7 @@ namespace AutoTranslator_Core
 
                     foreach (string file in AutoTranslatorScanner.GetXmlFilesForTranslationCache(preparedSourceDir, SearchOption.AllDirectories))
                     {
+                        if (!AutoTranslatorScanner.ShouldIncludeUploadFile(preparedSourceDir, file, pkgId)) continue;
                         string fileName = Path.GetFileName(file).ToLower();
                         bool isValid = isWorkspace || fileName.StartsWith(id1 + "_") || fileName.StartsWith(id1 + ".") || fileName.StartsWith(id2 + "_") || fileName.StartsWith(id2 + ".");
 

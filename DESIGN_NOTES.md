@@ -1,5 +1,8 @@
 # Auto Translation Core Design Notes
 
+> Document ID: ATC-DES-000
+> Status: historical design baseline. Start from [`docs/designs/README.md`](docs/designs/README.md) for the current document index. The current independent workflow and state model are defined by [`ATC-DES-003`](docs/designs/v4-five-stage-independent-translation-workflow.md); this file continues to define legacy safety, compatibility, translation-pack, reuse, and hot-reload constraints.
+
 This file records the design context behind the major systems in Auto Translation Core.
 It is written for future maintainers and AI coding agents that do not have the original
 discussion history.

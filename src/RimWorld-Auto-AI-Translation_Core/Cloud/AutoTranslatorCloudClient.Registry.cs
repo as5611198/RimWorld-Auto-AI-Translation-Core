@@ -24,15 +24,15 @@ namespace AutoTranslator_Core
 
             for (int attempt = 0; attempt <= maxRetries; attempt++)
             {
-                if (attempt >= 3 && CloudApiBaseUrl == PrimaryApiBaseUrl)
+                string baseUrl = attempt >= 3 ? BackupApiBaseUrl : PrimaryApiBaseUrl;
+                if (attempt == 3)
                 {
-                    CloudApiBaseUrl = BackupApiBaseUrl;
                     LogCloudTranslatedWarning("ATC_Cloud_MainRouteCrashed");
                 }
 
                 try
                 {
-                    string url = $"{CloudApiBaseUrl}/registry?t={DateTime.UtcNow.Ticks}";
+                    string url = $"{baseUrl}/registry?fresh=1&t={DateTime.UtcNow.Ticks}";
 
 
                     var tcs = new TaskCompletionSource<string>();

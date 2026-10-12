@@ -169,18 +169,18 @@ namespace AutoTranslator_Core
             DrawTextBox(reasonRect, "ATC_Correction_ReasonLabel".Translate().ToString(), correction.Reason);
 
             Rect applyBtn = new Rect(inner.xMax - 190f, inner.y + 16f, 180f, 34f);
-            GUI.color = applied ? new Color(1f, 0.65f, 0.45f) : new Color(0.45f, 1f, 0.55f);
-            if (Widgets.ButtonText(applyBtn, applied ? "ATC_Corrections_RemoveBtn".Translate().ToString() : "ATC_Corrections_ApplyBtn".Translate().ToString()))
+            if (WorkflowUiStyle.Button(
+                    applyBtn,
+                    applied ? "ATC_Corrections_RemoveBtn".Translate().ToString() : "ATC_Corrections_ApplyBtn".Translate().ToString(),
+                    applied ? WorkflowButtonStyle.Stop : WorkflowButtonStyle.Primary))
             {
                 if (applied) RemoveCorrection(correction);
                 else ApplyCorrection(correction);
             }
-            GUI.color = Color.white;
-
             Rect sourceBtn = new Rect(inner.xMax - 190f, inner.y + 58f, 180f, 30f);
-            if (Widgets.ButtonText(sourceBtn, "ATC_Corrections_SourceBtn".Translate()))
+            if (WorkflowUiStyle.Button(sourceBtn, "ATC_Corrections_SourceBtn".Translate(), WorkflowButtonStyle.Quiet))
             {
-                Find.WindowStack.Add(new Dialog_MessageBox(correction.SourceText ?? ""));
+                Find.WindowStack.Add(new Window_AtcDialog(correction.SourceText ?? ""));
             }
 
             Rect statusRect = new Rect(inner.xMax - 190f, inner.y + 104f, 180f, 24f);
@@ -235,12 +235,14 @@ namespace AutoTranslator_Core
         private void DrawBottomButtons(Rect inRect)
         {
             float y = inRect.height - 38f;
-            if (Widgets.ButtonText(new Rect(0f, y, 130f, 34f), "ATC_Corrections_RefreshBtn".Translate()))
+            if (WorkflowUiStyle.Button(new Rect(0f, y, 130f, 34f),
+                    "ATC_Corrections_RefreshBtn".Translate(), WorkflowButtonStyle.Quiet))
             {
                 LoadCorrections();
             }
 
-            if (Widgets.ButtonText(new Rect(inRect.width - 130f, y, 130f, 34f), "ATC_ContactAuthor_Close".Translate()))
+            if (WorkflowUiStyle.Button(new Rect(inRect.width - 130f, y, 130f, 34f),
+                    "ATC_ContactAuthor_Close".Translate(), WorkflowButtonStyle.Quiet))
             {
                 Close();
             }

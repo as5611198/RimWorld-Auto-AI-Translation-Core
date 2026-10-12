@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_Lang_Thai>泰文</ATC_Lang_Thai>
+  <ATC_Log_BatchBackupSuccess>已為 {0} 個模組建立翻譯備份。</ATC_Log_BatchBackupSuccess>
+  <ATC_Cloud_RecordRecovered>{0} 原先的雲端紀錄已失效，已自動改用可下載的版本。</ATC_Cloud_RecordRecovered>
+  <ATC_Cloud_DownloadHttpFailed>{0} 雲端下載失敗（HTTP {1}）：{2}</ATC_Cloud_DownloadHttpFailed>
+  <ATC_Cloud_OrderTitle>雲端翻譯載入順序</ATC_Cloud_OrderTitle>
+  <ATC_Cloud_OrderSummary>越上方的翻譯越晚套用，可覆蓋下方項目。目前列出 {0} 個模組。</ATC_Cloud_OrderSummary>
+  <ATC_Cloud_OrderReset>依遊戲載入順序重設</ATC_Cloud_OrderReset>
+  <ATC_Cloud_OrderApply>立即套用</ATC_Cloud_OrderApply>
+  <ATC_Cloud_OrderMoveUp>提高覆蓋優先度</ATC_Cloud_OrderMoveUp>
+  <ATC_Cloud_OrderMoveDown>降低覆蓋優先度</ATC_Cloud_OrderMoveDown>
+  <ATC_Cloud_OrderApplied>已套用雲端翻譯載入順序。</ATC_Cloud_OrderApplied>
+  <ATC_Cloud_OrderButton>翻譯載入順序</ATC_Cloud_OrderButton>
+  <ATC_Cloud_OrderButtonTip>多個模組修改同一翻譯鍵時，可指定最後由哪一個模組覆蓋。</ATC_Cloud_OrderButtonTip>
+  <ATC_Cloud_ParallelDownloads>同時下載數：{0}</ATC_Cloud_ParallelDownloads>
+  <ATC_UIManager_Open>管理硬編碼 UI（{0}）</ATC_UIManager_Open>
+  <ATC_UIManager_OpenTip>編輯、忽略或按模組停用攔截到的 UI 翻譯。</ATC_UIManager_OpenTip>
+  <ATC_UIManager_Title>硬編碼 UI 翻譯管理</ATC_UIManager_Title>
+  <ATC_UIManager_Search>搜尋原文、翻譯或模組 ID</ATC_UIManager_Search>
+  <ATC_UIManager_AllMods>所有來源模組</ATC_UIManager_AllMods>
+  <ATC_UIManager_UnknownMod>無法辨識來源</ATC_UIManager_UnknownMod>
+  <ATC_UIManager_StatusIgnored>已忽略</ATC_UIManager_StatusIgnored>
+  <ATC_UIManager_StatusPending>尚未翻譯</ATC_UIManager_StatusPending>
+  <ATC_UIManager_StatusTranslated>已翻譯</ATC_UIManager_StatusTranslated>
+  <ATC_UIManager_SelectEntry>請選擇一筆攔截文字進行編輯。</ATC_UIManager_SelectEntry>
+  <ATC_UIManager_Original>原文</ATC_UIManager_Original>
+  <ATC_UIManager_Translation>翻譯</ATC_UIManager_Translation>
+  <ATC_UIManager_SourceMod>來源模組：{0}</ATC_UIManager_SourceMod>
+  <ATC_UIManager_IgnoreEntry>永遠不要翻譯這段文字</ATC_UIManager_IgnoreEntry>
+  <ATC_UIManager_BlockMod>停用此模組的硬編碼 UI 翻譯</ATC_UIManager_BlockMod>
+  <ATC_UIManager_Save>儲存翻譯</ATC_UIManager_Save>
+  <ATC_UIManager_Reset>移除翻譯</ATC_UIManager_Reset>
+  <ATC_UIManager_Saved>UI 翻譯已儲存並立即刷新。</ATC_UIManager_Saved>
+  <ATC_UIManager_InvalidTranslation>翻譯未通過安全檢查。請保留原文中的 Placeholder，並使用目前選擇的目標語言。</ATC_UIManager_InvalidTranslation>
+  <ATC_UIManager_OpenFolder>開啟快取資料夾</ATC_UIManager_OpenFolder>
+  <ATC_UIManager_OpenFolderFailed>無法開啟快取資料夾：{0}</ATC_UIManager_OpenFolderFailed>
+  <ATC_UIManager_Refresh>重新整理</ATC_UIManager_Refresh>
+</LanguageData>

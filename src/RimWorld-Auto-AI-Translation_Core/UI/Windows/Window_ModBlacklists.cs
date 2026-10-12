@@ -14,11 +14,13 @@ namespace AutoTranslator_Core
         private string _cachedSearchText = null;
         private List<ModMetaData> _cachedMods = new List<ModMetaData>();
         private Vector2 _scrollPosition = Vector2.zero;
+        private readonly bool _cloudDownloadOnly;
 
         public override Vector2 InitialSize => new Vector2(820f, 760f);
 
-        public Window_ModBlacklists()
+        public Window_ModBlacklists(bool cloudDownloadOnly = false)
         {
+            _cloudDownloadOnly = cloudDownloadOnly;
             doCloseX = true;
             doCloseButton = false;
             forcePause = true;
@@ -37,11 +39,22 @@ namespace AutoTranslator_Core
             Patch_GUI_Label_GUIContent.BypassInterceptor = true;
             try
             {
+                Rect titleBar = new Rect(0f, 0f, inRect.width, 40f);
+                Widgets.DrawBoxSolid(titleBar, WorkflowUiStyle.Header);
+                WorkflowUiStyle.DrawBorder(titleBar, new Color(0.31f, 0.35f, 0.38f));
+                Widgets.DrawBoxSolid(new Rect(titleBar.x, titleBar.y, 4f, titleBar.height), WorkflowUiStyle.GoodText);
                 Text.Font = GameFont.Medium;
-                Widgets.Label(new Rect(0f, 0f, inRect.width, 34f), "ATC_Blacklist_Title".Translate());
+                Text.Anchor = TextAnchor.MiddleLeft;
+                Widgets.Label(new Rect(14f, 0f, inRect.width - 28f, 40f),
+                    _cloudDownloadOnly
+                        ? AutoTranslatorMod.WfText("云端下载排除列表", "Cloud download exclusions")
+                        : "ATC_Blacklist_Title".Translate().ToString());
                 Text.Font = GameFont.Small;
+                Text.Anchor = TextAnchor.UpperLeft;
 
-                Rect searchRect = new Rect(0f, 42f, inRect.width, 30f);
+                Rect searchRect = new Rect(0f, 50f, inRect.width, 32f);
+                Widgets.DrawBoxSolid(searchRect, WorkflowUiStyle.RaisedPanel);
+                WorkflowUiStyle.DrawBorder(searchRect, new Color(0.31f, 0.35f, 0.38f));
                 string nextSearch = Widgets.TextField(searchRect, _searchText ?? "");
                 if (!string.Equals(nextSearch, _searchText, StringComparison.Ordinal))
                 {
@@ -57,34 +70,60 @@ namespace AutoTranslator_Core
 
                 float translationColumnX = inRect.width - 300f;
                 float downloadColumnX = inRect.width - 145f;
-                Rect headerRect = new Rect(0f, 80f, inRect.width, 30f);
-                Widgets.DrawLineHorizontal(headerRect.x, headerRect.yMax, headerRect.width);
+                Rect headerRect = new Rect(0f, 92f, inRect.width, 32f);
+                Widgets.DrawBoxSolid(headerRect, WorkflowUiStyle.RaisedPanel);
+                WorkflowUiStyle.DrawBorder(headerRect, new Color(0.31f, 0.35f, 0.38f));
                 Text.Anchor = TextAnchor.MiddleCenter;
-                Widgets.Label(new Rect(translationColumnX, headerRect.y, 140f, headerRect.height), "ATC_Blacklist_TranslationColumn".Translate());
+                if (!_cloudDownloadOnly)
+                    Widgets.Label(new Rect(translationColumnX, headerRect.y, 140f, headerRect.height), "ATC_Blacklist_TranslationColumn".Translate());
                 Widgets.Label(new Rect(downloadColumnX, headerRect.y, 140f, headerRect.height), "ATC_Blacklist_DownloadColumn".Translate());
                 Text.Anchor = TextAnchor.UpperLeft;
 
                 List<ModMetaData> mods = GetDisplayMods();
-                Rect outRect = new Rect(0f, 116f, inRect.width, inRect.height - 166f);
+                Rect outRect = new Rect(0f, 132f, inRect.width, inRect.height - 184f);
+                Widgets.DrawBoxSolid(outRect, WorkflowUiStyle.Panel);
+                WorkflowUiStyle.DrawBorder(outRect, new Color(0.25f, 0.28f, 0.30f));
                 Rect viewRect = new Rect(0f, 0f, outRect.width - 20f, mods.Count * RowHeight);
                 Widgets.BeginScrollView(outRect, ref _scrollPosition, viewRect);
                 int firstVisible = Mathf.Max(0, Mathf.FloorToInt(_scrollPosition.y / RowHeight) - 2);
                 int lastVisible = Mathf.Min(mods.Count - 1, Mathf.CeilToInt((_scrollPosition.y + outRect.height) / RowHeight) + 2);
                 for (int i = firstVisible; i <= lastVisible; i++)
                 {
-                    DrawModRow(mods[i], new Rect(0f, i * RowHeight, viewRect.width, RowHeight), translationColumnX, downloadColumnX);
+                    DrawModRow(mods[i], new Rect(0f, i * RowHeight, viewRect.width, RowHeight),
+                        translationColumnX, downloadColumnX, _cloudDownloadOnly);
                 }
                 Widgets.EndScrollView();
 
-                Rect clearRect = new Rect(0f, inRect.height - 40f, 180f, 35f);
-                if (Widgets.ButtonText(clearRect, "ATC_Blacklist_ClearAll".Translate()))
+                Rect clearRect = new Rect(0f, inRect.height - 40f, 210f, 35f);
+                string clearLabel = _cloudDownloadOnly
+                    ? AutoTranslatorMod.WfText("清空下载排除列表", "Clear download exclusions")
+                    : "ATC_Blacklist_ClearAll".Translate().ToString();
+                if (WorkflowUiStyle.Button(clearRect, clearLabel, WorkflowButtonStyle.Stop))
                 {
-                    AutoTranslatorMod.Settings.ClearPackageBlacklists();
-                    LoadedModManager.GetMod<AutoTranslatorMod>()?.WriteSettings();
+                    Find.WindowStack.Add(new Window_AtcDialog(
+                        _cloudDownloadOnly
+                            ? AutoTranslatorMod.WfText(
+                                "将允许所有 Mod 再次参与云端下载。是否清空整个下载排除列表？",
+                                "All mods will be allowed to participate in cloud downloads again. Clear all download exclusions?")
+                            : AutoTranslatorMod.WfText(
+                                "将清空全部翻译与下载排除记录。是否继续？",
+                                "All translation and download exclusions will be cleared. Continue?"),
+                        AutoTranslatorMod.WfText("确认清空", "Clear"),
+                        () =>
+                        {
+                            if (_cloudDownloadOnly) AutoTranslatorMod.Settings.ClearCloudDownloadBlacklist();
+                            else AutoTranslatorMod.Settings.ClearPackageBlacklists();
+                            LoadedModManager.GetMod<AutoTranslatorMod>()?.WriteSettings();
+                        },
+                        AutoTranslatorMod.WfText("取消", "Cancel"),
+                        null,
+                        clearLabel,
+                        true));
                 }
 
                 Rect closeRect = new Rect(inRect.width - 140f, inRect.height - 40f, 140f, 35f);
-                if (Widgets.ButtonText(closeRect, "ATC_ContactAuthor_Close".Translate())) Close();
+                if (WorkflowUiStyle.Button(closeRect, "ATC_ContactAuthor_Close".Translate().ToString(),
+                        WorkflowButtonStyle.Quiet)) Close();
             }
             finally
             {
@@ -100,8 +139,9 @@ namespace AutoTranslator_Core
             if (_cachedSearchText == search && _cachedMods != null) return _cachedMods;
 
             IEnumerable<ModMetaData> mods = ModLister.AllInstalledMods
-                .Where(mod => mod != null &&
+                .Where(mod => mod != null && mod.Active &&
                               !string.IsNullOrWhiteSpace(mod.PackageId) &&
+                              !AutoTranslatorScanner.IsOfficialBaseGameOrDlcPackage(mod.PackageId) &&
                               !string.Equals(mod.PackageId, "auto.aitranslation.core", StringComparison.OrdinalIgnoreCase));
             if (search.Length > 0)
             {
@@ -118,22 +158,31 @@ namespace AutoTranslator_Core
             return _cachedMods;
         }
 
-        private static void DrawModRow(ModMetaData mod, Rect rowRect, float translationColumnX, float downloadColumnX)
+        private static void DrawModRow(ModMetaData mod, Rect rowRect, float translationColumnX,
+            float downloadColumnX, bool cloudDownloadOnly)
         {
+            bool translationBlocked = !cloudDownloadOnly &&
+                                      AutoTranslatorMod.Settings.IsTranslationBlacklisted(mod.PackageId);
+            bool downloadBlocked = AutoTranslatorMod.Settings.IsCloudDownloadBlacklisted(mod.PackageId);
+            if (translationBlocked || downloadBlocked)
+                Widgets.DrawBoxSolid(rowRect, WorkflowUiStyle.Selection);
             Widgets.DrawHighlightIfMouseover(rowRect);
             if (!mod.Active) GUI.color = new Color(0.68f, 0.68f, 0.68f);
 
-            Rect nameRect = new Rect(rowRect.x + 4f, rowRect.y + 3f, translationColumnX - 14f, rowRect.height - 6f);
+            float nameWidth = (cloudDownloadOnly ? downloadColumnX : translationColumnX) - 14f;
+            Rect nameRect = new Rect(rowRect.x + 4f, rowRect.y + 3f, nameWidth, rowRect.height - 6f);
             Text.Anchor = TextAnchor.MiddleLeft;
             Widgets.Label(nameRect, (mod.Name ?? mod.PackageId) + "\n<size=10><color=#888888>" + mod.PackageId + "</color></size>");
             Text.Anchor = TextAnchor.UpperLeft;
             GUI.color = Color.white;
 
-            bool translationBlocked = AutoTranslatorMod.Settings.IsTranslationBlacklisted(mod.PackageId);
-            Rect translationRect = new Rect(translationColumnX, rowRect.y, 140f, rowRect.height);
-            DrawToggleCell(translationRect, translationBlocked, value => AutoTranslatorMod.Settings.SetTranslationBlacklisted(mod.PackageId, value));
+            if (!cloudDownloadOnly)
+            {
+                Rect translationRect = new Rect(translationColumnX, rowRect.y, 140f, rowRect.height);
+                DrawToggleCell(translationRect, translationBlocked,
+                    value => AutoTranslatorMod.Settings.SetTranslationBlacklisted(mod.PackageId, value));
+            }
 
-            bool downloadBlocked = AutoTranslatorMod.Settings.IsCloudDownloadBlacklisted(mod.PackageId);
             Rect downloadRect = new Rect(downloadColumnX, rowRect.y, 140f, rowRect.height);
             DrawToggleCell(downloadRect, downloadBlocked, value => AutoTranslatorMod.Settings.SetCloudDownloadBlacklisted(mod.PackageId, value));
 
@@ -142,9 +191,16 @@ namespace AutoTranslator_Core
 
         private static void DrawToggleCell(Rect rect, bool value, Action<bool> setter)
         {
-            Vector2 checkboxPosition = new Vector2(rect.center.x - 12f, rect.center.y - 12f);
-            Widgets.CheckboxDraw(checkboxPosition.x, checkboxPosition.y, value, false, 24f, null, null);
-            if (Widgets.ButtonInvisible(rect))
+            Rect buttonRect = new Rect(rect.x + 8f, rect.y + 7f, rect.width - 16f, rect.height - 14f);
+            string label = value
+                ? AutoTranslatorMod.WfText("已排除", "Excluded")
+                : AutoTranslatorMod.WfText("允许", "Allowed");
+            if (WorkflowUiStyle.Button(
+                    buttonRect,
+                    label,
+                    value ? WorkflowButtonStyle.Stop : WorkflowButtonStyle.Quiet,
+                    true,
+                    GameFont.Tiny))
             {
                 setter(!value);
                 LoadedModManager.GetMod<AutoTranslatorMod>()?.WriteSettings();

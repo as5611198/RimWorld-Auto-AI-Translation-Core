@@ -14,10 +14,18 @@ using static AutoTranslator_Core.DeleteTranslationWindow;
 
 namespace AutoTranslator_Core
 {
+    public enum OutputTokenDisplayUnit
+    {
+        Tokens,
+        Thousands,
+        Millions
+    }
+
     // 這個類別負責 ApiKey設定 的主要流程與狀態。
     // EN: This class manages the main workflow and state for ApiKeyConfig.
     public class ApiKeyConfig : IExposable
     {
+        public const int DefaultAtcMaxOutputTokens = 10000;
         // 這個欄位保存 供應商 的執行狀態或快取資料。
         // EN: This field stores provider runtime state or cached data.
         public TranslatorProvider Provider = TranslatorProvider.Google;
@@ -36,8 +44,17 @@ namespace AutoTranslator_Core
         // 這個欄位保存 Selected模型 的執行狀態或快取資料。
         // EN: This field stores selected model runtime state or cached data.
         public string SelectedModel = "";
+        public int AtcMaxOutputTokens = DefaultAtcMaxOutputTokens;
+        public OutputTokenDisplayUnit AtcMaxOutputTokenUnit = OutputTokenDisplayUnit.Thousands;
+        public StructuredOutputPreference StructuredOutput = StructuredOutputPreference.Auto;
+        public TranslationTaskTier TaskTier = TranslationTaskTier.Bulk;
 
         public List<string> FetchedModels = new List<string>();
+        [NonSerialized] public Dictionary<string, List<string>> FetchedModelSupportedParameters =
+            new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, int> FetchedModelOutputTokenLimits =
+            new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        [NonSerialized] public string AtcMaxOutputTokensBuffer = "10";
 
         // 這個欄位保存 IsFetching 的執行狀態或快取資料。
         // EN: This method handles expose data.
@@ -81,9 +98,65 @@ namespace AutoTranslator_Core
             Scribe_Values.Look(ref Key, "Key", "");
             Scribe_Values.Look(ref CustomBaseUrl, "CustomBaseUrl", "");
             Scribe_Values.Look(ref SelectedModel, "SelectedModel", "");
+            Scribe_Values.Look(
+                ref AtcMaxOutputTokens,
+                "AtcMaxOutputTokens",
+                DefaultAtcMaxOutputTokens);
+            Scribe_Values.Look(
+                ref AtcMaxOutputTokenUnit,
+                "AtcMaxOutputTokenUnit",
+                OutputTokenDisplayUnit.Thousands);
+            Scribe_Values.Look(ref StructuredOutput, "StructuredOutput", StructuredOutputPreference.Auto);
+            Scribe_Values.Look(ref TaskTier, "TaskTier", TranslationTaskTier.Bulk);
             Scribe_Collections.Look(ref FetchedModels, "FetchedModels", LookMode.Value);
+            Scribe_Collections.Look(
+                ref FetchedModelOutputTokenLimits,
+                "FetchedModelOutputTokenLimits",
+                LookMode.Value,
+                LookMode.Value);
 
             if (FetchedModels == null) FetchedModels = new List<string>();
+            AtcMaxOutputTokens = Math.Max(1, AtcMaxOutputTokens);
+            double displayValue = AtcMaxOutputTokenUnit == OutputTokenDisplayUnit.Millions
+                ? AtcMaxOutputTokens / 1000000d
+                : AtcMaxOutputTokenUnit == OutputTokenDisplayUnit.Thousands
+                    ? AtcMaxOutputTokens / 1000d
+                    : AtcMaxOutputTokens;
+            AtcMaxOutputTokensBuffer = displayValue.ToString(
+                displayValue >= 100d ? "0" : displayValue >= 10d ? "0.#" : "0.###");
+            if (FetchedModelSupportedParameters == null)
+                FetchedModelSupportedParameters = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            if (FetchedModelOutputTokenLimits == null)
+                FetchedModelOutputTokenLimits = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            else
+                FetchedModelOutputTokenLimits = new Dictionary<string, int>(
+                    FetchedModelOutputTokenLimits,
+                    StringComparer.OrdinalIgnoreCase);
+        }
+
+        public int? GetKnownOutputTokenLimit(string model)
+        {
+            if (string.IsNullOrWhiteSpace(model) || FetchedModelOutputTokenLimits == null)
+                return null;
+            return FetchedModelOutputTokenLimits.TryGetValue(model.Trim(), out int limit) && limit > 0
+                ? (int?)limit
+                : null;
+        }
+
+        public int ResolveActualOutputTokenLimit(string model)
+        {
+            int configured = Math.Max(1, AtcMaxOutputTokens);
+            int? known = GetKnownOutputTokenLimit(model);
+            return known.HasValue ? Math.Min(configured, known.Value) : configured;
+        }
+
+        public bool ModelSupportsParameter(string model, string parameter)
+        {
+            if (string.IsNullOrWhiteSpace(model) || string.IsNullOrWhiteSpace(parameter)) return false;
+            return FetchedModelSupportedParameters != null &&
+                   FetchedModelSupportedParameters.TryGetValue(model, out List<string> parameters) &&
+                   parameters != null &&
+                   parameters.Any(value => string.Equals(value, parameter, StringComparison.OrdinalIgnoreCase));
         }
     }
 }

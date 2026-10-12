@@ -32,6 +32,7 @@ namespace AutoTranslator_Core
             // EN: This method handles game component update.
             public override void GameComponentUpdate()
             {
+                ATC_Dispatcher.PumpPending();
                 AutoTranslatorScanner.PumpMainThreadDispatcher();
             }
         }

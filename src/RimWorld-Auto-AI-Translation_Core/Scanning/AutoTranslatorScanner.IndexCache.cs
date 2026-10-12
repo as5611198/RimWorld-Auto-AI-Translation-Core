@@ -98,22 +98,23 @@ namespace AutoTranslator_Core
 
             try
             {
-                XmlDocument doc = new XmlDocument();
-                doc.Load(filePath);
-                if (doc.DocumentElement == null) return true;
-
-                foreach (XmlNode node in doc.DocumentElement.ChildNodes)
+                XmlReaderSettings settings = new XmlReaderSettings
                 {
-                    if (node.NodeType != XmlNodeType.Element) continue;
-
-                    string value = node.InnerText;
-                    if (!string.IsNullOrEmpty(value))
-                    {
-                        value = value.Replace("\\n", "\n").Replace("\\r", "\r").Replace("/n", "\n");
-                    }
-
-                    dict[node.Name] = value;
+                    DtdProcessing = DtdProcessing.Prohibit,
+                    XmlResolver = null
+                };
+                XmlDocument doc = new XmlDocument { XmlResolver = null };
+                using (XmlReader reader = XmlReader.Create(filePath, settings))
+                {
+                    doc.Load(reader);
                 }
+                if (doc.DocumentElement == null ||
+                    !doc.DocumentElement.Name.Equals("LanguageData", StringComparison.Ordinal))
+                {
+                    return false;
+                }
+
+                dict = TranslationXmlDictionaryParser.Parse(doc.DocumentElement);
 
                 return true;
             }
@@ -121,6 +122,60 @@ namespace AutoTranslator_Core
             {
                 dict.Clear();
                 return false;
+            }
+        }
+
+        internal static bool TryLoadRawXmlFileToDict(
+            string filePath,
+            out Dictionary<string, string> dict)
+        {
+            dict = new Dictionary<string, string>();
+            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath)) return false;
+
+            try
+            {
+                return TryParseXmlFileToDict(NormalizeCachePath(filePath), out dict);
+            }
+            catch
+            {
+                dict.Clear();
+                return false;
+            }
+        }
+
+        internal static void SeedWorkflowTranslationXmlCache(
+            string filePath,
+            IEnumerable<KeyValuePair<string, string>> entries)
+        {
+            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath)) return;
+            string fullPath;
+            FileInfo info;
+            try
+            {
+                fullPath = NormalizeCachePath(filePath);
+                info = new FileInfo(fullPath);
+            }
+            catch
+            {
+                return;
+            }
+
+            Dictionary<string, string> data = new Dictionary<string, string>();
+            foreach (KeyValuePair<string, string> entry in
+                     entries ?? Enumerable.Empty<KeyValuePair<string, string>>())
+            {
+                if (string.IsNullOrWhiteSpace(entry.Key)) continue;
+                data[entry.Key] = entry.Value ?? string.Empty;
+            }
+            lock (TranslationIndexCacheLock)
+            {
+                XmlParseCache[fullPath] = new XmlParseCacheEntry
+                {
+                    Length = info.Length,
+                    LastWriteTicks = info.LastWriteTimeUtc.Ticks,
+                    ParseFailed = false,
+                    Data = data
+                };
             }
         }
 
@@ -198,7 +253,7 @@ namespace AutoTranslator_Core
                     List<string> existingFiles = cached.Files.Where(File.Exists).ToList();
                     if (existingFiles.Count == cached.Files.Count)
                     {
-                        return new List<string>(existingFiles);
+                        return ApplyTranslationFileLoadOrder(fullPath, existingFiles);
                     }
 
                     XmlFileListCache.Remove(cacheKey);
@@ -207,7 +262,9 @@ namespace AutoTranslator_Core
 
             try
             {
-                files = Directory.GetFiles(fullPath, "*.xml", searchOption).ToList();
+                files = ApplyTranslationFileLoadOrder(
+                    fullPath,
+                    Directory.GetFiles(fullPath, "*.xml", searchOption));
             }
             catch
             {
@@ -312,6 +369,16 @@ namespace AutoTranslator_Core
 
         private static ModPathIndexCacheEntry GetModPathIndex(string packageId, string rootDir)
         {
+            bool includeForcedPaths = AutoTranslatorMod.Settings != null &&
+                AutoTranslatorMod.Settings.IsForceTranslationEnabled(packageId);
+            return GetModPathIndex(packageId, rootDir, includeForcedPaths);
+        }
+
+        private static ModPathIndexCacheEntry GetModPathIndex(
+            string packageId,
+            string rootDir,
+            bool includeForcedPaths)
+        {
             if (string.IsNullOrWhiteSpace(rootDir))
             {
                 return new ModPathIndexCacheEntry
@@ -324,8 +391,18 @@ namespace AutoTranslator_Core
             }
 
             string normalizedRoot = NormalizeCachePath(rootDir);
-            string cacheId = (packageId ?? "") + "|" + normalizedRoot;
-            string key = BuildModPathIndexKey(packageId, normalizedRoot);
+            bool usedRunningModRoots;
+            List<string> contentRoots = ResolveContentRootsForScanning(
+                packageId,
+                normalizedRoot,
+                out usedRunningModRoots);
+            string cacheId = (packageId ?? "") + "|" + normalizedRoot + "|forced=" + includeForcedPaths;
+            string key = BuildModPathIndexKey(
+                packageId,
+                normalizedRoot,
+                includeForcedPaths,
+                usedRunningModRoots,
+                contentRoots);
 
             lock (TranslationIndexCacheLock)
             {
@@ -342,7 +419,10 @@ namespace AutoTranslator_Core
                 }
             }
 
-            List<string> effectiveLangPaths = BuildEffectiveLangPathsUncached(normalizedRoot);
+            List<string> effectiveLangPaths = BuildEffectiveLangPathsUncached(
+                normalizedRoot,
+                contentRoots,
+                includeForcedPaths);
             List<string> translationPatchLangPaths = effectiveLangPaths.ToList();
             AddLanguageRootsFrom(normalizedRoot, normalizedRoot, translationPatchLangPaths, true);
             translationPatchLangPaths = translationPatchLangPaths.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -352,7 +432,10 @@ namespace AutoTranslator_Core
                 Key = key,
                 EffectiveLangPaths = effectiveLangPaths,
                 TranslationPatchLangPaths = translationPatchLangPaths,
-                EffectiveDefsPaths = BuildEffectiveDefsPathsUncached(normalizedRoot)
+                EffectiveDefsPaths = BuildEffectiveDefsPathsUncached(
+                    normalizedRoot,
+                    contentRoots,
+                    includeForcedPaths)
             };
 
             lock (TranslationIndexCacheLock)
@@ -371,16 +454,36 @@ namespace AutoTranslator_Core
 
         private static string BuildModPathIndexKey(ModMetaData mod)
         {
-            return BuildModPathIndexKey(mod.PackageId, mod.RootDir.FullName);
+            bool includeForcedPaths = AutoTranslatorMod.Settings != null &&
+                AutoTranslatorMod.Settings.IsForceTranslationEnabled(mod.PackageId);
+            bool usedRunningModRoots;
+            List<string> contentRoots = ResolveContentRootsForScanning(
+                mod.PackageId,
+                mod.RootDir.FullName,
+                out usedRunningModRoots);
+            return BuildModPathIndexKey(
+                mod.PackageId,
+                mod.RootDir.FullName,
+                includeForcedPaths,
+                usedRunningModRoots,
+                contentRoots);
         }
 
-        private static string BuildModPathIndexKey(string packageId, string rootDir)
+        private static string BuildModPathIndexKey(
+            string packageId,
+            string rootDir,
+            bool includeForcedPaths,
+            bool usedRunningModRoots,
+            List<string> contentRoots)
         {
             string root = NormalizeCachePath(rootDir);
             string loadFoldersPath = Path.Combine(root, "LoadFolders.xml");
             string loadFoldersSig = BuildFileSignature(loadFoldersPath);
             long rootTicks = Directory.Exists(root) ? Directory.GetLastWriteTimeUtc(root).Ticks : 0L;
-            return CurrentRimWorldVersion + "|" + (packageId ?? "") + "|" + root + "|" + rootTicks + "|" + loadFoldersSig;
+            string rootsSignature = string.Join(";", contentRoots ?? new List<string>());
+            return CurrentRimWorldVersion + "|" + (packageId ?? "") + "|" + root + "|" + rootTicks +
+                   "|" + loadFoldersSig + "|running=" + usedRunningModRoots +
+                   "|forced=" + includeForcedPaths + "|roots=" + rootsSignature;
         }
 
         private static List<string> BuildEffectiveLangPathsUncached(ModMetaData mod)
@@ -392,18 +495,29 @@ namespace AutoTranslator_Core
 
         private static List<string> BuildEffectiveLangPathsUncached(string rootDir)
         {
+            if (string.IsNullOrWhiteSpace(rootDir)) return new List<string>();
+            bool usedRunningModRoots;
+            List<string> contentRoots = ResolveContentRootsForScanning("", rootDir, out usedRunningModRoots);
+            return BuildEffectiveLangPathsUncached(rootDir, contentRoots, false);
+        }
+
+        private static List<string> BuildEffectiveLangPathsUncached(
+            string rootDir,
+            List<string> contentRoots,
+            bool includeForcedPaths)
+        {
             List<string> result = new List<string>();
             if (string.IsNullOrWhiteSpace(rootDir)) return result;
 
-            string modRoot = NormalizeCachePath(rootDir);
-            var activeRoots = ParseLoadFolders(modRoot);
-
-            foreach (var root in activeRoots)
+            foreach (string root in contentRoots ?? new List<string>())
             {
-                AddLanguageRootsFrom(root, modRoot, result);
+                AddDirectLanguageRoot(root, result);
             }
 
-            AddLanguageRootsFrom(modRoot, modRoot, result);
+            if (includeForcedPaths)
+            {
+                result.AddRange(GetForceTranslationCandidateLangPaths(rootDir));
+            }
 
             return result.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         }
@@ -417,18 +531,29 @@ namespace AutoTranslator_Core
 
         private static List<string> BuildEffectiveDefsPathsUncached(string rootDir)
         {
+            if (string.IsNullOrWhiteSpace(rootDir)) return new List<string>();
+            bool usedRunningModRoots;
+            List<string> contentRoots = ResolveContentRootsForScanning("", rootDir, out usedRunningModRoots);
+            return BuildEffectiveDefsPathsUncached(rootDir, contentRoots, false);
+        }
+
+        private static List<string> BuildEffectiveDefsPathsUncached(
+            string rootDir,
+            List<string> contentRoots,
+            bool includeForcedPaths)
+        {
             List<string> result = new List<string>();
             if (string.IsNullOrWhiteSpace(rootDir)) return result;
 
-            string modRoot = NormalizeCachePath(rootDir);
-            var activeRoots = ParseLoadFolders(modRoot);
-
-            foreach (var root in activeRoots)
+            foreach (string root in contentRoots ?? new List<string>())
             {
-                AddDefsRootsFrom(root, modRoot, result);
+                AddDirectDefsRoot(root, result);
             }
 
-            AddDefsRootsFrom(modRoot, modRoot, result);
+            if (includeForcedPaths)
+            {
+                result.AddRange(GetForceTranslationCandidateDefsPaths(rootDir));
+            }
 
             return result.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         }

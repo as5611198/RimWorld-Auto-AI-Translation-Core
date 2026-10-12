@@ -26,6 +26,7 @@ namespace AutoTranslator_Core
             // 這個欄位保存 pumpPosted 的執行狀態或快取資料。
             // EN: This field stores pump posted runtime state or cached data.
             private static int _pumpPosted = 0;
+            private static long _lastPumpUtcTicks;
             // 這個欄位保存 instance 的執行狀態或快取資料。
             // EN: This field stores instance runtime state or cached data.
             private static ATC_Dispatcher _instance;
@@ -61,6 +62,7 @@ namespace AutoTranslator_Core
                 if (UnityData.IsInMainThread)
                 {
                     EnsureAlive();
+                    MarkPumpHeartbeat();
                     ExecuteAction(action);
                     ProcessQueuedActions(64);
                     return;
@@ -68,6 +70,30 @@ namespace AutoTranslator_Core
 
                 executionQueue.Enqueue(action);
                 RequestPump();
+            }
+
+            internal static void PumpPending(int maxActions = 64)
+            {
+                if (!UnityData.IsInMainThread) return;
+
+                EnsureAlive();
+                MarkPumpHeartbeat();
+                ProcessQueuedActions(Math.Max(1, maxActions));
+            }
+
+            internal static bool HasRecentPump(int maximumAgeMilliseconds)
+            {
+                long ticks = System.Threading.Interlocked.Read(ref _lastPumpUtcTicks);
+                if (ticks <= 0L) return false;
+
+                long ageTicks = DateTime.UtcNow.Ticks - ticks;
+                return ageTicks >= 0L &&
+                       ageTicks <= TimeSpan.FromMilliseconds(Math.Max(1, maximumAgeMilliseconds)).Ticks;
+            }
+
+            private static void MarkPumpHeartbeat()
+            {
+                System.Threading.Interlocked.Exchange(ref _lastPumpUtcTicks, DateTime.UtcNow.Ticks);
             }
 
             // 這個方法負責送出 Pump 請求。
@@ -164,9 +190,8 @@ namespace AutoTranslator_Core
             public void Update()
             {
                 AutoTranslatorMod.MainThreadContext = System.Threading.SynchronizationContext.Current;
+                PumpPending();
                 AutoTranslatorScanner.PumpMainThreadDispatcher();
-
-                ProcessQueuedActions(64);
 
                 if (Time.frameCount >= _nextModelFetchMaintenanceFrame)
                 {

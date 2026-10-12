@@ -20,8 +20,24 @@ namespace AutoTranslator_Core
         // EN: This method draws cloud toolbar and settings.
         private void DrawCloudToolbarAndSettings(Listing_Standard l, Rect viewRect)
         {
+            Rect headerRow = l.GetRect(30f);
+            Widgets.Label(new Rect(headerRow.x, headerRow.y + 5f, 90f, 24f), WfText("目标语言", "Language"));
+            if (WorkflowUiStyle.Button(new Rect(headerRow.x + 90f, headerRow.y, 200f, 30f),
+                    "🌐 " + GetLangLabel(Settings.CloudTargetLang), WorkflowButtonStyle.Quiet))
+            {
+                List<FloatMenuOption> options = new List<FloatMenuOption>();
+                foreach (TargetLanguage lang in Enum.GetValues(typeof(TargetLanguage)))
+                {
+                    TargetLanguage selectedLanguage = lang;
+                    options.Add(new FloatMenuOption(GetLangLabel(lang), () =>
+                    {
+                        Settings.CloudTargetLang = selectedLanguage;
+                        _cachedCloudDisplayMods = null;
+                    }));
+                }
+                Find.WindowStack.Add(new FloatMenu(options));
+            }
 
-            Rect topBarRect1 = l.GetRect(30f);
             if (AutoTranslatorSettings.IsFetchingCloud && AutoTranslatorSettings.CloudFetchStartedUtcTicks > 0)
             {
                 double elapsedSeconds = (DateTime.UtcNow.Ticks - AutoTranslatorSettings.CloudFetchStartedUtcTicks) / (double)TimeSpan.TicksPerSecond;
@@ -39,133 +55,324 @@ namespace AutoTranslator_Core
             if (AutoTranslatorSettings.IsFetchingCloud)
             {
                 GUI.color = Color.yellow;
-                Widgets.Label(topBarRect1, "ATC_Cloud_Fetching".Translate());
+                Widgets.Label(new Rect(headerRow.x + 310f, headerRow.y + 5f, headerRow.width - 310f, 24f),
+                    "ATC_Cloud_Fetching".Translate());
                 GUI.color = Color.white;
             }
             else
             {
-                if (Widgets.ButtonText(new Rect(topBarRect1.x, topBarRect1.y, 140f, topBarRect1.height), "ATC_Cloud_Refresh".Translate()))
+                if (WorkflowUiStyle.Button(new Rect(headerRow.xMax - 150f, headerRow.y, 150f, headerRow.height),
+                        "ATC_Cloud_Refresh".Translate(), WorkflowButtonStyle.Quiet))
                 {
                     StartCloudRegistryFetch();
                 }
-
-                GUI.color = new Color(0.45f, 1f, 0.65f);
-                Rect bestAvailableRect = new Rect(topBarRect1.x + 150f, topBarRect1.y, 170f, topBarRect1.height);
-                if (Widgets.ButtonText(bestAvailableRect, "ATC_Cloud_Btn_BatchBest".Translate()))
-                    ExecuteBatchDownload("Best");
-                if (Mouse.IsOver(bestAvailableRect)) TooltipHandler.TipRegion(bestAvailableRect, "ATC_Cloud_Btn_BatchBestTip".Translate());
-
-                GUI.color = new Color(1f, 0.8f, 0.2f);
-                if (Widgets.ButtonText(new Rect(topBarRect1.x + 330f, topBarRect1.y, 170f, topBarRect1.height), "ATC_Cloud_Btn_BatchOfficial".Translate()))
-                    ExecuteBatchDownload("Official_Group");
-                GUI.color = Color.white;
-
-                Rect downloadBarRect2 = l.GetRect(30f);
-                GUI.color = new Color(0.7f, 1f, 0.75f);
-                if (Widgets.ButtonText(new Rect(downloadBarRect2.x, downloadBarRect2.y, 170f, downloadBarRect2.height), "ATC_Cloud_Btn_BatchManual".Translate()))
-                    ExecuteBatchDownload("Manual");
-
-                GUI.color = new Color(0.4f, 0.8f, 1f);
-                if (Widgets.ButtonText(new Rect(downloadBarRect2.x + 180f, downloadBarRect2.y, 170f, downloadBarRect2.height), "ATC_Cloud_Btn_BatchAI".Translate()))
-                    ExecuteBatchDownload("AI_Auto");
-                GUI.color = Color.white;
             }
 
-            l.Gap(5f);
-
-
-            Rect topBarRect2 = l.GetRect(30f);
-
-            GUI.color = new Color(1f, 0.9f, 0.6f);
-            if (Widgets.ButtonText(new Rect(topBarRect2.x, topBarRect2.y, 140f, topBarRect2.height), "ATC_Cloud_Btn_OpenWorkspace".Translate()))
-            {
-                string packPath = AutoTranslatorScanner.GetLocalPackPath();
-                string workspaceRoot = System.IO.Path.Combine(packPath, "Upload_Workspace");
-                System.IO.Directory.CreateDirectory(workspaceRoot);
-                UnityEngine.Application.OpenURL("file://" + workspaceRoot);
-            }
-
-            GUI.color = new Color(1f, 0.6f, 0.2f);
-            if (Widgets.ButtonText(new Rect(topBarRect2.x + 150f, topBarRect2.y, 140f, topBarRect2.height), "ATC_Cloud_Btn_BatchUpload".Translate()))
-            {
-                ExecuteBatchUpload(CloudBatchUploadSource.Workspace);
-            }
-
-            GUI.color = new Color(1f, 0.72f, 0.25f);
-            if (Widgets.ButtonText(new Rect(topBarRect2.x + 300f, topBarRect2.y, 170f, topBarRect2.height), "ATC_Cloud_Btn_BatchUploadPack".Translate()))
-            {
-                ExecuteBatchUpload(CloudBatchUploadSource.LocalPack);
-            }
+            l.Gap(6f);
+            Rect scopeRow = l.GetRect(32f);
+            Widgets.Label(new Rect(scopeRow.x, scopeRow.y + 6f, 90f, 24f), WfText("下载范围", "Scope"));
+            GUI.color = WorkflowUiStyle.MutedText;
+            Widgets.Label(new Rect(scopeRow.x + 90f, scopeRow.y + 6f, 250f, 24f),
+                WfText("已加载 Mod / DLC", "Loaded mods / DLC"));
             GUI.color = Color.white;
 
-            l.Gap(5f);
+            l.Gap(6f);
+            DrawCloudListTypeFilters(l);
 
-
-            Rect userRow = l.GetRect(24f);
-            Widgets.Label(new Rect(userRow.x, userRow.y + 2f, 100f, 24f), "ATC_Cloud_Nickname".Translate());
-            Settings.CloudNickname = Widgets.TextField(new Rect(userRow.x + 100f, userRow.y, 150f, 24f), Settings.CloudNickname);
-
-            Widgets.Label(new Rect(userRow.x + 280f, userRow.y + 2f, 100f, 24f), "ATC_Cloud_AdminKey".Translate());
-            Settings.CloudAdminToken = GUI.PasswordField(new Rect(userRow.x + 380f, userRow.y, 150f, 24f), Settings.CloudAdminToken, '*');
-            bool hasPrivilegeCode = !string.IsNullOrWhiteSpace(Settings.CloudAdminToken);
-
-
-            l.Gap(5f);
-            Rect typeRow = l.GetRect(30f);
-            string currentUploadType = NormalizeCloudUploadType(Settings.CloudUploadType, hasPrivilegeCode);
-            if (Settings.CloudUploadType != currentUploadType)
+            l.Gap(6f);
+            Rect downloadRow = l.GetRect(34f);
+            const float downloadButtonGap = 10f;
+            float downloadButtonWidth = Mathf.Clamp(
+                (downloadRow.width - downloadButtonGap * 2f) / 3f, 180f, 250f);
+            Rect bestAvailableRect = new Rect(
+                downloadRow.x, downloadRow.y, downloadButtonWidth, 32f);
+            Rect downloadOptionsRect = new Rect(
+                bestAvailableRect.xMax + downloadButtonGap, downloadRow.y,
+                downloadButtonWidth, 32f);
+            Rect exclusionsRect = new Rect(
+                downloadOptionsRect.xMax + downloadButtonGap, downloadRow.y,
+                downloadButtonWidth, 32f);
+            if (!AutoTranslatorSettings.IsFetchingCloud)
             {
-                Settings.CloudUploadType = currentUploadType;
-                WriteSettings();
-            }
-            Widgets.Label(new Rect(typeRow.x, typeRow.y + 5f, 120f, 24f), "ATC_Cloud_Type_Select".Translate());
-
-            if (DrawUploadTypeOption(new Rect(typeRow.x + 130f, typeRow.y, 180f, 30f), "ATC_Cloud_Type_AI".Translate().ToString(), Settings.CloudUploadType == "AI_Auto"))
-            {
-                Settings.CloudUploadType = "AI_Auto";
-                WriteSettings();
-            }
-            if (DrawUploadTypeOption(new Rect(typeRow.x + 320f, typeRow.y, 180f, 30f), "ATC_Cloud_Type_Manual".Translate().ToString(), Settings.CloudUploadType == "Manual"))
-            {
-                Settings.CloudUploadType = "Manual";
-                WriteSettings();
-            }
-            if (hasPrivilegeCode && DrawUploadTypeOption(new Rect(typeRow.x + 510f, typeRow.y, 180f, 30f), "ATC_Type_Official".Translate().ToString(), Settings.CloudUploadType == "Official_Group"))
-            {
-                Settings.CloudUploadType = "Official_Group";
-                WriteSettings();
-            }
-            l.Gap(5f);
-            Rect batchLogLabelRow = l.GetRect(22f);
-            Widgets.Label(batchLogLabelRow, "ATC_Cloud_BatchUploadLogLabel".Translate());
-
-            Rect batchLogRect = l.GetRect(54f);
-            Settings.CloudBatchUploadLog = Widgets.TextArea(batchLogRect, Settings.CloudBatchUploadLog ?? "");
-            if (string.IsNullOrEmpty(Settings.CloudBatchUploadLog))
-            {
-                GUI.color = Color.gray;
-                Widgets.Label(new Rect(batchLogRect.x + 5f, batchLogRect.y + 2f, batchLogRect.width - 10f, batchLogRect.height), "ATC_Cloud_BatchUploadLogHint".Translate());
-                GUI.color = Color.white;
-            }
-
-            l.Gap(5f);
-            Rect cloudLangRow = l.GetRect(30f);
-            Widgets.Label(new Rect(cloudLangRow.x, cloudLangRow.y + 5f, 120f, 24f), "ATC_Cloud_SelectLang".Translate());
-
-            if (Widgets.ButtonText(new Rect(cloudLangRow.x + 130f, cloudLangRow.y, 200f, 30f), "🌐 " + GetLangLabel(Settings.CloudTargetLang)))
-            {
-                List<FloatMenuOption> options = new List<FloatMenuOption>();
-                foreach (TargetLanguage lang in Enum.GetValues(typeof(TargetLanguage)))
+                GUI.color = new Color(0.45f, 1f, 0.65f);
+                if (WorkflowUiStyle.Button(bestAvailableRect, WfText("一键下载最佳可用译文", "Download best available"),
+                        WorkflowButtonStyle.Primary))
                 {
-                    options.Add(new FloatMenuOption(GetLangLabel(lang), () => {
-                        Settings.CloudTargetLang = lang;
-                    }));
+                    ExecuteBatchDownload("Best");
                 }
-                Find.WindowStack.Add(new FloatMenu(options));
+                GUI.color = Color.white;
+                if (Mouse.IsOver(bestAvailableRect))
+                {
+                    TooltipHandler.TipRegion(bestAvailableRect,
+                        WfText("按当前范围批量下载。云端选择顺序：汉化组精翻 > 人工精翻 > AI 译文；同类取最新版本。本地手动翻译保持最高优先级。",
+                            "Batch download for the current scope. Cloud priority: translation-group curated > human-curated > AI; newest wins within the same type. Local manual translations remain highest priority."));
+                }
+
+                string optionsLabel = AutoTranslatorSettings.CloudDownloadOptionsExpanded
+                    ? WfText("收起其他下载方式", "Hide other download methods")
+                    : WfText("其他下载方式", "Other download methods");
+                if (WorkflowUiStyle.Button(downloadOptionsRect, optionsLabel, WorkflowButtonStyle.Quiet))
+                {
+                    AutoTranslatorSettings.CloudDownloadOptionsExpanded =
+                        !AutoTranslatorSettings.CloudDownloadOptionsExpanded;
+                }
             }
+            if (WorkflowUiStyle.Button(exclusionsRect,
+                    WfText("管理下载排除列表", "Download exclusions"), WorkflowButtonStyle.Quiet))
+            {
+                Find.WindowStack.Add(new Window_ModBlacklists(cloudDownloadOnly: true));
+            }
+
+            if (AutoTranslatorSettings.CloudDownloadOptionsExpanded && !AutoTranslatorSettings.IsFetchingCloud)
+            {
+                Rect downloadOptionsRow = l.GetRect(32f);
+                if (WorkflowUiStyle.Button(new Rect(
+                            downloadOptionsRow.x, downloadOptionsRow.y, downloadButtonWidth, 30f),
+                        WfText("仅下载汉化组精翻", "Translation-group only"), WorkflowButtonStyle.Quiet))
+                    ExecuteBatchDownload("Official_Group");
+                if (WorkflowUiStyle.Button(new Rect(
+                            downloadOptionsRow.x + downloadButtonWidth + downloadButtonGap,
+                            downloadOptionsRow.y, downloadButtonWidth, 30f),
+                        WfText("仅下载人工精翻", "Human-curated only"), WorkflowButtonStyle.Quiet))
+                    ExecuteBatchDownload("Manual");
+                if (WorkflowUiStyle.Button(new Rect(
+                            downloadOptionsRow.x + (downloadButtonWidth + downloadButtonGap) * 2f,
+                            downloadOptionsRow.y, downloadButtonWidth, 30f),
+                        WfText("仅下载 AI 译文", "AI only"), WorkflowButtonStyle.Quiet))
+                    ExecuteBatchDownload("AI_Auto");
+            }
+
+            l.Gap(5f);
+            Rect orderRow = l.GetRect(30f);
+            Rect orderButtonRect = new Rect(
+                orderRow.x, orderRow.y, downloadButtonWidth, orderRow.height);
+            if (WorkflowUiStyle.Button(orderButtonRect,
+                    "ATC_Cloud_OrderButton".Translate(), WorkflowButtonStyle.Quiet))
+            {
+                Find.WindowStack.Add(new Window_CloudTranslationOrder());
+            }
+            TooltipHandler.TipRegion(orderButtonRect, "ATC_Cloud_OrderButtonTip".Translate());
+
+            float parallelLabelX = orderRow.x + downloadButtonWidth + downloadButtonGap;
+            Widgets.Label(new Rect(parallelLabelX, orderRow.y + 4f, 190f, 24f),
+                "ATC_Cloud_ParallelDownloads".Translate(Settings.CloudBatchDownloadConcurrency));
+            int parallelDownloads = Mathf.RoundToInt(Widgets.HorizontalSlider(
+                new Rect(parallelLabelX + 195f, orderRow.y + 7f,
+                    Mathf.Max(100f, orderRow.xMax - parallelLabelX - 195f), 20f),
+                Settings.CloudBatchDownloadConcurrency,
+                1f,
+                4f,
+                false,
+                null,
+                "1",
+                "4",
+                1f));
+            if (parallelDownloads != Settings.CloudBatchDownloadConcurrency)
+            {
+                Settings.CloudBatchDownloadConcurrency = parallelDownloads;
+                WriteSettings();
+            }
+
+            l.Gap(8f);
+            Rect contributionHeader = l.GetRect(30f);
+            string contributionLabel = AutoTranslatorSettings.CloudContributionExpanded
+                ? WfText("贡献译文　▲", "Contribute translations  ▲")
+                : WfText("贡献译文　▼", "Contribute translations  ▼");
+            if (WorkflowUiStyle.Button(contributionHeader, contributionLabel, WorkflowButtonStyle.Quiet))
+            {
+                AutoTranslatorSettings.CloudContributionExpanded =
+                    !AutoTranslatorSettings.CloudContributionExpanded;
+            }
+
+            if (AutoTranslatorSettings.CloudContributionExpanded)
+            {
+                l.Gap(4f);
+                Rect userRow = l.GetRect(26f);
+                Widgets.Label(new Rect(userRow.x, userRow.y + 3f, 90f, 24f), "ATC_Cloud_Nickname".Translate());
+                Settings.CloudNickname = Widgets.TextField(new Rect(userRow.x + 90f, userRow.y, 180f, 24f), Settings.CloudNickname);
+                if (WorkflowUiStyle.Button(new Rect(userRow.x + 290f, userRow.y, 160f, 26f),
+                        AutoTranslatorSettings.CloudShowMineOnly
+                            ? WfText("显示全部 Mod", "Show all mods")
+                            : WfText("我的上传记录", "My uploads"), WorkflowButtonStyle.Quiet))
+                {
+                    AutoTranslatorSettings.CloudShowMineOnly = !AutoTranslatorSettings.CloudShowMineOnly;
+                    _cachedCloudDisplayMods = null;
+                }
+
+                Rect uploadButtons = l.GetRect(32f);
+                if (WorkflowUiStyle.Button(new Rect(uploadButtons.x, uploadButtons.y, 170f, 30f),
+                        "ATC_Cloud_Btn_OpenWorkspace".Translate(), WorkflowButtonStyle.Quiet))
+                {
+                    string packPath = AutoTranslatorScanner.GetLocalPackPath();
+                    string workspaceRoot = System.IO.Path.Combine(packPath, "Upload_Workspace");
+                    System.IO.Directory.CreateDirectory(workspaceRoot);
+                    UnityEngine.Application.OpenURL("file://" + workspaceRoot);
+                }
+                if (WorkflowUiStyle.Button(new Rect(uploadButtons.x + 180f, uploadButtons.y, 190f, 30f),
+                        WfText("上传贡献工作区", "Upload workspace"), WorkflowButtonStyle.Primary))
+                    ExecuteBatchUpload(CloudBatchUploadSource.Workspace);
+                if (WorkflowUiStyle.Button(new Rect(uploadButtons.x + 380f, uploadButtons.y, 190f, 30f),
+                        WfText("上传当前本地译文", "Upload local pack"), WorkflowButtonStyle.Primary))
+                    ExecuteBatchUpload(CloudBatchUploadSource.LocalPack);
+
+                Rect typeRow = l.GetRect(30f);
+                bool hasPrivilegeCode = !string.IsNullOrWhiteSpace(Settings.CloudAdminToken);
+                string currentUploadType = NormalizeCloudUploadType(Settings.CloudUploadType, hasPrivilegeCode);
+                if (Settings.CloudUploadType != currentUploadType)
+                {
+                    Settings.CloudUploadType = currentUploadType;
+                    WriteSettings();
+                }
+                Widgets.Label(new Rect(typeRow.x, typeRow.y + 5f, 100f, 24f), WfText("上传标记", "Label"));
+                if (DrawUploadTypeOption(new Rect(typeRow.x + 100f, typeRow.y, 170f, 30f),
+                        "ATC_Cloud_Type_AI".Translate().ToString(), Settings.CloudUploadType == "AI_Auto"))
+                {
+                    Settings.CloudUploadType = "AI_Auto";
+                    WriteSettings();
+                }
+                if (DrawUploadTypeOption(new Rect(typeRow.x + 280f, typeRow.y, 170f, 30f),
+                        WfText("人工精翻", "Human-curated"), Settings.CloudUploadType == "Manual"))
+                {
+                    Settings.CloudUploadType = "Manual";
+                    WriteSettings();
+                }
+                Widgets.Label(l.GetRect(42f), WfText(
+                    "按本次上传内容逐个 Mod 检查：AI 来源超过 50% 不能标记人工精翻；来源不明和外部导入不计为 AI。标记不会改变译文，也不会调用 AI。",
+                    "Each mod is checked against this upload: over 50% AI cannot be labeled Human-curated. Unknown and imported sources are not AI. Labels do not change text or call AI."));
+
+                string adminLabel = AutoTranslatorSettings.CloudAdminExpanded
+                    ? WfText("管理员模式　▲", "Administrator  ▲")
+                    : WfText("管理员模式　▼", "Administrator  ▼");
+                if (WorkflowUiStyle.Button(l.GetRect(28f), adminLabel, WorkflowButtonStyle.Link))
+                    AutoTranslatorSettings.CloudAdminExpanded = !AutoTranslatorSettings.CloudAdminExpanded;
+                if (AutoTranslatorSettings.CloudAdminExpanded)
+                {
+                    Rect adminRow = l.GetRect(30f);
+                    Widgets.Label(new Rect(adminRow.x, adminRow.y + 4f, 100f, 24f), "ATC_Cloud_AdminKey".Translate());
+                    Settings.CloudAdminToken = GUI.PasswordField(
+                        new Rect(adminRow.x + 100f, adminRow.y, 220f, 24f), Settings.CloudAdminToken, '*');
+                    hasPrivilegeCode = !string.IsNullOrWhiteSpace(Settings.CloudAdminToken);
+                    if (hasPrivilegeCode && DrawUploadTypeOption(new Rect(adminRow.x + 340f, adminRow.y, 190f, 30f),
+                            "ATC_Type_Official".Translate().ToString(), Settings.CloudUploadType == "Official_Group"))
+                    {
+                        Settings.CloudUploadType = "Official_Group";
+                        WriteSettings();
+                    }
+                }
+
+                Widgets.Label(l.GetRect(22f), "ATC_Cloud_BatchUploadLogLabel".Translate());
+                Rect batchLogRect = l.GetRect(54f);
+                Settings.CloudBatchUploadLog = Widgets.TextArea(batchLogRect, Settings.CloudBatchUploadLog ?? "");
+                if (string.IsNullOrEmpty(Settings.CloudBatchUploadLog))
+                {
+                    GUI.color = Color.gray;
+                    Widgets.Label(new Rect(batchLogRect.x + 5f, batchLogRect.y + 2f,
+                        batchLogRect.width - 10f, batchLogRect.height), "ATC_Cloud_BatchUploadLogHint".Translate());
+                    GUI.color = Color.white;
+                }
+            }
+
             l.Gap(10f);
             Widgets.DrawLineHorizontal(0, l.CurHeight, viewRect.width);
             l.Gap(10f);
+        }
+
+        private const int CloudListTypeTranslationGroup = 1;
+        private const int CloudListTypeHumanCurated = 2;
+        private const int CloudListTypeAi = 4;
+        private const int CloudListTypeAll = CloudListTypeTranslationGroup | CloudListTypeHumanCurated | CloudListTypeAi;
+
+        private static void DrawCloudListTypeFilters(Listing_Standard l)
+        {
+            Rect row = l.GetRect(32f);
+            Widgets.Label(new Rect(row.x, row.y + 6f, 110f, 24f),
+                WfText("线上译文类型", "Online type"));
+
+            int mask = NormalizeCloudListTypeMask(AutoTranslatorSettings.CloudListTranslationTypeMask);
+            if (DrawCloudListTypeFilterOption(new Rect(row.x + 110f, row.y, 150f, 30f),
+                    WfText("全部线上译文", "All online"), mask == CloudListTypeAll))
+            {
+                SetCloudListTypeMask(CloudListTypeAll);
+            }
+            if (DrawCloudListTypeFilterOption(new Rect(row.x + 270f, row.y, 160f, 30f),
+                    WfText("汉化组精翻", "Translation group"),
+                    mask != CloudListTypeAll && (mask & CloudListTypeTranslationGroup) != 0))
+            {
+                ToggleCloudListTypeMask(CloudListTypeTranslationGroup);
+            }
+            if (DrawCloudListTypeFilterOption(new Rect(row.x + 440f, row.y, 150f, 30f),
+                    WfText("人工精翻", "Human-curated"),
+                    mask != CloudListTypeAll && (mask & CloudListTypeHumanCurated) != 0))
+            {
+                ToggleCloudListTypeMask(CloudListTypeHumanCurated);
+            }
+            if (DrawCloudListTypeFilterOption(new Rect(row.x + 600f, row.y, 130f, 30f),
+                    WfText("AI 译文", "AI"),
+                    mask != CloudListTypeAll && (mask & CloudListTypeAi) != 0))
+            {
+                ToggleCloudListTypeMask(CloudListTypeAi);
+            }
+        }
+
+        private static bool DrawCloudListTypeFilterOption(Rect rect, string label, bool selected)
+        {
+            return WorkflowUiStyle.Button(
+                rect,
+                (selected ? "✓ " : string.Empty) + label,
+                selected ? WorkflowButtonStyle.Primary : WorkflowButtonStyle.Quiet);
+        }
+
+        private static void ToggleCloudListTypeMask(int bit)
+        {
+            int current = NormalizeCloudListTypeMask(AutoTranslatorSettings.CloudListTranslationTypeMask);
+            int next = current == CloudListTypeAll ? bit : current ^ bit;
+            SetCloudListTypeMask(next == 0 ? CloudListTypeAll : next);
+        }
+
+        private static void SetCloudListTypeMask(int mask)
+        {
+            AutoTranslatorSettings.CloudListTranslationTypeMask = NormalizeCloudListTypeMask(mask);
+            _cachedCloudDisplayMods = null;
+            _cachedOwnCloudRecords = null;
+            AutoTranslatorSettings.SelectedCloudVersion.Clear();
+            AutoTranslatorSettings.mainScrollPos = Vector2.zero;
+        }
+
+        private static int NormalizeCloudListTypeMask(int mask)
+        {
+            int normalized = mask & CloudListTypeAll;
+            return normalized == 0 ? CloudListTypeAll : normalized;
+        }
+
+        private static bool CloudRecordMatchesListTypeFilter(CloudModRecord record)
+        {
+            if (record == null) return false;
+            int recordMask;
+            if (string.Equals(record.TranslationType, "Official_Group", StringComparison.OrdinalIgnoreCase))
+                recordMask = CloudListTypeTranslationGroup;
+            else if (string.Equals(record.TranslationType, "Manual", StringComparison.OrdinalIgnoreCase))
+                recordMask = CloudListTypeHumanCurated;
+            else if (string.Equals(record.TranslationType, "AI_Auto", StringComparison.OrdinalIgnoreCase))
+                recordMask = CloudListTypeAi;
+            else
+                return false;
+
+            return (NormalizeCloudListTypeMask(AutoTranslatorSettings.CloudListTranslationTypeMask) & recordMask) != 0;
+        }
+
+        private static string GetCloudListTypeFilterLabel()
+        {
+            int mask = NormalizeCloudListTypeMask(AutoTranslatorSettings.CloudListTranslationTypeMask);
+            if (mask == CloudListTypeAll) return WfText("全部线上译文", "All online translations");
+
+            List<string> labels = new List<string>();
+            if ((mask & CloudListTypeTranslationGroup) != 0)
+                labels.Add(WfText("汉化组精翻", "Translation group"));
+            if ((mask & CloudListTypeHumanCurated) != 0)
+                labels.Add(WfText("人工精翻", "Human-curated"));
+            if ((mask & CloudListTypeAi) != 0)
+                labels.Add(WfText("AI 译文", "AI"));
+            return WfText("线上译文：", "Online: ") + string.Join("、", labels);
         }
 
         // 這個方法負責繪製 上傳TypeOption 介面。
@@ -178,7 +385,7 @@ namespace AutoTranslator_Core
 
             if (selected)
             {
-                Widgets.DrawBoxSolid(rect, new Color(0.25f, 0.35f, 0.25f, 0.32f));
+                Widgets.DrawBoxSolid(rect, WorkflowUiStyle.Selection);
             }
             else if (Mouse.IsOver(rect))
             {
@@ -186,7 +393,9 @@ namespace AutoTranslator_Core
             }
 
             GUI.color = selected ? new Color(0.75f, 1f, 0.75f) : new Color(0.75f, 0.75f, 0.75f);
-            Widgets.DrawBox(rect, 1);
+            WorkflowUiStyle.DrawBorder(rect, selected
+                ? WorkflowUiStyle.GoodText
+                : new Color(0.28f, 0.31f, 0.33f));
             GUI.color = Color.white;
 
             const float radioSize = 24f;
@@ -210,7 +419,10 @@ namespace AutoTranslator_Core
         {
 
 
-            if (_cachedCloudLookup == null || _lastCloudRegistryCount != AutoTranslatorSettings.CloudRegistry.Count || _lastCloudLangFolder != targetLangFolder)
+            if (_cachedCloudLookup == null ||
+                _lastCloudRegistryCount != AutoTranslatorSettings.CloudRegistry.Count ||
+                _lastCloudRegistryGeneration != AutoTranslatorSettings.CloudFetchGeneration ||
+                _lastCloudLangFolder != targetLangFolder)
             {
                 _cachedCloudLookup = new Dictionary<string, List<CloudModRecord>>(StringComparer.OrdinalIgnoreCase);
                 foreach (var record in AutoTranslatorSettings.CloudRegistry)
@@ -229,11 +441,13 @@ namespace AutoTranslator_Core
                 foreach (var key in _cachedCloudLookup.Keys.ToList())
                 {
                     _cachedCloudLookup[key] = _cachedCloudLookup[key]
-                        .OrderByDescending(c => c.TranslationType == "Official_Group" || c.IsVerified)
-                        .ThenByDescending(c => c.TranslationDate).ToList();
+                        .OrderByDescending(GetBatchRecordPriority)
+                        .ThenByDescending(GetBatchRecordUpdatedAt)
+                        .ToList();
                 }
 
                 _lastCloudRegistryCount = AutoTranslatorSettings.CloudRegistry.Count;
+                _lastCloudRegistryGeneration = AutoTranslatorSettings.CloudFetchGeneration;
                 _lastCloudLangFolder = targetLangFolder;
             }
             var cloudLookup = _cachedCloudLookup;
@@ -252,7 +466,7 @@ namespace AutoTranslator_Core
                 List<CloudModRecord> allVersions;
                 if (cloudLookup.TryGetValue(mod.PackageId, out var foundList))
                 {
-                    allVersions = foundList;
+                    allVersions = foundList.Where(CloudRecordMatchesListTypeFilter).ToList();
                 }
                 else
                 {
@@ -299,24 +513,17 @@ namespace AutoTranslator_Core
                         statusColor = new Color(0.75f, 0.75f, 0.75f);
                     }
                 }
-                else if (cloudRecord.TranslationType == "Official_Group" || cloudRecord.IsVerified)
+                else if (IsTranslationGroupCloudRecord(cloudRecord))
                 {
                     statusText = "ATC_Cloud_Status_Official".Translate();
                     statusColor = new Color(1f, 0.8f, 0.2f);
                     canDownload = true;
                 }
-                else if (cloudRecord.TranslationType == "Manual")
+                else if (string.Equals(cloudRecord.TranslationType, "Manual", StringComparison.OrdinalIgnoreCase))
                 {
                     statusText = "ATC_Cloud_Status_Manual".Translate();
                     statusColor = new Color(0.4f, 1f, 0.4f);
                     canDownload = true;
-                }
-
-                if (downloadBlacklisted)
-                {
-                    statusText = "ATC_Blacklist_DownloadBlockedStatus".Translate().ToString();
-                    statusColor = new Color(0.8f, 0.55f, 0.55f);
-                    canDownload = false;
                 }
                 else if (IsLegacyUntaggedCloudAiRecord(cloudRecord))
                 {
@@ -331,144 +538,29 @@ namespace AutoTranslator_Core
                     canDownload = true;
                 }
 
+                if (cloudRecord != null && cloudRecord.IsVerified)
+                    statusText += WfText(" · 已审核", " · Verified");
+
+                if (downloadBlacklisted)
+                {
+                    statusText = "ATC_Blacklist_DownloadBlockedStatus".Translate().ToString();
+                    statusColor = new Color(0.8f, 0.55f, 0.55f);
+                    canDownload = false;
+                }
+
 
                 Text.Font = GameFont.Small;
-                float btnWidth = 85f;
                 float cursorX = rowRect.xMax - 5f;
 
-                cursorX -= btnWidth;
-                Rect correctionsBtn = new Rect(cursorX, rowRect.y + 5f, btnWidth - 5f, 30f);
-                GUI.color = isOfficialGamePackage ? new Color(0.7f, 0.9f, 1f) : new Color(0.55f, 0.85f, 1f);
-                if (Widgets.ButtonText(correctionsBtn, "ATC_Corrections_Button".Translate()))
+                const float detailsWidth = 90f;
+                cursorX -= detailsWidth;
+                Rect detailsBtn = new Rect(cursorX, rowRect.y + 5f, detailsWidth - 5f, 30f);
+                if (WorkflowUiStyle.Button(detailsBtn, WfText("详情", "Details"),
+                        WorkflowButtonStyle.Quiet, true, GameFont.Tiny))
                 {
-                    Find.WindowStack.Add(new Window_AppliedCorrections(mod, targetLangFolder));
+                    OpenCloudRowDetails(mod, targetLangFolder, cloudRecord, isOfficialGamePackage);
                 }
-                if (Mouse.IsOver(correctionsBtn))
-                {
-                    TooltipHandler.TipRegion(correctionsBtn, "ATC_Corrections_ButtonTip".Translate());
-                }
-                GUI.color = Color.white;
                 cursorX -= 5f;
-
-
-                if (!isOfficialGamePackage && !string.IsNullOrEmpty(Settings.CloudAdminToken) && cloudRecord != null)
-                {
-                    cursorX -= btnWidth;
-                    Rect deleteCloudBtn = new Rect(cursorX, rowRect.y + 5f, btnWidth - 5f, 30f);
-                    if (AutoTranslatorSettings.CloudUploadTarget == mod.PackageId + "_del")
-                    {
-                        GUI.color = Color.red;
-                        Text.Anchor = TextAnchor.MiddleCenter;
-                        Widgets.Label(deleteCloudBtn, "ATC_Cloud_Deleting".Translate());
-                        Text.Anchor = TextAnchor.UpperLeft;
-                    }
-                    else
-                    {
-                        GUI.color = new Color(1f, 0.3f, 0.3f);
-                        if (Widgets.ButtonText(deleteCloudBtn, "ATC_Cloud_Btn_DeleteCloud".Translate()))
-                        {
-                            AutoTranslatorSettings.CloudUploadTarget = mod.PackageId + "_del";
-
-                            string pid = mod.PackageId; string lang = targetLangFolder; string token = Settings.CloudAdminToken; string recId = cloudRecord.RecordId;
-                            System.Threading.Tasks.Task.Run(async () => {
-                                bool success = await AutoTranslatorCloudClient.DeleteCloudRecordAsync(pid, lang, recId, token); ATC_Dispatcher.RunOnMainThread(() => {
-                                    AutoTranslatorSettings.CloudUploadTarget = "";
-                                    if (success) { Messages.Message("ATC_Msg_DeleteCloudSuccess".Translate(mod.Name), MessageTypeDefOf.PositiveEvent, false); AutoTranslatorSettings.HasFetchedCloudThisSession = false; }
-                                    else Messages.Message("ATC_Msg_DeleteCloudFailed".Translate(mod.Name), MessageTypeDefOf.RejectInput, false);
-                                });
-                            });
-                        }
-                    }
-                    GUI.color = Color.white;
-                    cursorX -= 5f;
-                }
-
-
-                if (!isOfficialGamePackage)
-                {
-                    cursorX -= btnWidth;
-                    Rect deleteLocalBtn = new Rect(cursorX, rowRect.y + 5f, btnWidth - 5f, 30f);
-                    GUI.color = new Color(1f, 0.6f, 0.6f);
-                    if (Widgets.ButtonText(deleteLocalBtn, "ATC_Cloud_Btn_DeleteLocal".Translate()))
-                    {
-                        AutoTranslatorScanner.LocalTranslationDeleteResult result =
-                            AutoTranslatorScanner.DeleteLocalTranslationFiles(new List<ModMetaData> { mod });
-
-                        if (result.HasErrors)
-                        {
-                            string error = string.IsNullOrEmpty(result.FirstError) ? "Unknown error" : result.FirstError;
-                            AutoTranslatorSettings.AddErrorLog("ATC_Message_DeleteTransError".Translate(error));
-                            Messages.Message("ATC_Message_DeleteTransError".Translate(error), MessageTypeDefOf.RejectInput, false);
-                        }
-                        else
-                        {
-                            Messages.Message("ATC_Msg_DeleteLocalSuccess".Translate(mod.Name), MessageTypeDefOf.NeutralEvent, false);
-                        }
-                    }
-                    GUI.color = Color.white;
-                    cursorX -= 5f;
-                }
-
-
-                if (!isOfficialGamePackage)
-                {
-                    cursorX -= btnWidth;
-                    Rect uploadBtn = new Rect(cursorX, rowRect.y + 5f, btnWidth - 5f, 30f);
-                    if (AutoTranslatorSettings.CloudUploadTarget == mod.PackageId)
-                    {
-                        GUI.color = Color.yellow;
-                        Text.Anchor = TextAnchor.MiddleCenter;
-                        Widgets.Label(uploadBtn, "ATC_Cloud_Btn_Uploading".Translate());
-                        Text.Anchor = TextAnchor.UpperLeft;
-                        GUI.color = Color.white;
-                    }
-                    else
-                    {
-                        GUI.color = new Color(1f, 0.8f, 0.4f);
-                        if (Widgets.ButtonText(uploadBtn, "ATC_Cloud_Btn_Upload".Translate()))
-                        {
-                            AutoTranslatorSettings.CloudUploadTarget = mod.PackageId;
-                            string packPath = AutoTranslatorScanner.GetLocalPackPath();
-                            string uNickname = Settings.CloudNickname; string uToken = Settings.CloudAdminToken;
-                            string workspaceDir = System.IO.Path.Combine(packPath, "Upload_Workspace", mod.PackageId, targetLangFolder);
-                            string liveLangDir = System.IO.Path.Combine(packPath, "Languages", targetLangFolder);
-                            bool useWorkspace = System.IO.Directory.Exists(workspaceDir) && AutoTranslatorScanner.GetXmlFilesForTranslationCache(workspaceDir, System.IO.SearchOption.AllDirectories).Count > 0;
-                            string finalSourceDir = useWorkspace ? workspaceDir : liveLangDir;
-
-                            string pId = mod.PackageId;
-                            string tFolder = targetLangFolder;
-                            string mName = mod.Name;
-                            string fSource = finalSourceDir;
-                            Find.WindowStack.Add(new Window_UploadPreview(mod, tFolder, fSource, mName));
-
-
-                            AutoTranslatorSettings.CloudUploadTarget = "";
-                        }
-                        GUI.color = Color.white;
-                    }
-                    cursorX -= 5f;
-                }
-
-
-                if (!isOfficialGamePackage)
-                {
-                    cursorX -= 40f;
-                    Rect openFolderBtn = new Rect(cursorX, rowRect.y + 5f, 35f, 30f);
-                    GUI.color = new Color(1f, 0.9f, 0.6f);
-
-                    if (Widgets.ButtonText(openFolderBtn, "ATC_Cloud_Btn_Dir".Translate()))
-                    {
-                        string packPath = AutoTranslatorScanner.GetLocalPackPath();
-                        string workspaceDir = System.IO.Path.Combine(packPath, "Upload_Workspace", mod.PackageId, targetLangFolder);
-                        System.IO.Directory.CreateDirectory(workspaceDir);
-                        UnityEngine.Application.OpenURL("file://" + workspaceDir);
-                    }
-
-                    if (Mouse.IsOver(openFolderBtn)) TooltipHandler.TipRegion(openFolderBtn, "ATC_Cloud_Btn_DirTooltip".Translate());
-                    GUI.color = Color.white;
-                    cursorX -= 5f;
-                }
-
 
                 if (!isOfficialGamePackage && canDownload)
                 {
@@ -476,18 +568,45 @@ namespace AutoTranslator_Core
                     cursorX -= dlWidth;
                     Rect downloadBtn = new Rect(cursorX, rowRect.y + 5f, dlWidth - 5f, 30f);
                     GUI.color = new Color(0.6f, 1f, 0.6f);
-                    if (Widgets.ButtonText(downloadBtn, "ATC_Cloud_Btn_Download".Translate()))
+                    if (WorkflowUiStyle.Button(downloadBtn, "ATC_Cloud_Btn_Download".Translate(),
+                            WorkflowButtonStyle.Primary, true, GameFont.Tiny))
                     {
-                        Messages.Message("ATC_Msg_DownloadStart".Translate(mod.Name), MessageTypeDefOf.NeutralEvent, false);
-
                         CloudModRecord targetRecord = cloudRecord;
-                        System.Threading.Tasks.Task.Run(async () => {
-                            bool success = await AutoTranslatorCloudClient.DownloadAndInjectAsync(mod.PackageId, targetLangFolder, targetRecord);
-                            ATC_Dispatcher.RunOnMainThread(() => {
-                                if (success) Messages.Message("ATC_Msg_DownloadSuccess".Translate(mod.Name), MessageTypeDefOf.PositiveEvent, false);
-                                else Messages.Message("ATC_Msg_DownloadFailed".Translate(mod.Name), MessageTypeDefOf.RejectInput, false);
-                            });
-                        });
+                        string targetLanguageLabel = GetLangLabel(Settings.CloudTargetLang);
+                        string message = WfText(
+                            "即将从公共云端下载译文，并替换该 Mod 在 ATC 生成包中的现有本地译文文件。\n\n" +
+                            "Mod：" + mod.Name + "\n" +
+                            "云端来源：" + GetCloudTranslationTypeLabel(targetRecord) + "\n" +
+                            "云端版本：v" + targetRecord.LatestVersion + "\n" +
+                            "目标语言：" + targetLanguageLabel + "（" + targetLangFolder + "）\n\n" +
+                            "通过译文编辑器保存、已记录到 V4 数据库的“手动翻译”会在下载后重新恢复。" +
+                            "直接修改 XML 但尚未点击“刷新状态”的内容可能被覆盖。\n\n" +
+                            "建议先返回翻译工作台刷新状态。是否仍要开始下载？",
+                            "Cloud translations will replace the existing local translation files for this mod in the ATC generated pack.\n\n" +
+                            "Mod: " + mod.Name + "\n" +
+                            "Cloud source: " + GetCloudTranslationTypeLabel(targetRecord) + "\n" +
+                            "Cloud version: v" + targetRecord.LatestVersion + "\n" +
+                            "Target language: " + targetLanguageLabel + " (" + targetLangFolder + ")\n\n" +
+                            "Manual translations saved through the translation editor and recorded in the V4 database will be restored after download. " +
+                            "Direct XML edits that have not been synchronized with Refresh Status may be overwritten.\n\n" +
+                            "Refreshing status in Translation Workbench first is recommended. Start download anyway?");
+                        Find.WindowStack.Add(new Window_AtcDialog(
+                            message,
+                            WfText("确认下载", "Download"),
+                            () => StartPreparedBatchDownload(
+                                new List<BatchDownloadItem>
+                                {
+                                    new BatchDownloadItem
+                                    {
+                                        PackageId = mod.PackageId,
+                                        DisplayName = mod.Name,
+                                        Record = targetRecord
+                                    }
+                                },
+                                targetLangFolder),
+                            WfText("取消", "Cancel"),
+                            null,
+                            WfText("确认云端下载", "Confirm cloud download")));
                     }
                     GUI.color = Color.white;
                     cursorX -= 5f;
@@ -507,15 +626,21 @@ namespace AutoTranslator_Core
 
                     string verLabel = $"v{cloudRecord.LatestVersion} ({currentLocType}){mergedTag}";
 
-                    if (Widgets.ButtonText(verDropRect, verLabel))
+                    if (WorkflowUiStyle.Button(verDropRect, verLabel,
+                            WorkflowButtonStyle.Quiet, true, GameFont.Tiny))
                     {
                         List<FloatMenuOption> verOptions = new List<FloatMenuOption>();
                         foreach (var v in allVersions)
                         {
                             string mTag = v.IsSmartMerged ? "ATC_Cloud_SmartMerged".Translate().ToString() : "";
                             string vLocType = GetCloudTranslationTypeLabel(v);
+                            string uploader = string.IsNullOrWhiteSpace(v.Author)
+                                ? WfText("未知", "Unknown")
+                                : v.Author.Trim();
 
-                            string optLabel = $"[{v.LastUpdated:yyyy-MM-dd}] ({vLocType}) - {v.Author}{mTag}";
+                            string optLabel = $"v{v.LatestVersion} ({vLocType}){mTag} · " +
+                                WfText("上传者：", "Uploader: ") + uploader +
+                                $" · {v.LastUpdated:yyyy-MM-dd}";
                             verOptions.Add(new FloatMenuOption(optLabel, () => { AutoTranslatorSettings.SelectedCloudVersion[mod.PackageId] = v; }));
                         }
                         Find.WindowStack.Add(new FloatMenu(verOptions));
@@ -529,7 +654,11 @@ namespace AutoTranslator_Core
                         string logDisplay = string.IsNullOrWhiteSpace(cloudRecord.UpdateLog) ? "ATC_Cloud_NoLog".Translate().ToString() : cloudRecord.UpdateLog;
 
 
-                        string tipStr = "ATC_Cloud_UploadDate".Translate(cloudRecord.LastUpdated.ToString("yyyy-MM-dd HH:mm")) + "\n" +
+                        string currentUploader = string.IsNullOrWhiteSpace(cloudRecord.Author)
+                            ? WfText("未知", "Unknown")
+                            : cloudRecord.Author.Trim();
+                        string tipStr = WfText("上传者：", "Uploader: ") + currentUploader + "\n" +
+                                        "ATC_Cloud_UploadDate".Translate(cloudRecord.LastUpdated.ToString("yyyy-MM-dd HH:mm")) + "\n" +
                                         "ATC_Cloud_TransType".Translate(currentLocType) + "\n" +
                                         "ATC_Cloud_IsSmartMerged".Translate(mergeStatus) + "\n" +
                                         "📜 " + "ATC_Cloud_LogTitle".Translate() + ": " + logDisplay;
@@ -561,6 +690,88 @@ namespace AutoTranslator_Core
                 GUI.color = statusColor;
                 Widgets.Label(statusRect, statusText);
                 GUI.color = Color.white;
+        }
+
+        private void OpenCloudRowDetails(
+            ModMetaData mod,
+            string targetLangFolder,
+            CloudModRecord cloudRecord,
+            bool isOfficialGamePackage)
+        {
+            List<FloatMenuOption> options = new List<FloatMenuOption>
+            {
+                new FloatMenuOption(WfText("查看纠错记录", "View corrections"), () =>
+                    Find.WindowStack.Add(new Window_AppliedCorrections(mod, targetLangFolder)))
+            };
+
+            if (!isOfficialGamePackage)
+            {
+                bool downloadBlocked = Settings.IsCloudDownloadBlacklisted(mod.PackageId);
+                options.Add(new FloatMenuOption(
+                    downloadBlocked
+                        ? WfText("移出云端下载排除列表", "Allow cloud downloads")
+                        : WfText("加入云端下载排除列表", "Exclude from cloud downloads"),
+                    () =>
+                    {
+                        Settings.SetCloudDownloadBlacklisted(mod.PackageId, !downloadBlocked);
+                        WriteSettings();
+                    }));
+
+                options.Add(new FloatMenuOption(WfText("打开贡献工作区", "Open contribution workspace"), () =>
+                {
+                    string packPath = AutoTranslatorScanner.GetLocalPackPath();
+                    string workspaceDir = Path.Combine(packPath, "Upload_Workspace", mod.PackageId, targetLangFolder);
+                    Directory.CreateDirectory(workspaceDir);
+                    UnityEngine.Application.OpenURL("file://" + workspaceDir);
+                }));
+
+                options.Add(new FloatMenuOption(WfText("贡献这个 Mod 的译文", "Contribute this mod"), () =>
+                {
+                    string packPath = AutoTranslatorScanner.GetLocalPackPath();
+                    string workspaceDir = Path.Combine(packPath, "Upload_Workspace", mod.PackageId, targetLangFolder);
+                    string liveLangDir = Path.Combine(packPath, "Languages", targetLangFolder);
+                    bool useWorkspace = Directory.Exists(workspaceDir) &&
+                        AutoTranslatorScanner.GetXmlFilesForTranslationCache(
+                            workspaceDir, SearchOption.AllDirectories).Count > 0;
+                    string sourceDir = useWorkspace ? workspaceDir : liveLangDir;
+                    Find.WindowStack.Add(new Window_UploadPreview(
+                        mod, targetLangFolder, sourceDir, mod.Name));
+                }));
+
+                if (!string.IsNullOrWhiteSpace(Settings.CloudAdminToken) && cloudRecord != null)
+                {
+                    options.Add(new FloatMenuOption(WfText("管理员：删除这个云端版本", "Admin: delete cloud version"), () =>
+                    {
+                        string packageId = mod.PackageId;
+                        string displayName = mod.Name;
+                        string token = Settings.CloudAdminToken;
+                        string recordId = cloudRecord.RecordId;
+                        AutoTranslatorSettings.CloudUploadTarget = packageId + "_del";
+                        Task.Run(async () =>
+                        {
+                            bool success = await AutoTranslatorCloudClient.DeleteCloudRecordAsync(
+                                packageId, targetLangFolder, recordId, token);
+                            ATC_Dispatcher.RunOnMainThread(() =>
+                            {
+                                AutoTranslatorSettings.CloudUploadTarget = string.Empty;
+                                if (success)
+                                {
+                                    Messages.Message("ATC_Msg_DeleteCloudSuccess".Translate(displayName),
+                                        MessageTypeDefOf.PositiveEvent, false);
+                                    AutoTranslatorSettings.HasFetchedCloudThisSession = false;
+                                }
+                                else
+                                {
+                                    Messages.Message("ATC_Msg_DeleteCloudFailed".Translate(displayName),
+                                        MessageTypeDefOf.RejectInput, false);
+                                }
+                            });
+                        });
+                    }));
+                }
+            }
+
+            Find.WindowStack.Add(new FloatMenu(options));
         }
 
         private void DrawOwnCloudRecordRow(CloudModRecord record, Rect rowRect, Dictionary<string, List<CloudModRecord>> cloudLookup, string targetLangFolder)
@@ -596,7 +807,8 @@ namespace AutoTranslator_Core
                 else
                 {
                     GUI.color = new Color(1f, 0.3f, 0.3f);
-                    if (Widgets.ButtonText(deleteCloudBtn, "ATC_Cloud_Btn_DeleteCloud".Translate()))
+                    if (WorkflowUiStyle.Button(deleteCloudBtn, "ATC_Cloud_Btn_DeleteCloud".Translate(),
+                            WorkflowButtonStyle.Stop, true, GameFont.Tiny))
                     {
                         AutoTranslatorSettings.CloudUploadTarget = deleteKey;
 
@@ -680,7 +892,7 @@ namespace AutoTranslator_Core
         private static string GetCloudTranslationTypeLabel(string type)
         {
             if (type == "Official_Group") return "ATC_Type_Official".Translate();
-            if (type == "Manual") return "ATC_Type_Manual".Translate();
+            if (type == "Manual") return WfText("人工精翻", "Human-curated");
             if (type == "AI_Auto") return "ATC_Type_AI".Translate();
             return type ?? "";
         }

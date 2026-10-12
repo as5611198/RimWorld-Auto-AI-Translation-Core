@@ -27,7 +27,7 @@ namespace AutoTranslator_Core
         public static bool IsSuccess(UnityEngine.Networking.UnityWebRequest request)
         {
             if (request == null) return false;
-            return !request.isNetworkError && !request.isHttpError;
+            return request.result == UnityEngine.Networking.UnityWebRequest.Result.Success;
         }
     }
 }

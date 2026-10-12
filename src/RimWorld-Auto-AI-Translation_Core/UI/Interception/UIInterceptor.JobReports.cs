@@ -21,12 +21,6 @@ namespace AutoTranslator_Core
             if (AutoTranslatorMod.Settings == null || __instance == null || string.IsNullOrWhiteSpace(__result)) return;
             if (LanguageDetector.LooksLikeTargetLanguage(__result, AutoTranslatorMod.Settings.TargetLang)) return;
 
-            if (UIInterceptor.TryGetCachedTranslationKnownSafe(__result, out string cachedTranslation))
-            {
-                __result = cachedTranslation;
-                return;
-            }
-
             if (TryGetTranslatedDefReport(__instance, __result, out string translatedReport))
             {
                 __result = translatedReport;

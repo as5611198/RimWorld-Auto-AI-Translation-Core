@@ -26,7 +26,7 @@ namespace AutoTranslator_Core
         public override Vector2 InitialSize => new Vector2(750f, 700f);
         // 這個方法負責處理 Tutorial視窗 相關流程。
         // EN: This constructor initializes tutorial window.
-        public TutorialWindow() { this.doCloseButton = true; this.doCloseX = true; this.forcePause = true; this.absorbInputAroundWindow = true; }
+        public TutorialWindow() { this.doCloseButton = false; this.doCloseX = true; this.forcePause = true; this.absorbInputAroundWindow = true; }
         // 這個方法負責處理 Do視窗Contents 相關流程。
         // EN: This method handles do window contents.
         public override void DoWindowContents(Rect inRect)
@@ -43,6 +43,9 @@ namespace AutoTranslator_Core
             Widgets.BeginScrollView(outRect, ref scrollPos, viewRect);
             Widgets.Label(new Rect(0, 0, viewRect.width, textHeight), contentText);
             Widgets.EndScrollView();
+            Rect closeRect = new Rect(inRect.width - 150f, inRect.height - 40f, 150f, 36f);
+            if (WorkflowUiStyle.Button(closeRect, "CloseButton".Translate(), WorkflowButtonStyle.Quiet))
+                Close();
         }
     }
 }

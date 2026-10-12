@@ -1,4 +1,4 @@
-﻿
+
 
 
 using HarmonyLib;
@@ -26,6 +26,7 @@ namespace AutoTranslator_Core
         // 這個欄位保存 設定 的執行狀態或快取資料。
         // EN: This field stores settings runtime state or cached data.
         public static AutoTranslatorSettings Settings;
+        internal static string CoreModRoot { get; private set; } = string.Empty;
 
 
         // 這個欄位保存 主畫面執行緒Context 的執行狀態或快取資料。
@@ -36,24 +37,27 @@ namespace AutoTranslator_Core
         // 這個欄位保存 cachedValid模組 的執行狀態或快取資料。
         // EN: This field stores cached valid mods runtime state or cached data.
         private static List<ModMetaData> _cachedValidMods = null;
-        // 這個欄位保存 lastActive模組Count 的執行狀態或快取資料。
-        // EN: This field stores last active mod count runtime state or cached data.
-        private static int _lastActiveModCount = -1;
-        private static long _nextActiveModCountCheckUtcTicks = 0L;
+        // 這個欄位保存已安裝模組數量與啟用狀態的快取資料。
+        // EN: These fields cache the installed mod count and activation-state signature.
+        private static int _lastInstalledModCount = -1;
+        private static long _nextInstalledModStateCheckUtcTicks = 0L;
         private static bool _validModsCacheRefreshInFlight = false;
         private static int _validModsCacheGeneration = 0;
+        private static int _validModsFilterSettingsRevision = 0;
+        private static int _validModsCacheAppliedSettingsRevision = -1;
         private static int _validModsCacheVersion = 0;
         private static int _validModsCacheProgressCurrent = 0;
         private static int _validModsCacheProgressTotal = 0;
         private static string _validModsCacheProgressModName = "";
-        private static string _lastActiveModSignature = "";
-        private static string _pendingActiveModSignature = "";
+        private static string _lastInstalledModSignature = "";
+        private static string _pendingInstalledModSignature = "";
         // 這個欄位保存 cached雲端Lookup 的執行狀態或快取資料。
         // EN: This field stores cached cloud lookup runtime state or cached data.
         private static Dictionary<string, List<CloudModRecord>> _cachedCloudLookup = null;
         // 這個欄位保存 last雲端登錄Count 的執行狀態或快取資料。
         // EN: This field stores last cloud registry count runtime state or cached data.
         private static int _lastCloudRegistryCount = -1;
+        private static int _lastCloudRegistryGeneration = -1;
         // 這個欄位保存 last雲端語言Folder 的執行狀態或快取資料。
         // EN: This field stores last cloud language folder runtime state or cached data.
         private static string _lastCloudLangFolder = "";
@@ -70,6 +74,9 @@ namespace AutoTranslator_Core
         // EN: This field stores cached cloud valid mod count runtime state or cached data.
         private static int _cachedCloudValidModCount = -1;
         private static int _cachedCloudDisplayValidVersion = -1;
+        private static int _cachedCloudDisplayTypeMask = -1;
+        private static int _cachedCloudDisplayRegistryGeneration = -1;
+        private static string _cachedCloudDisplayLangFolder = "";
         private static readonly List<CloudModRecord> EmptyCloudRecords = new List<CloudModRecord>(0);
         private static int _cachedCloudStatsRegistryCount = -1;
         private static int _cachedCloudStatsGeneration = -1;
@@ -81,12 +88,14 @@ namespace AutoTranslator_Core
         private static int _cachedOwnCloudRecordsGeneration = -1;
         private static string _cachedOwnCloudRecordsLangFolder = "";
         private static string _cachedOwnCloudRecordsSearchText = "";
+        private static int _cachedOwnCloudRecordsTypeMask = -1;
         private static Dictionary<string, ModMetaData> _cachedCloudLocalModMap = null;
         private static int _cachedCloudLocalModMapCount = -1;
         private static int _cachedCloudLocalModMapVersion = -1;
         private static readonly Dictionary<string, int> _singleCorrectionCountCache = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         private static readonly HashSet<string> _singleCorrectionCountFetchInFlight = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private static readonly LogViewCache _runtimeLogViewCache = new LogViewCache();
+        private static readonly LogViewCache _warningLogViewCache = new LogViewCache();
         private static readonly LogViewCache _errorLogViewCache = new LogViewCache();
 
         private sealed class LogViewCache
@@ -98,6 +107,7 @@ namespace AutoTranslator_Core
             public readonly List<string> DisplayLogs = new List<string>();
             public readonly List<float> Heights = new List<float>();
             public float TotalHeight = 0f;
+            public bool FollowTail = true;
         }
 
         private sealed class ValidModSnapshot
@@ -134,32 +144,31 @@ namespace AutoTranslator_Core
 
         private static void QueueValidModsCacheRefreshIfNeeded()
         {
+            if (_validModsCacheRefreshInFlight) return;
+
             long nowTicks = DateTime.UtcNow.Ticks;
-            if (_cachedValidMods != null && nowTicks < _nextActiveModCountCheckUtcTicks)
+            if (_cachedValidMods != null && nowTicks < _nextInstalledModStateCheckUtcTicks)
             {
                 return;
             }
 
-            List<ValidModSnapshot> snapshots = SnapshotActiveModsForValidMods(out int activeCount, out string signature);
-            _nextActiveModCountCheckUtcTicks = nowTicks + TimeSpan.TicksPerSecond;
+            List<ValidModSnapshot> snapshots = SnapshotInstalledModsForValidMods(
+                out int installedCount,
+                out string signature);
+            _nextInstalledModStateCheckUtcTicks = nowTicks + TimeSpan.TicksPerSecond;
 
             if (_cachedValidMods != null &&
                 !_validModsCacheRefreshInFlight &&
-                _lastActiveModCount == activeCount &&
-                string.Equals(_lastActiveModSignature, signature, StringComparison.Ordinal))
-            {
-                return;
-            }
-
-            if (_validModsCacheRefreshInFlight &&
-                string.Equals(_pendingActiveModSignature, signature, StringComparison.Ordinal))
+                _lastInstalledModCount == installedCount &&
+                string.Equals(_lastInstalledModSignature, signature, StringComparison.Ordinal))
             {
                 return;
             }
 
             int generation = ++_validModsCacheGeneration;
+            int settingsRevision = _validModsFilterSettingsRevision;
             _validModsCacheRefreshInFlight = true;
-            _pendingActiveModSignature = signature;
+            _pendingInstalledModSignature = signature;
             _validModsCacheProgressCurrent = 0;
             _validModsCacheProgressTotal = snapshots.Count;
             _validModsCacheProgressModName = "";
@@ -167,6 +176,7 @@ namespace AutoTranslator_Core
             Task.Run(() =>
             {
                 List<ModMetaData> validMods = new List<ModMetaData>();
+                List<FilteredModInfo> filteredMods = new List<FilteredModInfo>();
                 string error = null;
 
                 try
@@ -177,13 +187,15 @@ namespace AutoTranslator_Core
                         _validModsCacheProgressCurrent = i;
                         _validModsCacheProgressModName = snapshot != null ? snapshot.Name ?? "" : "";
 
-                        if (snapshot != null &&
-                            !ShouldSkipValidModPackage(snapshot.PackageId) &&
-                            snapshot.Mod != null &&
-                            (AutoTranslatorScanner.IsOfficialBaseGameOrDlcPackage(snapshot.PackageId) ||
-                             AutoTranslatorScanner.HasScannableTranslationSources(snapshot.PackageId, snapshot.RootDir)))
+                        bool includeInValidMods;
+                        FilteredModInfo filteredInfo = EvaluateModFilter(snapshot, out includeInValidMods);
+                        if (includeInValidMods && snapshot != null && snapshot.Mod != null)
                         {
                             validMods.Add(snapshot.Mod);
+                        }
+                        if (filteredInfo != null)
+                        {
+                            filteredMods.Add(filteredInfo);
                         }
                     }
 
@@ -191,6 +203,10 @@ namespace AutoTranslator_Core
                     _validModsCacheProgressModName = "";
                     validMods = validMods
                         .OrderBy(m => m.Name ?? "", StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+                    filteredMods = filteredMods
+                        .OrderByDescending(info => info.IsFiltered)
+                        .ThenBy(info => info.Name ?? "", StringComparer.OrdinalIgnoreCase)
                         .ToList();
                 }
                 catch (Exception ex)
@@ -203,7 +219,7 @@ namespace AutoTranslator_Core
                     if (generation != _validModsCacheGeneration) return;
 
                     _validModsCacheRefreshInFlight = false;
-                    _pendingActiveModSignature = "";
+                    _pendingInstalledModSignature = "";
                     _validModsCacheProgressCurrent = _validModsCacheProgressTotal;
                     _validModsCacheProgressModName = "";
 
@@ -215,8 +231,11 @@ namespace AutoTranslator_Core
                     }
 
                     _cachedValidMods = validMods ?? new List<ModMetaData>();
-                    _lastActiveModCount = activeCount;
-                    _lastActiveModSignature = signature;
+                    _cachedFilteredMods = filteredMods ?? new List<FilteredModInfo>();
+                    AutoTranslatorSettings.FilteredModsCount = _cachedFilteredMods.Count(info => info.IsFiltered);
+                    _lastInstalledModCount = installedCount;
+                    _lastInstalledModSignature = signature;
+                    _validModsCacheAppliedSettingsRevision = settingsRevision;
                     _validModsCacheVersion++;
                     _cachedCloudDisplayMods = null;
                     _cachedCloudLocalModMap = null;
@@ -224,24 +243,27 @@ namespace AutoTranslator_Core
             });
         }
 
-        private static List<ValidModSnapshot> SnapshotActiveModsForValidMods(out int activeCount, out string signature)
+        private static List<ValidModSnapshot> SnapshotInstalledModsForValidMods(
+            out int installedCount,
+            out string signature)
         {
             List<ValidModSnapshot> snapshots = new List<ValidModSnapshot>();
             StringBuilder signatureBuilder = new StringBuilder();
-            activeCount = 0;
+            installedCount = 0;
 
             foreach (ModMetaData mod in Verse.ModLister.AllInstalledMods)
             {
-                if (mod == null || !mod.Active) continue;
+                if (mod == null) continue;
 
-                activeCount++;
+                installedCount++;
                 string packageId = mod.PackageId ?? "";
                 string name = mod.Name ?? "";
                 string rootDir = mod.RootDir != null ? mod.RootDir.FullName : "";
 
                 signatureBuilder.Append(packageId).Append('|')
                     .Append(name).Append('|')
-                    .Append(rootDir).Append('\n');
+                    .Append(rootDir).Append('|')
+                    .Append(mod.Active ? '1' : '0').Append('\n');
 
                 snapshots.Add(new ValidModSnapshot
                 {
@@ -252,17 +274,14 @@ namespace AutoTranslator_Core
                 });
             }
 
-            signature = activeCount + ":" + signatureBuilder;
+            signature = installedCount + ":settings=" + _validModsFilterSettingsRevision + ":" + signatureBuilder;
             return snapshots;
         }
 
         private static bool ShouldSkipValidModPackage(string packageId)
         {
             if (string.IsNullOrWhiteSpace(packageId)) return true;
-
-            string pid = packageId.ToLowerInvariant();
-            return pid == "auto.aitranslation.core" ||
-                   pid == "aitranslation.pack";
+            return AutoTranslatorScanner.IsNonTranslatableSystemPackage(packageId);
         }
 
 
@@ -270,14 +289,15 @@ namespace AutoTranslator_Core
         // EN: This constructor initializes auto translator mod.
         public AutoTranslatorMod(ModContentPack content) : base(content)
         {
+            CoreModRoot = content?.RootDir ?? string.Empty;
             EnsureNetworkDispatchReady();
 
             Settings = GetSettings<AutoTranslatorSettings>();
+            SettingsWindowSizingPatch.EnsureInstalled();
             if (Settings.ApiConfigs == null || Settings.ApiConfigs.Count == 0)
             {
                 Settings.ApiConfigs = new List<ApiKeyConfig> { new ApiKeyConfig() };
             }
-
             TryAutoSyncLanguageWithGame(resetCaches: false, log: false, writeSettings: true);
 
             AutoTranslator_StartupHook.EnsureInstalled();
@@ -314,6 +334,7 @@ namespace AutoTranslator_Core
                 case TargetLanguage.Polish: return "ATC_Lang_Polish".Translate();
                 case TargetLanguage.Portuguese: return "ATC_Lang_Portuguese".Translate();
                 case TargetLanguage.Turkish: return "ATC_Lang_Turkish".Translate();
+                case TargetLanguage.Thai: return "ATC_Lang_Thai".Translate();
                 default: return lang.ToString();
             }
         }
@@ -339,6 +360,11 @@ namespace AutoTranslator_Core
         {
             bool changed = Settings.TargetLang != targetLang;
 
+            if (changed)
+            {
+                UIInterceptor.PrepareForLanguageChange();
+            }
+
             Settings.TargetLang = targetLang;
             Settings.CloudTargetLang = targetLang;
             if (manualSelection) Settings.HasManualTargetLanguage = true;
@@ -357,9 +383,9 @@ namespace AutoTranslator_Core
         {
             ResetCloudFetchStateForLanguageChange();
             UIInterceptor.ReloadForLanguageChange();
-            ModNameTranslationCache.Clear();
+            TargetedHardcodedUi.HardcodedUiTargetedPatchManager.RequestReload();
             ModUpdateDetector.ClearStatusCache();
-            TranslationWorkbenchTab.RequestRefresh();
+            AutoTranslator_Core.Workflow.WorkflowTaskCoordinator.Instance.NotifyWorkbenchDataChanged();
             AutoTranslatorScanner.RequestMemoryDrop();
         }
 
@@ -370,6 +396,11 @@ namespace AutoTranslator_Core
             if (Settings == null || Settings.HasManualTargetLanguage) return false;
             if (!TryGetTargetLanguageFromActiveGameLanguage(out TargetLanguage detectedLang, out string activeFolder)) return false;
             if (Settings.TargetLang == detectedLang && Settings.CloudTargetLang == detectedLang) return false;
+
+            if (resetCaches)
+            {
+                UIInterceptor.PrepareForLanguageChange();
+            }
 
             Settings.TargetLang = detectedLang;
             Settings.CloudTargetLang = detectedLang;
@@ -419,6 +450,7 @@ namespace AutoTranslator_Core
                 case "Polish": targetLang = TargetLanguage.Polish; return true;
                 case "PortugueseBrazilian": targetLang = TargetLanguage.Portuguese; return true;
                 case "Turkish": targetLang = TargetLanguage.Turkish; return true;
+                case "Thai": targetLang = TargetLanguage.Thai; return true;
                 case "English": targetLang = TargetLanguage.English; return true;
                 default: return false;
             }
@@ -521,11 +553,35 @@ namespace AutoTranslator_Core
             });
         }
 
+        internal static void ReplaceCloudRegistryAfterRecovery(
+            List<CloudModRecord> records,
+            string packageId,
+            CloudModRecord selectedRecord)
+        {
+            if (records == null) return;
+            ATC_Dispatcher.RunOnMainThread(() =>
+            {
+                AutoTranslatorSettings.CloudRegistry = records;
+                AutoTranslatorSettings.HasFetchedCloudThisSession = true;
+                AutoTranslatorSettings.CloudConnectionFailed = false;
+                AutoTranslatorSettings.CloudFetchGeneration++;
+                if (!string.IsNullOrWhiteSpace(packageId) && selectedRecord != null)
+                {
+                    AutoTranslatorSettings.SelectedCloudVersion[packageId] = selectedRecord;
+                }
+                _cachedCloudLookup = null;
+                _singleCorrectionCountCache.Clear();
+                _singleCorrectionCountFetchInFlight.Clear();
+                _lastCloudRegistryCount = -1;
+                _lastCloudLangFolder = string.Empty;
+            });
+        }
+
         // 這個方法負責確保 雲端取得StartedForActive分頁 已準備完成。
         // EN: This method ensures cloud fetch started for active tab is ready.
         private static void EnsureCloudFetchStartedForActiveTab()
         {
-            if (AutoTranslatorSettings.ActiveTab != 2) return;
+            if (AutoTranslatorSettings.ActiveTab != AutoTranslatorSettings.CloudTabIndex) return;
             if (AutoTranslatorSettings.IsFetchingCloud || AutoTranslatorSettings.HasFetchedCloudThisSession) return;
 
             StartCloudRegistryFetch();
@@ -535,6 +591,7 @@ namespace AutoTranslator_Core
         // EN: This method handles do settings window contents.
         public override void DoSettingsWindowContents(Rect inRect)
         {
+            Window_ModCatalogSync.OpenOnce();
             EnsureNetworkDispatchReady();
             AutoTranslatorAPI.MaintainModelFetchState();
 
@@ -543,26 +600,40 @@ namespace AutoTranslator_Core
             Patch_GUI_Label_GUIContent.BypassInterceptor = true;
             try
             {
-                if (AutoTranslatorSettings.ShowFinishPopup)
-                {
-                    AutoTranslatorSettings.ShowFinishPopup = false;
-                    Find.WindowStack.Add(new Dialog_MessageBox("ATC_FinishMessage_Text".Translate(), "ATC_FinishMessage_OK".Translate(), null, null, null, "ATC_FinishMessage_Title".Translate()));
-                }
 
 
-                List<TabRecord> tabs = new List<TabRecord>
+                string[] tabLabels =
                 {
-                    new TabRecord("ATC_Tab_Main".Translate(), () => AutoTranslatorSettings.ActiveTab = 0, AutoTranslatorSettings.ActiveTab == 0),
-                    new TabRecord("ATC_Tab_Editor".Translate(), () => AutoTranslatorSettings.ActiveTab = 1, AutoTranslatorSettings.ActiveTab == 1),
-                    new TabRecord("ATC_Tab_Cloud".Translate(), () => AutoTranslatorSettings.ActiveTab = 2, AutoTranslatorSettings.ActiveTab == 2),
-                    new TabRecord("ATC_Tab_Settings".Translate(), () => AutoTranslatorSettings.ActiveTab = 3, AutoTranslatorSettings.ActiveTab == 3)
+                    "ATC_Tab_Cloud".Translate(),
+                    "ATC_Tab_Main".Translate(),
+                    "ATC_Tab_Editor".Translate(),
+                    "ATC_Tab_Settings".Translate()
                 };
-                Rect tabRect = new Rect(inRect.x, inRect.y + 25f, inRect.width, 30f);
-                TabDrawer.DrawTabs(tabRect, tabs);
+                Rect tabRect = new Rect(inRect.x, inRect.y + 22f, inRect.width, 34f);
+                const float tabGap = 2f;
+                float tabWidth = (tabRect.width - tabGap * 3f) / 4f;
+                for (int tabIndex = 0; tabIndex < tabLabels.Length; tabIndex++)
+                {
+                    Rect oneTab = new Rect(
+                        tabRect.x + tabIndex * (tabWidth + tabGap),
+                        tabRect.y,
+                        tabWidth,
+                        tabRect.height);
+                    bool selected = AutoTranslatorSettings.ActiveTab == tabIndex;
+                    if (WorkflowUiStyle.Button(
+                            oneTab,
+                            tabLabels[tabIndex],
+                            selected ? WorkflowButtonStyle.ActiveTab : WorkflowButtonStyle.Tab,
+                            true,
+                            GameFont.Small))
+                        AutoTranslatorSettings.ActiveTab = tabIndex;
+                }
                 if (_lastActiveTab != AutoTranslatorSettings.ActiveTab)
                 {
+                    if (AutoTranslatorSettings.ActiveTab != AutoTranslatorSettings.WorkbenchTabIndex)
+                        EndWorkflowSelectionGesture();
                     _lastActiveTab = AutoTranslatorSettings.ActiveTab;
-                    if (AutoTranslatorSettings.ActiveTab == 2)
+                    if (AutoTranslatorSettings.ActiveTab == AutoTranslatorSettings.CloudTabIndex)
                     {
                         EnsureCloudFetchStartedForActiveTab();
                     }
@@ -573,43 +644,72 @@ namespace AutoTranslator_Core
                 }
 
 
-                Rect viewRect = new Rect(0, 0, inRect.width - 20f, AutoTranslatorSettings.lastSettingsViewHeight);
-                Rect scrollRect = new Rect(0, 65f, inRect.width, inRect.height - 65f);
-
-                Widgets.BeginScrollView(scrollRect, ref AutoTranslatorSettings.mainScrollPos, viewRect);
-                bool listingStarted = false;
-                Listing_Standard l = new Listing_Standard();
-                try
+                float contentTop = tabRect.yMax + 7f;
+                Rect scrollRect = new Rect(
+                    inRect.x,
+                    contentTop,
+                    inRect.width,
+                    Mathf.Max(1f, inRect.yMax - contentTop));
+                if (AutoTranslatorSettings.ActiveTab != AutoTranslatorSettings.CloudTabIndex)
                 {
-                    Rect listRect = new Rect(0, 0, viewRect.width, 99999f);
-                    l.Begin(listRect);
-                    listingStarted = true;
-                    l.Gap(5f);
-
-
-                    if (AutoTranslatorSettings.ActiveTab == 0)
-                    {
-                        DrawMainTab(l, viewRect);
-                    }
-                    else if (AutoTranslatorSettings.ActiveTab == 1)
-                    {
-
-                        TranslationWorkbenchTab.DrawEditorTab(l, viewRect);
-                    }
-                    else if (AutoTranslatorSettings.ActiveTab == 2)
-                    {
-                        DrawCloudTab(l, viewRect);
-                    }
-                    else if (AutoTranslatorSettings.ActiveTab == 3)
-                    {
-                        DrawConfigTab(l, viewRect);
-                    }
-                    AutoTranslatorSettings.lastSettingsViewHeight = l.CurHeight + 50f;
+                    Widgets.DrawBoxSolid(scrollRect, WorkflowUiStyle.Panel);
+                    WorkflowUiStyle.DrawBorder(scrollRect, new Color(0.28f, 0.31f, 0.33f));
                 }
-                finally
+                bool fixedPrimaryLayout = SettingsLayoutPolicy.UseFixedPrimaryLayout(
+                    AutoTranslatorSettings.ActiveTab,
+                    scrollRect.width,
+                    scrollRect.height);
+                if (fixedPrimaryLayout)
                 {
-                    if (listingStarted) l.End();
-                    Widgets.EndScrollView();
+                    GUI.BeginGroup(scrollRect);
+                    Listing_Standard workbenchListing = new Listing_Standard();
+                    bool workbenchListingStarted = false;
+                    try
+                    {
+                        Rect fixedViewRect = new Rect(0f, 0f, scrollRect.width, scrollRect.height);
+                        workbenchListing.Begin(fixedViewRect);
+                        workbenchListingStarted = true;
+                        workbenchListing.Gap(5f);
+                        if (AutoTranslatorSettings.ActiveTab == AutoTranslatorSettings.WorkbenchTabIndex)
+                            DrawMainTab(workbenchListing, fixedViewRect);
+                        else
+                            DrawWorkflowEditorTab(workbenchListing, fixedViewRect);
+                        AutoTranslatorSettings.lastSettingsViewHeight = workbenchListing.CurHeight + 10f;
+                    }
+                    finally
+                    {
+                        if (workbenchListingStarted) workbenchListing.End();
+                        GUI.EndGroup();
+                    }
+                }
+                else
+                {
+                    Rect viewRect = new Rect(0, 0, inRect.width - 20f, AutoTranslatorSettings.lastSettingsViewHeight);
+                    Widgets.BeginScrollView(scrollRect, ref AutoTranslatorSettings.mainScrollPos, viewRect);
+                    bool listingStarted = false;
+                    Listing_Standard l = new Listing_Standard();
+                    try
+                    {
+                        Rect listRect = new Rect(0, 0, viewRect.width, 99999f);
+                        l.Begin(listRect);
+                        listingStarted = true;
+                        l.Gap(5f);
+
+                        if (AutoTranslatorSettings.ActiveTab == AutoTranslatorSettings.CloudTabIndex)
+                            DrawCloudTab(l, viewRect);
+                        else if (AutoTranslatorSettings.ActiveTab == AutoTranslatorSettings.WorkbenchTabIndex)
+                            DrawMainTab(l, viewRect);
+                        else if (AutoTranslatorSettings.ActiveTab == AutoTranslatorSettings.EditorTabIndex)
+                            DrawWorkflowEditorTab(l, viewRect);
+                        else if (AutoTranslatorSettings.ActiveTab == AutoTranslatorSettings.SettingsTabIndex)
+                            DrawConfigTab(l, viewRect);
+                        AutoTranslatorSettings.lastSettingsViewHeight = l.CurHeight + 50f;
+                    }
+                    finally
+                    {
+                        if (listingStarted) l.End();
+                        Widgets.EndScrollView();
+                    }
                 }
             }
             finally

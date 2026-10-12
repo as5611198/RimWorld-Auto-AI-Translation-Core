@@ -12,16 +12,19 @@ namespace AutoTranslator_Core
         // EN: This method handles on application quit.
         private void OnApplicationQuit()
         {
-            UIInterceptor.FlushCache();
-            ModNameTranslationCache.SaveIfDirty();
+            TargetedHardcodedUi.HardcodedUiRuntimeObservationStore.Flush();
         }
 
         // 這個方法負責處理 OnDestroy 相關流程。
         // EN: This method handles on destroy.
         private void OnDestroy()
         {
-            UIInterceptor.FlushCache();
-            ModNameTranslationCache.SaveIfDirty();
+            TargetedHardcodedUi.HardcodedUiRuntimeObservationStore.Flush();
+        }
+
+        private void Update()
+        {
+            TargetedHardcodedUi.HardcodedUiCaptureSession.Update();
         }
     }
 }

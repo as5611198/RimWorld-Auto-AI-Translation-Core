@@ -158,32 +158,26 @@ namespace AutoTranslator_Core
             Rect closeBtnRect = new Rect((btnWidth + 10f) * 2, btnY, btnWidth, 40f);
 
 
-            if (_selectedMod != null)
-                GUI.color = new Color(0.4f, 1f, 0.8f);
-            else
-                GUI.color = new Color(0.5f, 0.5f, 0.5f);
-
-            if (Widgets.ButtonText(copyBtnRect, "ATC_ContactAuthor_CopyTemplate".Translate()))
+            if (WorkflowUiStyle.Button(copyBtnRect, "ATC_ContactAuthor_CopyTemplate".Translate(),
+                    WorkflowButtonStyle.Primary, _selectedMod != null))
             {
-                if (_selectedMod != null)
-                {
-                    string template = BuildEmailTemplate(_selectedMod);
-                    GUIUtility.systemCopyBuffer = template;
-                    Messages.Message("ATC_ContactAuthor_TemplateCopied".Translate(),
-                        MessageTypeDefOf.PositiveEvent, false);
-                }
+                string template = BuildEmailTemplate(_selectedMod);
+                GUIUtility.systemCopyBuffer = template;
+                Messages.Message("ATC_ContactAuthor_TemplateCopied".Translate(),
+                    MessageTypeDefOf.PositiveEvent, false);
             }
 
 
-            GUI.color = new Color(0.4f, 0.8f, 1f);
-            if (Widgets.ButtonText(workshopBtnRect, "ATC_ContactAuthor_OpenWorkshop".Translate()))
+            if (WorkflowUiStyle.Button(workshopBtnRect, "ATC_ContactAuthor_OpenWorkshop".Translate(),
+                    WorkflowButtonStyle.Quiet, _selectedMod != null))
             {
                 TryOpenWorkshopPage(_selectedMod);
             }
 
 
             GUI.color = Color.white;
-            if (Widgets.ButtonText(closeBtnRect, "ATC_ContactAuthor_Close".Translate()))
+            if (WorkflowUiStyle.Button(closeBtnRect, "ATC_ContactAuthor_Close".Translate(),
+                    WorkflowButtonStyle.Quiet))
             {
                 Close();
             }
@@ -223,6 +217,7 @@ namespace AutoTranslator_Core
                 case TargetLanguage.Russian: return "Russian (Русский)";
                 case TargetLanguage.Ukrainian: return "Ukrainian (Українська)";
                 case TargetLanguage.English: return "English";
+                case TargetLanguage.Thai: return "Thai (ภาษาไทย)";
                 default: return "English";
             }
         }

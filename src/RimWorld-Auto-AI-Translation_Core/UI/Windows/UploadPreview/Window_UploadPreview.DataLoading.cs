@@ -24,6 +24,14 @@ namespace AutoTranslator_Core
             private void LoadPreviewData()
             {
                 var resultData = new Dictionary<string, List<PreviewItem>>();
+                Workflow.UploadClassificationSummary classification = null;
+                string classificationError = null;
+                try
+                {
+                    classification = Workflow.WorkflowBackendRuntime.GetOrCreate()
+                        .EvaluateUploadClassification(_sourceDir, _mod.PackageId, _targetLangFolder);
+                }
+                catch (Exception ex) { classificationError = ex.Message; }
 
 
                 string id1 = _mod.PackageId.ToLower();
@@ -40,6 +48,7 @@ namespace AutoTranslator_Core
                         var list = new List<PreviewItem>();
                         foreach (var file in AutoTranslatorScanner.GetXmlFilesForTranslationCache(keyedDir, SearchOption.AllDirectories))
                         {
+                            if (!AutoTranslatorScanner.ShouldIncludeUploadFile(_sourceDir, file, _mod.PackageId)) continue;
                             string fileName = Path.GetFileName(file).ToLower();
                             bool isValid = isWorkspace || fileName.StartsWith(id1 + "_") || fileName.StartsWith(id1 + ".") || fileName.StartsWith(id2 + "_") || fileName.StartsWith(id2 + ".");
 
@@ -47,7 +56,7 @@ namespace AutoTranslator_Core
                             {
                                 var dict = AutoTranslatorScanner.LoadXmlFileToDict(file);
                                 foreach (var kv in dict)
-                                    list.Add(new PreviewItem { Key = kv.Key, OriginalText = "ATC_Preview_ClickToSee".Translate(), TranslatedText = kv.Value });
+                                    list.Add(new PreviewItem { Key = kv.Key, SourceFile = file, OriginalText = "ATC_Preview_ClickToSee".Translate(), TranslatedText = kv.Value });
                             }
                         }
                         if (list.Count > 0) resultData["Keyed"] = list;
@@ -65,6 +74,7 @@ namespace AutoTranslator_Core
 
                             foreach (var file in AutoTranslatorScanner.GetXmlFilesForTranslationCache(typeDir, SearchOption.AllDirectories))
                             {
+                                if (!AutoTranslatorScanner.ShouldIncludeUploadFile(_sourceDir, file, _mod.PackageId)) continue;
                                 string fileName = Path.GetFileName(file).ToLower();
                                 bool isValid = isWorkspace || fileName.StartsWith(id1 + "_") || fileName.StartsWith(id1 + ".") || fileName.StartsWith(id2 + "_") || fileName.StartsWith(id2 + ".");
 
@@ -72,7 +82,7 @@ namespace AutoTranslator_Core
                                 {
                                     var dict = AutoTranslatorScanner.LoadXmlFileToDict(file);
                                     foreach (var kv in dict)
-                                        list.Add(new PreviewItem { Key = kv.Key, OriginalText = "ATC_Preview_ClickToSee".Translate(), TranslatedText = kv.Value });
+                                        list.Add(new PreviewItem { Key = kv.Key, SourceFile = file, OriginalText = "ATC_Preview_ClickToSee".Translate(), TranslatedText = kv.Value });
                                 }
                             }
                             if (list.Count > 0) resultData[defType] = list;
@@ -81,6 +91,8 @@ namespace AutoTranslator_Core
                 }
 
                 ATC_Dispatcher.RunOnMainThread(() => {
+                    _uploadClassification = classification;
+                    _uploadClassificationError = classificationError;
                     _categorizedData = resultData;
                     _selectedCategory = _categorizedData.Keys.FirstOrDefault() ?? "";
                     _isLoading = false;
