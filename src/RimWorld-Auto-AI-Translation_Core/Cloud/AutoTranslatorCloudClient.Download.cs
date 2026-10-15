@@ -225,6 +225,9 @@ namespace AutoTranslator_Core
             string tempFilePath,
             int timeoutSeconds)
         {
+#if RIMWORLD_1_7
+            return await WaylithArchiveDownloader.DownloadAsync(url, tempFilePath, timeoutSeconds);
+#else
             var tcs = new TaskCompletionSource<CloudDownloadAttemptResult>();
             ATC_Dispatcher.RunOnMainThread(() =>
             {
@@ -267,6 +270,7 @@ namespace AutoTranslator_Core
                 }
             });
             return await WaitForCloudTask(tcs.Task, timeoutSeconds + 10, "cloud download");
+#endif
         }
 
         private static CloudModRecord FindCloudRecordById(string recordId)

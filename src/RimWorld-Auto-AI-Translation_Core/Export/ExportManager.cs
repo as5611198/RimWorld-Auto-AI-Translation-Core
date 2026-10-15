@@ -146,7 +146,7 @@ namespace AutoTranslator_Core
 
             string safeModName = MakeSafeFolderName(mod.ModName);
             string modExportRoot = Path.Combine(exportRoot, $"AutoTrans_{safeModName}");
-            string targetLangPath = Path.Combine(modExportRoot, "1.6", "Languages", targetFolder);
+            string targetLangPath = Path.Combine(modExportRoot, AutoTranslatorScanner.CurrentRimWorldVersion, "Languages", targetFolder);
 
             Directory.CreateDirectory(targetLangPath);
 
@@ -253,11 +253,12 @@ namespace AutoTranslator_Core
         private static void WriteLoadFoldersXml(string modExportRoot)
         {
             string path = Path.Combine(modExportRoot, "LoadFolders.xml");
-            string content = @"<?xml version=""1.0"" encoding=""utf-8""?>
+            string version = AutoTranslatorScanner.CurrentRimWorldVersion;
+            string content = $@"<?xml version=""1.0"" encoding=""utf-8""?>
 <loadFolders>
-  <v1.6>
-    <li>1.6</li>
-  </v1.6>
+  <v{version}>
+    <li>{version}</li>
+  </v{version}>
 </loadFolders>";
             File.WriteAllText(path, content, Encoding.UTF8);
         }

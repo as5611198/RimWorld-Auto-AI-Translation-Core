@@ -199,7 +199,7 @@ namespace AutoTranslator_Core
                 CurrentTranslation = _currentTranslation,
                 ProposedTranslation = proposed,
                 Reason = reason,
-                ContributorId = UnityEngine.SystemInfo.deviceUniqueIdentifier,
+                ContributorId = CloudClientIdentity.Value,
                 ContributorName = AutoTranslatorMod.Settings != null ? AutoTranslatorMod.Settings.CloudNickname ?? "" : "",
                 QualityTier = "InGameCorrection",
                 StatusHint = isOfficialGameText ? "pending_official_review" : "pending",

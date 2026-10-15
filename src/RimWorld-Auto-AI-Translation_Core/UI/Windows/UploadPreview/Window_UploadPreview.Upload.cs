@@ -34,7 +34,7 @@ namespace AutoTranslator_Core
             string pkgId = _mod.PackageId; string mLang = _targetLangFolder; string mName = _modName;
             string modRootDir = _mod.RootDir != null ? _mod.RootDir.FullName : "";
             string latestVersion = RimWorld.VersionControl.CurrentVersionStringWithoutBuild;
-            string uploaderId = UnityEngine.SystemInfo.deviceUniqueIdentifier;
+            string uploaderId = CloudClientIdentity.Value;
             string token = AutoTranslatorMod.Settings.CloudAdminToken;
             string uNick = AutoTranslatorMod.Settings.CloudNickname;
             string uType = AutoTranslatorMod.NormalizeCloudUploadType(AutoTranslatorMod.Settings.CloudUploadType, !string.IsNullOrWhiteSpace(token));

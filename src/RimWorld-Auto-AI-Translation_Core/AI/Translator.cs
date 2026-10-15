@@ -27,7 +27,9 @@ namespace AutoTranslator_Core
         static AutoTranslatorAPI()
         {
 
+#if !RIMWORLD_1_7
             System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
+#endif
 
 
         }

@@ -192,7 +192,7 @@ namespace AutoTranslator_Core
         private static bool IsOwnCloudRecord(CloudModRecord record)
         {
             if (record == null || string.IsNullOrWhiteSpace(record.UploaderID)) return false;
-            return string.Equals(record.UploaderID, UnityEngine.SystemInfo.deviceUniqueIdentifier, StringComparison.OrdinalIgnoreCase);
+            return string.Equals(record.UploaderID, CloudClientIdentity.Value, StringComparison.OrdinalIgnoreCase);
         }
 
         private List<CloudModRecord> GetOwnLatestCloudRecordsCached(string targetLangFolder)

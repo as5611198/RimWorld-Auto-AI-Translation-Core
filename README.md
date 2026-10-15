@@ -1,4 +1,6 @@
 全自動補位翻譯 V4.4 (Auto Translation Core)
+支援 RimWorld Steam 版 1.5、1.6、1.7（Waylith）。請更新並啟用 Harmony；[三版本建置與部署說明](docs/STEAM_VERSION_SUPPORT.md)。
+
 受夠了下載漢化包後，卻發現新道具有一半還是英文嗎？
 受夠了每次模組更新，都要苦苦等待漢化作者發布補丁嗎？
 受夠了某些模組作者把文字寫死在代碼裡，導致傳統漢化工具根本抓不到嗎？

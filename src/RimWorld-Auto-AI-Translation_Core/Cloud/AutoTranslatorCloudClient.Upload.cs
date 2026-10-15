@@ -155,7 +155,7 @@ namespace AutoTranslator_Core
                     ModName = modName,
                     LatestVersion = RimWorld.VersionControl.CurrentVersionStringWithoutBuild,
                     ModLastUpdated = actualModUpdate.ToString("O"),
-                    UploaderID = UnityEngine.SystemInfo.deviceUniqueIdentifier,
+                    UploaderID = CloudClientIdentity.Value,
                     Author = author,
                     TranslationType = translationType,
                     TranslationSourceKind = GetCloudTranslationSourceKind(translationType),

@@ -10,6 +10,7 @@
     <RootNamespace>RimWorld_Auto_AI_Translation_Core</RootNamespace>
     <AssemblyName>RimWorld_Auto_AI_Translation_Core</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <RimWorld15ManagedDir Condition="'$(RimWorld15ManagedDir)' == ''">$(UserProfile)\Documents\rimworld 1.5 data\RimWorldWin64_Data\Managed</RimWorld15ManagedDir>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
   </PropertyGroup>
@@ -37,16 +38,16 @@
       <HintPath>..\packages\Lib.Harmony.2.4.2\lib\net48\0Harmony.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp">
-      <HintPath>C:\Users\g1061\Documents\rimworld 1.5 data\RimWorldWin64_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <HintPath>$(RimWorld15ManagedDir)\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="NAudio">
-      <HintPath>C:\Users\g1061\Documents\rimworld 1.5 data\RimWorldWin64_Data\Managed\NAudio.dll</HintPath>
+      <HintPath>$(RimWorld15ManagedDir)\NAudio.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.13.0.4\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="NVorbis">
-      <HintPath>C:\Users\g1061\Documents\rimworld 1.5 data\RimWorldWin64_Data\Managed\NVorbis.dll</HintPath>
+      <HintPath>$(RimWorld15ManagedDir)\NVorbis.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
@@ -61,7 +62,7 @@
     <Reference Include="System.Security" />
     <Reference Include="System.ServiceModel.Internals, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Users\g1061\Documents\rimworld 1.5 data\RimWorldWin64_Data\Managed\System.ServiceModel.Internals.dll</HintPath>
+      <HintPath>$(RimWorld15ManagedDir)\System.ServiceModel.Internals.dll</HintPath>
     </Reference>
     <Reference Include="System.Transactions" />
     <Reference Include="System.Xml.Linq" />
@@ -70,28 +71,28 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>C:\Users\g1061\Documents\rimworld 1.5 data\RimWorldWin64_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>$(RimWorld15ManagedDir)\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.IMGUIModule">
-      <HintPath>C:\Users\g1061\Documents\rimworld 1.5 data\RimWorldWin64_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+      <HintPath>$(RimWorld15ManagedDir)\UnityEngine.IMGUIModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.TextRenderingModule">
-      <HintPath>C:\Users\g1061\Documents\rimworld 1.5 data\RimWorldWin64_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+      <HintPath>$(RimWorld15ManagedDir)\UnityEngine.TextRenderingModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UnityWebRequestAssetBundleModule">
-      <HintPath>C:\Users\g1061\Documents\rimworld 1.5 data\RimWorldWin64_Data\Managed\UnityEngine.UnityWebRequestAssetBundleModule.dll</HintPath>
+      <HintPath>$(RimWorld15ManagedDir)\UnityEngine.UnityWebRequestAssetBundleModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UnityWebRequestAudioModule">
-      <HintPath>C:\Users\g1061\Documents\rimworld 1.5 data\RimWorldWin64_Data\Managed\UnityEngine.UnityWebRequestAudioModule.dll</HintPath>
+      <HintPath>$(RimWorld15ManagedDir)\UnityEngine.UnityWebRequestAudioModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UnityWebRequestModule">
-      <HintPath>C:\Users\g1061\Documents\rimworld 1.5 data\RimWorldWin64_Data\Managed\UnityEngine.UnityWebRequestModule.dll</HintPath>
+      <HintPath>$(RimWorld15ManagedDir)\UnityEngine.UnityWebRequestModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UnityWebRequestTextureModule">
-      <HintPath>C:\Users\g1061\Documents\rimworld 1.5 data\RimWorldWin64_Data\Managed\UnityEngine.UnityWebRequestTextureModule.dll</HintPath>
+      <HintPath>$(RimWorld15ManagedDir)\UnityEngine.UnityWebRequestTextureModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UnityWebRequestWWWModule">
-      <HintPath>C:\Users\g1061\Documents\rimworld 1.5 data\RimWorldWin64_Data\Managed\UnityEngine.UnityWebRequestWWWModule.dll</HintPath>
+      <HintPath>$(RimWorld15ManagedDir)\UnityEngine.UnityWebRequestWWWModule.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

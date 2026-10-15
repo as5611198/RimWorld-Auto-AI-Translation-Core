@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- SDK and legacy projects share this directory; never share NuGet assets. -->
+    <BaseIntermediateOutputPath>obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+  </PropertyGroup>
+</Project>

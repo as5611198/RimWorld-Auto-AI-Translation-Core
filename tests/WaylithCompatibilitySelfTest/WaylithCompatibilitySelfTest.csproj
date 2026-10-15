@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <DefineConstants>$(DefineConstants);RIMWORLD_1_7</DefineConstants>
+    <RimWorld17Dir Condition="'$(RimWorld17Dir)' == ''">E:\SteamLibrary\steamapps\common\RimWorld</RimWorld17Dir>
+    <Harmony17Path Condition="'$(Harmony17Path)' == ''">E:\SteamLibrary\steamapps\workshop\content\294100\2009463077\1.7\Assemblies\0Harmony.dll</Harmony17Path>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp"><HintPath>$(RimWorld17Dir)\Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityStubs"><HintPath>$(RimWorld17Dir)\UnityStubs.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="0Harmony"><HintPath>$(Harmony17Path)</HintPath><Private>true</Private></Reference>
+    <Reference Include="Newtonsoft.Json"><HintPath>..\..\packages\Newtonsoft.Json.13.0.4\lib\net6.0\Newtonsoft.Json.dll</HintPath><Private>true</Private></Reference>
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\UI\Interception\UIInterceptor.Patches.cs" Link="UIInterceptor.Patches.cs" />
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\UI\Interception\UIInterceptor.Waylith.cs" Link="UIInterceptor.Waylith.cs" />
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\Cloud\CloudClientIdentity.cs" Link="CloudClientIdentity.cs" />
+    <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\Cloud\WaylithArchiveDownloader.cs" Link="WaylithArchiveDownloader.cs" />
+  </ItemGroup>
+</Project>

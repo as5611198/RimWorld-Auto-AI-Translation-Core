@@ -303,12 +303,14 @@ namespace AutoTranslator_Core
             return false;
         }
 
-        private static string CurrentRimWorldVersion
+        internal static string CurrentRimWorldVersion
         {
             get
             {
 #if RIMWORLD_1_5
                 return "1.5";
+#elif RIMWORLD_1_7
+                return "1.7";
 #else
                 return "1.6";
 #endif
@@ -321,6 +323,8 @@ namespace AutoTranslator_Core
         {
 #if RIMWORLD_1_5
             return new[] { "v1.5", "1.5" };
+#elif RIMWORLD_1_7
+            return new[] { "v1.7", "1.7" };
 #else
             return new[] { "v1.6", "1.6" };
 #endif

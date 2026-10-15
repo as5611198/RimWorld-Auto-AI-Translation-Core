@@ -29,7 +29,9 @@ namespace AutoTranslator_Core
 
         static AutoTranslatorCloudClient()
         {
+#if !RIMWORLD_1_7
             System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
+#endif
         }
         // 這個方法負責處理 Log雲端TranslatedWarning 相關流程。
         // EN: This method handles log cloud translated warning.

@@ -76,8 +76,9 @@ namespace AutoTranslator_Core
 
         // 這個方法負責處理 Prefix 相關流程。
         // EN: This method handles prefix.
-        public static void Prefix(UnityEngine.Rect position, ref UnityEngine.GUIContent content)
+        public static void Prefix(UnityEngine.Rect position, ref UnityEngine.GUIContent content, out bool __state)
         {
+            __state = false;
             if (!AutoTranslatorMod.Settings.EnableUIInterceptor || BypassInterceptor) return;
             if (UIInterceptorPatchGuard.IsNestedLabelCall) return;
 
@@ -122,7 +123,19 @@ namespace AutoTranslator_Core
                         tooltipText);
                 }
             }
+#if RIMWORLD_1_7
+            UIInterceptorPatchGuard.EnterNestedLabelCall();
+            __state = true;
+#endif
         }
+
+#if RIMWORLD_1_7
+        public static Exception Finalizer(Exception __exception, bool __state)
+        {
+            if (__state) UIInterceptorPatchGuard.ExitNestedLabelCall();
+            return __exception;
+        }
+#endif
 
         private static GUIContent GetCachedContent(
             Dictionary<string, GUIContentCacheBucket> cache,
