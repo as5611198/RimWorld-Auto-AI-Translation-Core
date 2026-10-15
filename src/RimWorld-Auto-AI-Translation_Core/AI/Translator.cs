@@ -89,8 +89,8 @@ namespace AutoTranslator_Core
         {
             return config != null &&
                    config.Enabled &&
-                   !string.IsNullOrEmpty(config.Key) &&
-                   !string.IsNullOrEmpty(config.SelectedModel);
+                   HasApiCredential(config) &&
+                   !string.IsNullOrEmpty(CleanInput(config.SelectedModel));
         }
 
         // 這個方法負責判斷 HasAnyReady設定 條件是否成立。
@@ -153,6 +153,8 @@ namespace AutoTranslator_Core
 
             ApiKeyConfig targetConfig = forceConfig ?? GetNextConfig();
             if (targetConfig == null) return null;
+            if (!ValidateApiEndpointForRequest(targetConfig)) return null;
+            if (!IsConfigReady(targetConfig)) return null;
 
             string apiKey = CleanInput(targetConfig.Key);
             string model = CleanInput(targetConfig.SelectedModel);

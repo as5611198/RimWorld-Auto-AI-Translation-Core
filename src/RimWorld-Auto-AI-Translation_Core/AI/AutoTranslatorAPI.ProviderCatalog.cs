@@ -89,38 +89,11 @@ namespace AutoTranslator_Core
         // EN: This method gets base URL.
         private static string GetBaseUrl(ApiKeyConfig config)
         {
-            string custom = CleanInput(config.CustomBaseUrl);
-            if (!string.IsNullOrEmpty(custom))
-            {
-
-                if (!custom.StartsWith("http://") && !custom.StartsWith("https://"))
-                    custom = "http://" + custom;
-
-                if (Uri.TryCreate(custom, UriKind.Absolute, out Uri validUri))
-                {
-
-                    string cleanUrl = validUri.AbsoluteUri.TrimEnd('/');
-
-
-                    if (cleanUrl.EndsWith("/chat/completions", StringComparison.OrdinalIgnoreCase))
-                    {
-                        cleanUrl = cleanUrl.Substring(0, cleanUrl.Length - 17);
-                    }
-                    else if (cleanUrl.EndsWith("/models", StringComparison.OrdinalIgnoreCase))
-                    {
-                        cleanUrl = cleanUrl.Substring(0, cleanUrl.Length - 7);
-                    }
-
-
-                    return cleanUrl;
-                }
-                else
-                {
-
-                    Log.Warning($"[AutoTranslationCore] " + TranslateText("ATC_Warning_InvalidUrlFallback", custom));
-                    return custom;
-                }
-            }
+            string custom;
+            string errorKey;
+            if (!ApiEndpointRules.TryNormalize(config.CustomBaseUrl, CleanInput(config.Key), out custom, out errorKey))
+                throw new InvalidOperationException(TranslateText(errorKey));
+            if (!string.IsNullOrEmpty(custom)) return custom;
 
             if (config.Provider == TranslatorProvider.DeepL)
             {
@@ -135,6 +108,31 @@ namespace AutoTranslator_Core
                 return def.BaseUrl;
             }
             return "https://api.openai.com/v1";
+        }
+
+        public static string GetApiEndpointError(ApiKeyConfig config)
+        {
+            if (config == null) return ApiEndpointRules.InvalidUrl;
+            string normalized;
+            string errorKey;
+            ApiEndpointRules.TryNormalize(config.CustomBaseUrl, CleanInput(config.Key), out normalized, out errorKey);
+            return errorKey;
+        }
+
+        public static bool HasApiCredential(ApiKeyConfig config)
+        {
+            if (config == null || !string.IsNullOrEmpty(GetApiEndpointError(config))) return false;
+            return !string.IsNullOrEmpty(CleanInput(config.Key)) ||
+                   (config.Provider == TranslatorProvider.Custom_OpenAI &&
+                    !string.IsNullOrWhiteSpace(config.CustomBaseUrl));
+        }
+
+        private static bool ValidateApiEndpointForRequest(ApiKeyConfig config)
+        {
+            string errorKey = GetApiEndpointError(config);
+            if (string.IsNullOrEmpty(errorKey)) return true;
+            AutoTranslatorSettings.AddErrorLog(TranslateText(errorKey));
+            return false;
         }
 
         // 這個方法負責清理並標準化 Input 內容。

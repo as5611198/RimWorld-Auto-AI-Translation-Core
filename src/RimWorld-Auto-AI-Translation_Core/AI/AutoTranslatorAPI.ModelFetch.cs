@@ -98,11 +98,7 @@ namespace AutoTranslator_Core
 
         private static bool HasModelFetchCredential(ApiKeyConfig config)
         {
-            if (config == null) return false;
-            if (CleanInput(config.Key).Length > 10) return true;
-
-            return config.Provider == TranslatorProvider.Custom_OpenAI &&
-                   !string.IsNullOrWhiteSpace(config.CustomBaseUrl);
+            return HasApiCredential(config);
         }
 
         // 這個方法負責處理 自動取得For設定 相關流程。
@@ -111,6 +107,8 @@ namespace AutoTranslator_Core
         {
             if (config == null) return;
             if (!config.Enabled) return;
+            if (!ValidateApiEndpointForRequest(config)) return;
+            if (!HasApiCredential(config)) return;
             if (config.IsFetching && !force) return;
             ATC_Dispatcher.EnsureAlive();
 
@@ -236,7 +234,7 @@ namespace AutoTranslator_Core
                         var dispatchTask = await Task.WhenAny(dispatchStarted.Task, Task.Delay(ModelFetchDispatchTimeoutMs));
                         if (dispatchTask != dispatchStarted.Task)
                         {
-                            Verse.Log.Warning($"[AutoTranslationCore] Fetch Models dispatch timed out before UnityWebRequest started [{config.Provider}] URL: {SanitizeUrlForLog(url)}");
+                            Verse.Log.Warning($"[AutoTranslationCore] Fetch Models dispatch timed out before UnityWebRequest started [{config.Provider}]");
                             AutoTranslatorSettings.AddErrorLog(TranslateText("ATC_Error_FetchModelsDispatchTimeout", config.Provider.ToString()));
                             ScheduleModelFetchRetry(config, fetchGeneration);
                             break;
@@ -345,7 +343,7 @@ namespace AutoTranslator_Core
         private static string BuildModelsUrl(ApiKeyConfig config, string baseUrl, string apiKey, bool isGoogleRaw)
         {
             string url;
-            if (!string.IsNullOrEmpty(config.CustomBaseUrl))
+            if (!string.IsNullOrWhiteSpace(config.CustomBaseUrl))
             {
                 url = $"{baseUrl}/models";
             }
@@ -364,15 +362,6 @@ namespace AutoTranslator_Core
             }
 
             return url;
-        }
-
-        // 這個方法負責處理 Decode回應Body 相關流程。
-        // EN: This method handles decode response body.
-        private static string SanitizeUrlForLog(string url)
-        {
-            if (string.IsNullOrEmpty(url)) return "";
-            int queryStart = url.IndexOf('?');
-            return queryStart >= 0 ? url.Substring(0, queryStart) : url;
         }
 
         private static string DecodeResponseBody(byte[] rawData)

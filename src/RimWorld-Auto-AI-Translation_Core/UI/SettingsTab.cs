@@ -183,6 +183,7 @@ namespace AutoTranslator_Core
                 {
                     config.CustomBaseUrl = Widgets.TextField(urlRect, config.CustomBaseUrl);
                     if (string.IsNullOrEmpty(config.CustomBaseUrl)) Widgets.Label(urlRect, "  " + "ATC_CustomUrlOptional".Translate());
+                    TooltipHandler.TipRegion(urlRect, "ATC_ApiBaseUrlHint".Translate());
                 }
 
                 Rect delRect = new Rect(rowA.x + rowA.width * 0.92f, rowA.y, rowA.width * 0.08f, rowA.height - 2f);
@@ -199,7 +200,10 @@ namespace AutoTranslator_Core
                 Rect keyRect = new Rect(rowB.x, rowB.y, rowB.width * 0.45f, rowB.height - 2f);
 
                 config.Key = Widgets.TextField(keyRect, config.Key);
-                if (string.IsNullOrEmpty(config.Key)) Widgets.Label(keyRect, "  " + "ATC_PasteKey".Translate());
+                if (config.Provider == TranslatorProvider.Custom_OpenAI)
+                    TooltipHandler.TipRegion(keyRect, "ATC_ApiKeyOptional".Translate());
+                if (string.IsNullOrEmpty(config.Key)) Widgets.Label(keyRect, "  " +
+                    (config.Provider == TranslatorProvider.Custom_OpenAI ? "ATC_ApiKeyOptional" : "ATC_PasteKey").Translate());
 
                 Rect modelInputRect = new Rect(rowB.x + rowB.width * 0.47f, rowB.y, rowB.width * 0.45f, rowB.height - 2f);
                 Rect modelBtnRect = new Rect(modelInputRect.xMax + 5f, rowB.y, rowB.width * 0.08f - 5f, rowB.height - 2f);
@@ -239,6 +243,7 @@ namespace AutoTranslator_Core
                 GUI.color = AutoTranslatorSettings.IsRunning ? Color.grey : Color.white;
 
 
+                DrawApiEndpointValidation(l, config);
                 Rect rowC = l.GetRect(24f);
                 Rect testBtnRect = new Rect(rowC.x, rowC.y + 2f, 120f, rowC.height);
                 Rect refetchBtnRect = new Rect(testBtnRect.xMax + 10f, rowC.y + 2f, 140f, rowC.height);
@@ -249,7 +254,11 @@ namespace AutoTranslator_Core
                     {
                         Messages.Message("ATC_Msg_ApiKeyDisabled".Translate().ToString(), MessageTypeDefOf.RejectInput, false);
                     }
-                    else if (string.IsNullOrEmpty(config.Key) || config.Key.Length <= 10)
+                    else if (!string.IsNullOrEmpty(AutoTranslatorAPI.GetApiEndpointError(config)))
+                    {
+                        Messages.Message(AutoTranslatorAPI.GetApiEndpointError(config).Translate().ToString(), MessageTypeDefOf.RejectInput, false);
+                    }
+                    else if (!AutoTranslatorAPI.HasApiCredential(config))
                     {
                         Messages.Message("ATC_EmptyConfigWarning".Translate().ToString(), MessageTypeDefOf.RejectInput, false);
                     }
@@ -285,7 +294,11 @@ namespace AutoTranslator_Core
                         {
                             Messages.Message("ATC_Msg_ApiKeyDisabled".Translate().ToString(), MessageTypeDefOf.RejectInput, false);
                         }
-                        else if (string.IsNullOrEmpty(config.Key) || string.IsNullOrEmpty(config.SelectedModel))
+                        else if (!string.IsNullOrEmpty(AutoTranslatorAPI.GetApiEndpointError(config)))
+                        {
+                            Messages.Message(AutoTranslatorAPI.GetApiEndpointError(config).Translate().ToString(), MessageTypeDefOf.RejectInput, false);
+                        }
+                        else if (!AutoTranslatorAPI.IsConfigReady(config))
                         {
                             Messages.Message("ATC_EmptyConfigWarning".Translate().ToString(), MessageTypeDefOf.RejectInput, false);
                         }
@@ -510,6 +523,7 @@ namespace AutoTranslator_Core
             }
 
             Rect urlRect = new Rect(providerRow.x + providerRow.width * 0.32f, providerRow.y, providerRow.width * 0.68f, providerRow.height - 2f);
+            TooltipHandler.TipRegion(urlRect, "ATC_ApiBaseUrlHint".Translate());
             if (canEdit)
             {
                 config.CustomBaseUrl = Widgets.TextField(urlRect, config.CustomBaseUrl ?? "");
@@ -528,12 +542,15 @@ namespace AutoTranslator_Core
             GUI.color = canEdit ? Color.white : Color.grey;
             Rect credentialsRow = l.GetRect(30f);
             Rect keyRect = new Rect(credentialsRow.x, credentialsRow.y, credentialsRow.width * 0.45f, credentialsRow.height - 2f);
+            if (config.Provider == TranslatorProvider.Custom_OpenAI)
+                TooltipHandler.TipRegion(keyRect, "ATC_ApiKeyOptional".Translate());
             if (canEdit) config.Key = Widgets.TextField(keyRect, config.Key ?? "");
             else Widgets.Label(keyRect, string.IsNullOrEmpty(config.Key) ? "" : "********");
             if (string.IsNullOrEmpty(config.Key))
             {
                 GUI.color = Color.gray;
-                Widgets.Label(keyRect, "  " + "ATC_PasteKey".Translate());
+                Widgets.Label(keyRect, "  " +
+                    (config.Provider == TranslatorProvider.Custom_OpenAI ? "ATC_ApiKeyOptional" : "ATC_PasteKey").Translate());
                 GUI.color = canEdit ? Color.white : Color.grey;
             }
 
@@ -577,6 +594,7 @@ namespace AutoTranslator_Core
             }
 
             GUI.color = canEdit ? Color.white : Color.grey;
+            DrawApiEndpointValidation(l, config);
             Rect actionsRow = l.GetRect(28f);
             Rect fetchRect = new Rect(actionsRow.x, actionsRow.y + 1f, 150f, actionsRow.height - 2f);
             Rect testRect = new Rect(fetchRect.xMax + 10f, actionsRow.y + 1f, 130f, actionsRow.height - 2f);
@@ -592,9 +610,11 @@ namespace AutoTranslator_Core
                 {
                     Messages.Message("ATC_Msg_ApiKeyDisabled".Translate().ToString(), MessageTypeDefOf.RejectInput, false);
                 }
-                else if ((config.Provider != TranslatorProvider.Custom_OpenAI ||
-                          string.IsNullOrWhiteSpace(config.CustomBaseUrl)) &&
-                         (string.IsNullOrWhiteSpace(config.Key) || config.Key.Trim().Length <= 10))
+                else if (!string.IsNullOrEmpty(AutoTranslatorAPI.GetApiEndpointError(config)))
+                {
+                    Messages.Message(AutoTranslatorAPI.GetApiEndpointError(config).Translate().ToString(), MessageTypeDefOf.RejectInput, false);
+                }
+                else if (!AutoTranslatorAPI.HasApiCredential(config))
                 {
                     Messages.Message("ATC_EmptyConfigWarning".Translate().ToString(), MessageTypeDefOf.RejectInput, false);
                 }
@@ -615,6 +635,10 @@ namespace AutoTranslator_Core
                 if (!config.Enabled)
                 {
                     Messages.Message("ATC_Msg_ApiKeyDisabled".Translate().ToString(), MessageTypeDefOf.RejectInput, false);
+                }
+                else if (!string.IsNullOrEmpty(AutoTranslatorAPI.GetApiEndpointError(config)))
+                {
+                    Messages.Message(AutoTranslatorAPI.GetApiEndpointError(config).Translate().ToString(), MessageTypeDefOf.RejectInput, false);
                 }
                 else if (!AutoTranslatorAPI.IsPolicyAgentConfigReady(config))
                 {
@@ -648,6 +672,19 @@ namespace AutoTranslator_Core
             Text.Font = GameFont.Small;
             GUI.color = Color.white;
             l.Gap(10f);
+        }
+
+        private static void DrawApiEndpointValidation(Listing_Standard l, ApiKeyConfig config)
+        {
+            string errorKey = AutoTranslatorAPI.GetApiEndpointError(config);
+            if (string.IsNullOrEmpty(errorKey)) return;
+            Color oldColor = GUI.color;
+            GameFont oldFont = Text.Font;
+            GUI.color = new Color(1f, 0.75f, 0.35f);
+            Text.Font = GameFont.Small;
+            l.Label(errorKey.Translate());
+            Text.Font = oldFont;
+            GUI.color = oldColor;
         }
 
         private void DrawHardcodedUiPrototypeSettings(Listing_Standard l)

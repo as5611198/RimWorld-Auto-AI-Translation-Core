@@ -36,4 +36,8 @@
   <ATC_UIManager_OpenFolder>開啟快取資料夾</ATC_UIManager_OpenFolder>
   <ATC_UIManager_OpenFolderFailed>無法開啟快取資料夾：{0}</ATC_UIManager_OpenFolderFailed>
   <ATC_UIManager_Refresh>重新整理</ATC_UIManager_Refresh>
+  <ATC_Error_ApiKeyInUrl>API 網址欄似乎填入了密鑰。請把密鑰放到「API 密鑰」欄，網址欄填服務提供的 http:// 或 https:// 位址。</ATC_Error_ApiKeyInUrl>
+  <ATC_Error_InvalidApiBaseUrl>請填完整的 http:// 或 https:// API 網址，例如 http://127.0.0.1:4315。這個欄位不要填密鑰、登入資訊、查詢參數或 # 片段。</ATC_Error_InvalidApiBaseUrl>
+  <ATC_ApiBaseUrlHint>API 網址，例如 http://127.0.0.1:4315 或 https://api.example.com/v1。只有服務要求時才加 /v1；留空使用供應商的預設網址。</ATC_ApiBaseUrlHint>
+  <ATC_ApiKeyOptional>API 密鑰（自訂服務不需要時可留空）</ATC_ApiKeyOptional>
 </LanguageData>

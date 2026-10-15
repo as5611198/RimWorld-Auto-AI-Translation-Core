@@ -36,4 +36,8 @@
   <ATC_UIManager_OpenFolder>Open cache folder</ATC_UIManager_OpenFolder>
   <ATC_UIManager_OpenFolderFailed>Could not open the cache folder: {0}</ATC_UIManager_OpenFolderFailed>
   <ATC_UIManager_Refresh>Refresh list</ATC_UIManager_Refresh>
+  <ATC_Error_ApiKeyInUrl>The API URL appears to contain an API key. Put the key in the API key field and enter the service's http:// or https:// address in the URL field.</ATC_Error_ApiKeyInUrl>
+  <ATC_Error_InvalidApiBaseUrl>Enter a complete http:// or https:// API address, such as http://127.0.0.1:4315. Do not put an API key, login credentials, query string or fragment in this field.</ATC_Error_InvalidApiBaseUrl>
+  <ATC_ApiBaseUrlHint>API address, such as http://127.0.0.1:4315 or https://api.example.com/v1. Add /v1 only if your service requires it. Leave blank to use the provider's default address.</ATC_ApiBaseUrlHint>
+  <ATC_ApiKeyOptional>API key (leave blank if your custom service does not require one)</ATC_ApiKeyOptional>
 </LanguageData>

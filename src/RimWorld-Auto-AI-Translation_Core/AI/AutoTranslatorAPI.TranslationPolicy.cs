@@ -92,21 +92,13 @@ namespace AutoTranslator_Core
             return config;
         }
 
-        // Policy Agent credentials are intentionally evaluated separately from
-        // translation-pool readiness. A local Custom_OpenAI endpoint may not
-        // require an API key, but every hosted provider does.
+        // Share credential and endpoint validation with the translation pool,
+        // while excluding DeepL from the Policy Agent's chat interface.
         internal static bool IsPolicyAgentConfigReady(ApiKeyConfig config)
         {
             if (config == null || !config.Enabled || config.Provider == TranslatorProvider.DeepL)
                 return false;
-            if (string.IsNullOrWhiteSpace(config.SelectedModel))
-                return false;
-
-            if (!string.IsNullOrWhiteSpace(config.Key))
-                return true;
-
-            return config.Provider == TranslatorProvider.Custom_OpenAI &&
-                   !string.IsNullOrWhiteSpace(config.CustomBaseUrl);
+            return IsConfigReady(config);
         }
 
         internal static bool HasAnyPolicyAgentConfig()
@@ -267,6 +259,8 @@ namespace AutoTranslator_Core
             ApiKeyConfig config,
             Func<bool> additionalCancellation)
         {
+            if (!ValidateApiEndpointForRequest(config) || !IsPolicyAgentConfigReady(config))
+                return new StructuredChatAttemptResult { ErrorText = "invalid_api_configuration" };
             string apiKey = CleanInput(config.Key);
             string model = CleanInput(config.SelectedModel);
             string baseUrl = GetBaseUrl(config);

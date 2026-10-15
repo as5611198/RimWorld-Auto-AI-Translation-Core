@@ -36,4 +36,8 @@
   <ATC_UIManager_OpenFolder>打开缓存文件夹</ATC_UIManager_OpenFolder>
   <ATC_UIManager_OpenFolderFailed>无法打开缓存文件夹：{0}</ATC_UIManager_OpenFolderFailed>
   <ATC_UIManager_Refresh>刷新列表</ATC_UIManager_Refresh>
+  <ATC_Error_ApiKeyInUrl>API 地址栏似乎填入了密钥。请把密钥放到“API 密钥”栏，地址栏填写服务提供的 http:// 或 https:// 地址。</ATC_Error_ApiKeyInUrl>
+  <ATC_Error_InvalidApiBaseUrl>请填写完整的 http:// 或 https:// API 地址，例如 http://127.0.0.1:4315。这个栏位不要填写密钥、登录信息、查询参数或 # 片段。</ATC_Error_InvalidApiBaseUrl>
+  <ATC_ApiBaseUrlHint>API 地址，例如 http://127.0.0.1:4315 或 https://api.example.com/v1。仅在服务要求时添加 /v1；留空使用供应商的默认地址。</ATC_ApiBaseUrlHint>
+  <ATC_ApiKeyOptional>API 密钥（自定义服务不需要时可留空）</ATC_ApiKeyOptional>
 </LanguageData>

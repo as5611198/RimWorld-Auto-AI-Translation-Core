@@ -35,6 +35,8 @@ namespace AutoTranslator_Core
         {
             if (config == null || config.IsTesting) return;
             if (!config.Enabled) return;
+            if (!ValidateApiEndpointForRequest(config)) return;
+            if (!IsConfigReady(config)) return;
             ATC_Dispatcher.EnsureAlive();
 
             config.IsTesting = true;
