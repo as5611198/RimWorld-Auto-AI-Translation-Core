@@ -36,4 +36,9 @@
   <ATC_UIManager_OpenFolder>Открыть папку кэша</ATC_UIManager_OpenFolder>
   <ATC_UIManager_OpenFolderFailed>Не удалось открыть папку кэша: {0}</ATC_UIManager_OpenFolderFailed>
   <ATC_UIManager_Refresh>Обновить список</ATC_UIManager_Refresh>
+  <ATC_Player2_Mode>Использовать локальный протокол Player2 (настраиваемые URL и Game Client ID)</ATC_Player2_Mode>
+  <ATC_Player2_ClientIdHint>Game Client ID из панели разработчика Player2 (не API-ключ)</ATC_Player2_ClientIdHint>
+  <ATC_Player2_AppModel>Модель, выбранная в приложении Player2</ATC_Player2_AppModel>
+  <ATC_Player2_ClientIdRequired>Для режима Player2 нужен зарегистрированный Game Client ID.</ATC_Player2_ClientIdRequired>
+  <ATC_Player2_AppModelLog>Player2 выбирает модель чата в приложении; получение списка моделей пропущено.</ATC_Player2_AppModelLog>
 </LanguageData>

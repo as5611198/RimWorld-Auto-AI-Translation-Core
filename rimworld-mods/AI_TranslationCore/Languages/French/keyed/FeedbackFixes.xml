@@ -36,4 +36,9 @@
   <ATC_UIManager_OpenFolder>Ouvrir le dossier du cache</ATC_UIManager_OpenFolder>
   <ATC_UIManager_OpenFolderFailed>Impossible d'ouvrir le dossier du cache : {0}</ATC_UIManager_OpenFolderFailed>
   <ATC_UIManager_Refresh>Actualiser la liste</ATC_UIManager_Refresh>
+  <ATC_Player2_Mode>Utiliser le protocole local Player2 (URL et Game Client ID personnalisables)</ATC_Player2_Mode>
+  <ATC_Player2_ClientIdHint>Game Client ID du tableau de bord développeur Player2 (pas une clé API)</ATC_Player2_ClientIdHint>
+  <ATC_Player2_AppModel>Modèle sélectionné dans l’application Player2</ATC_Player2_AppModel>
+  <ATC_Player2_ClientIdRequired>Le mode Player2 nécessite un Game Client ID enregistré.</ATC_Player2_ClientIdRequired>
+  <ATC_Player2_AppModelLog>Player2 choisit le modèle de chat dans son application ; la liste des modèles est ignorée.</ATC_Player2_AppModelLog>
 </LanguageData>

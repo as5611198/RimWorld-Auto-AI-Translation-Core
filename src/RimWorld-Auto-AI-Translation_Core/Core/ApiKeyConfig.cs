@@ -33,6 +33,10 @@ namespace AutoTranslator_Core
         // 這個欄位保存 CustomBase網址 的執行狀態或快取資料。
         // EN: This field stores custom base URL runtime state or cached data.
         public string CustomBaseUrl = "";
+        // Enables Player2's local OpenAI-compatible protocol while keeping the endpoint editable.
+        public bool UsePlayer2Protocol = false;
+        // Public developer application ID; not a player's API key.
+        public string Player2GameClientId = "";
         // 這個欄位保存 Selected模型 的執行狀態或快取資料。
         // EN: This field stores selected model runtime state or cached data.
         public string SelectedModel = "";
@@ -60,6 +64,8 @@ namespace AutoTranslator_Core
         // 這個欄位保存 取得Generation 的執行狀態或快取資料。
         // EN: This method handles expose data.
         [NonSerialized] public int FetchGeneration = 0;
+        [NonSerialized] public string ResolvedBaseUrl = "";
+        [NonSerialized] public string ResolvedBaseUrlFingerprint = "";
 
 
         // 這個欄位保存 IsTesting 的執行狀態或快取資料。
@@ -80,6 +86,8 @@ namespace AutoTranslator_Core
             Scribe_Values.Look(ref Enabled, "Enabled", true);
             Scribe_Values.Look(ref Key, "Key", "");
             Scribe_Values.Look(ref CustomBaseUrl, "CustomBaseUrl", "");
+            Scribe_Values.Look(ref UsePlayer2Protocol, "UsePlayer2Protocol", false);
+            Scribe_Values.Look(ref Player2GameClientId, "Player2GameClientId", "");
             Scribe_Values.Look(ref SelectedModel, "SelectedModel", "");
             Scribe_Collections.Look(ref FetchedModels, "FetchedModels", LookMode.Value);
 

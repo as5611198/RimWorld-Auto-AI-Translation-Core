@@ -54,6 +54,11 @@ namespace AutoTranslator_Core
             // EN: This method handles fire request.
             public int FireRequest(string url, string jsonBody, string apiKey, TranslatorProvider provider, int timeoutSeconds, TaskCompletionSource<ATC_WebResponse> tcs)
             {
+                return FireRequest(url, jsonBody, apiKey, provider, timeoutSeconds, tcs, null, false);
+            }
+
+            public int FireRequest(string url, string jsonBody, string apiKey, TranslatorProvider provider, int timeoutSeconds, TaskCompletionSource<ATC_WebResponse> tcs, string player2GameClientId, bool usePlayer2Protocol)
+            {
                 if (tcs == null) return -1;
 
                 int requestId = ++nextRequestId;
@@ -64,7 +69,7 @@ namespace AutoTranslator_Core
                 };
 
                 activeRequests[requestId] = active;
-                active.Coroutine = StartCoroutine(ExecuteRequestCoroutine(active, url, jsonBody, apiKey, provider, timeoutSeconds));
+                active.Coroutine = StartCoroutine(ExecuteRequestCoroutine(active, url, jsonBody, apiKey, provider, timeoutSeconds, player2GameClientId, usePlayer2Protocol));
                 return requestId;
             }
 
@@ -93,7 +98,7 @@ namespace AutoTranslator_Core
 
             // 這個方法負責執行 RequestCoroutine 動作。
             // EN: This method executes request coroutine.
-            private IEnumerator ExecuteRequestCoroutine(ActiveTranslationRequest active, string url, string jsonBody, string apiKey, TranslatorProvider provider, int timeoutSeconds)
+            private IEnumerator ExecuteRequestCoroutine(ActiveTranslationRequest active, string url, string jsonBody, string apiKey, TranslatorProvider provider, int timeoutSeconds, string player2GameClientId, bool usePlayer2Protocol)
             {
                 using (UnityWebRequest webRequest = new UnityWebRequest(url, "POST"))
                 {
@@ -102,20 +107,8 @@ namespace AutoTranslator_Core
                     byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonBody);
                     webRequest.uploadHandler = new UploadHandlerRaw(bodyRaw);
                     webRequest.downloadHandler = new DownloadHandlerBuffer();
-                    webRequest.SetRequestHeader("Content-Type", "application/json");
-
-                    string trimmedApiKey = apiKey != null ? apiKey.Trim() : string.Empty;
-                    if (!string.IsNullOrEmpty(trimmedApiKey))
-                    {
-                        if (provider == TranslatorProvider.DeepL)
-                        {
-                            webRequest.SetRequestHeader("Authorization", "DeepL-Auth-Key " + trimmedApiKey);
-                        }
-                        else if (provider != TranslatorProvider.Google)
-                        {
-                            webRequest.SetRequestHeader("Authorization", "Bearer " + trimmedApiKey);
-                        }
-                    }
+                    foreach (var header in ApiRequestHeaders.Build(provider, apiKey, player2GameClientId, usePlayer2Protocol))
+                        webRequest.SetRequestHeader(header.Key, header.Value);
 
                     webRequest.timeout = timeoutSeconds > 0 ? timeoutSeconds : 60;
 

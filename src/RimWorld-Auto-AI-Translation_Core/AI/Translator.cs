@@ -90,7 +90,8 @@ namespace AutoTranslator_Core
             return config != null &&
                    config.Enabled &&
                    HasApiCredential(config) &&
-                   !string.IsNullOrEmpty(CleanInput(config.SelectedModel));
+                   ((config.Provider == TranslatorProvider.Custom_OpenAI && config.UsePlayer2Protocol) ||
+                    !string.IsNullOrEmpty(CleanInput(config.SelectedModel)));
         }
 
         // 這個方法負責判斷 HasAnyReady設定 條件是否成立。
@@ -157,7 +158,8 @@ namespace AutoTranslator_Core
             if (!IsConfigReady(targetConfig)) return null;
 
             string apiKey = CleanInput(targetConfig.Key);
-            string model = CleanInput(targetConfig.SelectedModel);
+            bool isPlayer2 = targetConfig.Provider == TranslatorProvider.Custom_OpenAI && targetConfig.UsePlayer2Protocol;
+            string model = isPlayer2 ? "" : CleanInput(targetConfig.SelectedModel);
             string baseUrl = GetBaseUrl(targetConfig);
 
             try
@@ -195,6 +197,8 @@ namespace AutoTranslator_Core
                         payload = new { model = string.IsNullOrEmpty(model) ? "local-model" : model, messages = new[] { new { role = "system", content = prompt }, new { role = "user", content = inputJson } }, max_tokens = safeMaxTokens };
                     }
                 }
+                if (isPlayer2)
+                    payload = Player2LocalApi.PrepareChatPayload(payload);
                 string jsonPayload = JsonConvert.SerializeObject(payload);
                 var profile = GetRuntimeProfile(targetConfig.Provider, model);
                 bool isConnectionTestRequest = texts.Count == 1 && texts[0] == "Connection Test";
@@ -216,7 +220,9 @@ namespace AutoTranslator_Core
                         jsonPayload,
                         apiKey,
                         targetConfig.Provider,
-                        customTimeout);
+                        customTimeout,
+                        player2GameClientId: isPlayer2 ? targetConfig.Player2GameClientId : null,
+                        usePlayer2Protocol: isPlayer2);
 
                     if (AutoTranslatorSettings.IsCancellationRequested) return null;
                     if (resHolder == null) return null;

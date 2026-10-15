@@ -36,4 +36,9 @@
   <ATC_UIManager_OpenFolder>Відкрити папку кешу</ATC_UIManager_OpenFolder>
   <ATC_UIManager_OpenFolderFailed>Не вдалося відкрити папку кешу: {0}</ATC_UIManager_OpenFolderFailed>
   <ATC_UIManager_Refresh>Оновити список</ATC_UIManager_Refresh>
+  <ATC_Player2_Mode>Використовувати локальний протокол Player2 (URL і Game Client ID можна змінити)</ATC_Player2_Mode>
+  <ATC_Player2_ClientIdHint>Game Client ID з панелі розробника Player2 (не API-ключ)</ATC_Player2_ClientIdHint>
+  <ATC_Player2_AppModel>Модель, вибрана в застосунку Player2</ATC_Player2_AppModel>
+  <ATC_Player2_ClientIdRequired>Для режиму Player2 потрібен зареєстрований Game Client ID.</ATC_Player2_ClientIdRequired>
+  <ATC_Player2_AppModelLog>Player2 вибирає модель чату в застосунку; отримання списку моделей пропущено.</ATC_Player2_AppModelLog>
 </LanguageData>

@@ -185,6 +185,7 @@ namespace AutoTranslator_Core
                     if (string.IsNullOrEmpty(config.CustomBaseUrl)) Widgets.Label(urlRect, "  " + "ATC_CustomUrlOptional".Translate());
                     TooltipHandler.TipRegion(urlRect, "ATC_ApiBaseUrlHint".Translate());
                 }
+                DrawPlayer2Options(l, config, !AutoTranslatorSettings.IsRunning);
 
                 Rect delRect = new Rect(rowA.x + rowA.width * 0.92f, rowA.y, rowA.width * 0.08f, rowA.height - 2f);
                 GUI.color = new Color(1f, 0.4f, 0.4f);
@@ -214,6 +215,10 @@ namespace AutoTranslator_Core
                     Widgets.Label(modelInputRect, "📡 " + "ATC_FetchingModel".Translate());
                     GUI.color = AutoTranslatorSettings.IsRunning ? Color.grey : Color.white;
                 }
+                else if (config.Provider == TranslatorProvider.Custom_OpenAI && config.UsePlayer2Protocol)
+                {
+                    Widgets.Label(modelInputRect, "ATC_Player2_AppModel".Translate());
+                }
                 else
                 {
                     config.SelectedModel = Widgets.TextField(modelInputRect, config.SelectedModel);
@@ -227,7 +232,7 @@ namespace AutoTranslator_Core
                     }
                 }
 
-                if (Widgets.ButtonText(modelBtnRect, "▼"))
+                if (!config.UsePlayer2Protocol && Widgets.ButtonText(modelBtnRect, "▼"))
                 {
                     if (config.FetchedModels.Count > 0 && !AutoTranslatorSettings.IsRunning && !config.IsFetching)
                     {
@@ -539,6 +544,8 @@ namespace AutoTranslator_Core
                 Widgets.Label(urlRect, config.CustomBaseUrl ?? "");
             }
 
+            DrawPlayer2Options(l, config, canEdit);
+
             GUI.color = canEdit ? Color.white : Color.grey;
             Rect credentialsRow = l.GetRect(30f);
             Rect keyRect = new Rect(credentialsRow.x, credentialsRow.y, credentialsRow.width * 0.45f, credentialsRow.height - 2f);
@@ -562,6 +569,10 @@ namespace AutoTranslator_Core
                 Widgets.Label(modelInputRect, "ATC_FetchingModel".Translate());
                 GUI.color = canEdit ? Color.white : Color.grey;
             }
+            else if (config.Provider == TranslatorProvider.Custom_OpenAI && config.UsePlayer2Protocol)
+            {
+                Widgets.Label(modelInputRect, "ATC_Player2_AppModel".Translate());
+            }
             else if (canEdit)
             {
                 config.SelectedModel = Widgets.TextField(modelInputRect, config.SelectedModel ?? "");
@@ -577,7 +588,7 @@ namespace AutoTranslator_Core
                 Widgets.Label(modelInputRect, config.SelectedModel ?? "");
             }
 
-            if (Widgets.ButtonText(modelButtonRect, "▼") && canEdit && !config.IsFetching)
+            if (!config.UsePlayer2Protocol && Widgets.ButtonText(modelButtonRect, "▼") && canEdit && !config.IsFetching)
             {
                 if (config.FetchedModels.Count > 0)
                 {
@@ -685,6 +696,28 @@ namespace AutoTranslator_Core
             l.Label(errorKey.Translate());
             Text.Font = oldFont;
             GUI.color = oldColor;
+        }
+
+        private static void DrawPlayer2Options(Listing_Standard l, ApiKeyConfig config, bool canEdit)
+        {
+            if (config == null || config.Provider != TranslatorProvider.Custom_OpenAI) return;
+            bool enabled = config.UsePlayer2Protocol;
+            Rect modeRect = l.GetRect(28f);
+            if (canEdit) Widgets.CheckboxLabeled(modeRect, "ATC_Player2_Mode".Translate(), ref enabled);
+            else Widgets.Label(modeRect, (enabled ? "☑ " : "☐ ") + "ATC_Player2_Mode".Translate());
+            if (canEdit) config.UsePlayer2Protocol = enabled;
+            if (!enabled) return;
+
+            Rect idRect = l.GetRect(28f);
+            if (canEdit) config.Player2GameClientId = Widgets.TextField(idRect, config.Player2GameClientId ?? "");
+            else Widgets.Label(idRect, string.IsNullOrEmpty(config.Player2GameClientId) ? "" : "********");
+            if (string.IsNullOrEmpty(config.Player2GameClientId))
+            {
+                GUI.color = Color.gray;
+                Widgets.Label(idRect, "  " + "ATC_Player2_ClientIdHint".Translate());
+                GUI.color = canEdit ? Color.white : Color.grey;
+            }
+            TooltipHandler.TipRegion(idRect, "ATC_Player2_ClientIdHint".Translate());
         }
 
         private void DrawHardcodedUiPrototypeSettings(Listing_Standard l)

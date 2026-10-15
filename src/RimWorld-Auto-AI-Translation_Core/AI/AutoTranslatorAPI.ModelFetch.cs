@@ -25,7 +25,7 @@ namespace AutoTranslator_Core
         public static string GetModelFetchFingerprint(ApiKeyConfig config)
         {
             if (config == null) return "";
-            return $"{config.Provider}|{CleanInput(config.CustomBaseUrl)}|{CleanInput(config.Key)}";
+            return $"{config.Provider}|{config.UsePlayer2Protocol}|{CleanInput(config.CustomBaseUrl)}|{CleanInput(config.Key)}|{CleanInput(config.Player2GameClientId)}";
         }
 
         // 這個方法負責處理 自動取得For設定 相關流程。
@@ -86,7 +86,7 @@ namespace AutoTranslator_Core
         private static bool ShouldAutoFetchModels(ApiKeyConfig config)
         {
             if (config == null) return false;
-            if (!config.Enabled || config.IsFetching || AutoTranslatorSettings.IsRunning) return false;
+            if (!config.Enabled || (config.Provider == TranslatorProvider.Custom_OpenAI && config.UsePlayer2Protocol) || config.IsFetching || AutoTranslatorSettings.IsRunning) return false;
 
             string fetchFingerprint = GetModelFetchFingerprint(config);
             return fetchFingerprint != config.lastFetchedKey &&
@@ -107,6 +107,11 @@ namespace AutoTranslator_Core
         {
             if (config == null) return;
             if (!config.Enabled) return;
+            if (config.Provider == TranslatorProvider.Custom_OpenAI && config.UsePlayer2Protocol)
+            {
+                AutoTranslatorSettings.AddLog(TranslateText("ATC_Player2_AppModelLog"));
+                return;
+            }
             if (!ValidateApiEndpointForRequest(config)) return;
             if (!HasApiCredential(config)) return;
             if (config.IsFetching && !force) return;
@@ -165,6 +170,8 @@ namespace AutoTranslator_Core
                     string baseUrl = GetBaseUrl(config);
                     bool isGoogleRaw = config.Provider == TranslatorProvider.Google;
                     string url = BuildModelsUrl(config, baseUrl, apiKey, isGoogleRaw);
+                    string alternateBaseUrl = GetAlternateCustomBaseUrl(config, baseUrl);
+                    bool alternateTried = false;
 
                     int maxRetries = 2;
                     for (int attempt = 0; attempt <= maxRetries; attempt++)
@@ -262,6 +269,7 @@ namespace AutoTranslator_Core
                             {
                                 config.FetchedModels = models.OrderBy(x => x).ToList();
                                 if (string.IsNullOrEmpty(config.SelectedModel)) config.SelectedModel = config.FetchedModels[0];
+                                RememberResolvedBaseUrl(config, baseUrl);
                                 MarkModelFetchSuccess(config, fetchFingerprint);
                                 AutoTranslatorSettings.AddLog(TranslateText("ATC_Log_FetchModelsSuccess", config.Provider.ToString()));
                                 success = true;
@@ -274,6 +282,14 @@ namespace AutoTranslator_Core
                         }
 
                         int statusCode = (int)resHolder.HttpCode;
+                        if (statusCode == 404 && !alternateTried && !string.IsNullOrEmpty(alternateBaseUrl))
+                        {
+                            alternateTried = true;
+                            baseUrl = alternateBaseUrl;
+                            url = BuildModelsUrl(config, baseUrl, apiKey, isGoogleRaw);
+                            Verse.Log.Warning("[AutoTranslationCore] Fetch Models returned 404; retrying the custom endpoint without /v1.");
+                            continue;
+                        }
                         if ((statusCode == 429 || statusCode >= 500 || statusCode == 0) && attempt < maxRetries)
                         {
                             int baseDelay = 1000 * (int)Math.Pow(2, attempt);
@@ -335,6 +351,8 @@ namespace AutoTranslator_Core
             config.PendingFetchFingerprint = "";
             config.FetchRetryCount = 0;
             config.NextModelFetchRetryUtcTicks = 0L;
+            config.ResolvedBaseUrl = "";
+            config.ResolvedBaseUrlFingerprint = "";
             if (clearModels) config.FetchedModels.Clear();
         }
 

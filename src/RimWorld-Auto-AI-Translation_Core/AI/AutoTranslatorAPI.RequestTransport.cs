@@ -14,7 +14,9 @@ namespace AutoTranslator_Core
             string apiKey,
             TranslatorProvider provider,
             int timeoutSeconds,
-            Func<bool> additionalCancellation = null)
+            Func<bool> additionalCancellation = null,
+            string player2GameClientId = null,
+            bool usePlayer2Protocol = false)
         {
             int safeTimeoutSeconds = Math.Max(1, timeoutSeconds);
             if (IsRequestCancellationRequested(additionalCancellation))
@@ -54,7 +56,9 @@ namespace AutoTranslator_Core
                             apiKey,
                             provider,
                             safeTimeoutSeconds,
-                            completion);
+                            completion,
+                            player2GameClientId,
+                            usePlayer2Protocol);
                         if (requestId > 0 &&
                             (completion.Task.IsCompleted || IsRequestCancellationRequested(additionalCancellation)))
                         {

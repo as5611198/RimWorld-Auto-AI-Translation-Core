@@ -40,4 +40,9 @@
   <ATC_Error_InvalidApiBaseUrl>Enter a complete http:// or https:// API address, such as http://127.0.0.1:4315. Do not put an API key, login credentials, query string or fragment in this field.</ATC_Error_InvalidApiBaseUrl>
   <ATC_ApiBaseUrlHint>API address, such as http://127.0.0.1:4315 or https://api.example.com/v1. Add /v1 only if your service requires it. Leave blank to use the provider's default address.</ATC_ApiBaseUrlHint>
   <ATC_ApiKeyOptional>API key (leave blank if your custom service does not require one)</ATC_ApiKeyOptional>
+  <ATC_Player2_Mode>Use Player2 local protocol (custom URL and Game Client ID)</ATC_Player2_Mode>
+  <ATC_Player2_ClientIdHint>Player2 Game Client ID from the developer dashboard (not an API key)</ATC_Player2_ClientIdHint>
+  <ATC_Player2_AppModel>Model selected in Player2 app</ATC_Player2_AppModel>
+  <ATC_Player2_ClientIdRequired>Player2 mode requires a registered Game Client ID.</ATC_Player2_ClientIdRequired>
+  <ATC_Player2_AppModelLog>Player2 selects the chat model in its app; model-list fetching was skipped.</ATC_Player2_AppModelLog>
 </LanguageData>

@@ -40,4 +40,9 @@
   <ATC_Error_InvalidApiBaseUrl>請填完整的 http:// 或 https:// API 網址，例如 http://127.0.0.1:4315。這個欄位不要填密鑰、登入資訊、查詢參數或 # 片段。</ATC_Error_InvalidApiBaseUrl>
   <ATC_ApiBaseUrlHint>API 網址，例如 http://127.0.0.1:4315 或 https://api.example.com/v1。只有服務要求時才加 /v1；留空使用供應商的預設網址。</ATC_ApiBaseUrlHint>
   <ATC_ApiKeyOptional>API 密鑰（自訂服務不需要時可留空）</ATC_ApiKeyOptional>
+  <ATC_Player2_Mode>使用 Player2 本機協議（可自訂網址與 Game Client ID）</ATC_Player2_Mode>
+  <ATC_Player2_ClientIdHint>Player2 開發者後台的 Game Client ID（不是 API 密鑰）</ATC_Player2_ClientIdHint>
+  <ATC_Player2_AppModel>使用 Player2 應用程式中選取的模型</ATC_Player2_AppModel>
+  <ATC_Player2_ClientIdRequired>Player2 模式需要已註冊的 Game Client ID。</ATC_Player2_ClientIdRequired>
+  <ATC_Player2_AppModelLog>Player2 會在應用程式中選取聊天模型，已略過模型清單取得。</ATC_Player2_AppModelLog>
 </LanguageData>

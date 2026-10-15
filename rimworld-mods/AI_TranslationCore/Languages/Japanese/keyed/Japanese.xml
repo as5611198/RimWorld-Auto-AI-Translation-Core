@@ -682,4 +682,9 @@
   <ATC_Filtered_NoCandidatePaths>使用可能なソースパスがありません</ATC_Filtered_NoCandidatePaths>
   <ATC_Filtered_CandidatePaths>候補ソース：{0}</ATC_Filtered_CandidatePaths>
   <ATC_Filtered_CandidateHeader>見つかった候補ソース：</ATC_Filtered_CandidateHeader>
+  <ATC_Player2_Mode>Player2 ローカルプロトコルを使用（カスタムURLと Game Client ID）</ATC_Player2_Mode>
+  <ATC_Player2_ClientIdHint>Player2 開発者ダッシュボードの Game Client ID（APIキーではありません）</ATC_Player2_ClientIdHint>
+  <ATC_Player2_AppModel>Player2 アプリで選択したモデルを使用</ATC_Player2_AppModel>
+  <ATC_Player2_ClientIdRequired>Player2 モードには登録済み Game Client ID が必要です。</ATC_Player2_ClientIdRequired>
+  <ATC_Player2_AppModelLog>Player2 がアプリでチャットモデルを選択するため、モデル一覧の取得を省略しました。</ATC_Player2_AppModelLog>
 </LanguageData>

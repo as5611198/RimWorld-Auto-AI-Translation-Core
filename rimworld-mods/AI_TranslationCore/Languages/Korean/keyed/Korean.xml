@@ -659,4 +659,9 @@
   <ATC_Filtered_NoCandidatePaths>사용 가능한 소스 경로가 없습니다</ATC_Filtered_NoCandidatePaths>
   <ATC_Filtered_CandidatePaths>후보 소스: {0}</ATC_Filtered_CandidatePaths>
   <ATC_Filtered_CandidateHeader>찾은 후보 소스:</ATC_Filtered_CandidateHeader>
+  <ATC_Player2_Mode>Player2 로컬 프로토콜 사용 (사용자 지정 URL 및 Game Client ID)</ATC_Player2_Mode>
+  <ATC_Player2_ClientIdHint>Player2 개발자 대시보드의 Game Client ID (API 키가 아님)</ATC_Player2_ClientIdHint>
+  <ATC_Player2_AppModel>Player2 앱에서 선택한 모델 사용</ATC_Player2_AppModel>
+  <ATC_Player2_ClientIdRequired>Player2 모드에는 등록된 Game Client ID가 필요합니다.</ATC_Player2_ClientIdRequired>
+  <ATC_Player2_AppModelLog>Player2 앱에서 채팅 모델을 선택하므로 모델 목록 가져오기를 건너뛰었습니다.</ATC_Player2_AppModelLog>
 </LanguageData>

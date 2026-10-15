@@ -262,7 +262,8 @@ namespace AutoTranslator_Core
             if (!ValidateApiEndpointForRequest(config) || !IsPolicyAgentConfigReady(config))
                 return new StructuredChatAttemptResult { ErrorText = "invalid_api_configuration" };
             string apiKey = CleanInput(config.Key);
-            string model = CleanInput(config.SelectedModel);
+            bool isPlayer2 = config.Provider == TranslatorProvider.Custom_OpenAI && config.UsePlayer2Protocol;
+            string model = isPlayer2 ? string.Empty : CleanInput(config.SelectedModel);
             string baseUrl = GetBaseUrl(config);
             string url;
             object payload;
@@ -299,6 +300,7 @@ namespace AutoTranslator_Core
                     },
                     max_tokens = maximumOutputTokens
                 };
+                if (isPlayer2) payload = Player2LocalApi.PrepareChatPayload(payload);
             }
 
             int configuredTimeout = AutoTranslatorMod.Settings != null
@@ -314,7 +316,9 @@ namespace AutoTranslator_Core
                 apiKey,
                 config.Provider,
                 timeoutSeconds,
-                additionalCancellation);
+                additionalCancellation,
+                isPlayer2 ? config.Player2GameClientId : null,
+                isPlayer2);
 
             StructuredChatAttemptResult result = new StructuredChatAttemptResult
             {
