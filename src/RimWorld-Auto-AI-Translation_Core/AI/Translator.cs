@@ -148,7 +148,21 @@ namespace AutoTranslator_Core
 
         // 這個方法負責翻譯 BatchAsync 內容。
         // EN: This method translates batch async.
-        public static async Task<List<string>> TranslateBatchAsync(List<string> texts, ApiKeyConfig forceConfig = null, bool suppressFinalParseError = false)
+        public static Task<List<string>> TranslateBatchAsync(List<string> texts, ApiKeyConfig forceConfig = null, bool suppressFinalParseError = false)
+        {
+            return TranslateBatchCoreAsync(texts, forceConfig, suppressFinalParseError, null, null);
+        }
+
+        private static int GetTranslationTimeoutSeconds(TranslatorProvider provider, string model)
+        {
+            int seconds = AutoTranslatorMod.Settings.TimeoutSeconds > 0 ? AutoTranslatorMod.Settings.TimeoutSeconds : 60;
+            if (IsReasoningModel(model)) seconds = 300;
+            return Math.Max(seconds, GetRuntimeProfile(provider, model).TimeoutFloorSeconds);
+        }
+
+        private static async Task<List<string>> TranslateBatchCoreAsync(List<string> texts, ApiKeyConfig forceConfig,
+            bool suppressFinalParseError, Action<string, ATC_WebResponse> connectionTestResponse,
+            Func<bool> connectionTestCancelled)
         {
             if (AutoTranslatorSettings.IsCancellationRequested) return null;
 
@@ -207,9 +221,7 @@ namespace AutoTranslator_Core
                 int maxFormatRetries = profile.FormatRetries;
                 int formatRetryCount = 0;
                 bool hadFormatRetry = false;
-                int customTimeout = AutoTranslatorMod.Settings.TimeoutSeconds > 0 ? AutoTranslatorMod.Settings.TimeoutSeconds : 60;
-                if (reasoningModel) customTimeout = 300;
-                customTimeout = Math.Max(customTimeout, profile.TimeoutFloorSeconds);
+                int customTimeout = GetTranslationTimeoutSeconds(targetConfig.Provider, model);
 
                 for (int attempt = 0; attempt <= maxRetries; attempt++)
                 {
@@ -221,9 +233,11 @@ namespace AutoTranslator_Core
                         apiKey,
                         targetConfig.Provider,
                         customTimeout,
+                        additionalCancellation: connectionTestCancelled,
                         player2GameClientId: isPlayer2 ? targetConfig.Player2GameClientId : null,
                         usePlayer2Protocol: isPlayer2);
 
+                    if (connectionTestResponse != null) connectionTestResponse(url, resHolder);
                     if (AutoTranslatorSettings.IsCancellationRequested) return null;
                     if (resHolder == null) return null;
 
@@ -294,6 +308,8 @@ namespace AutoTranslator_Core
                     }
 
                     string errText = resHolder.ErrorText;
+                    if (isConnectionTestRequest && connectionTestResponse != null)
+                        return null; // The test reports a redacted diagnostic directly in the settings UI.
                     if (statusCode == 401 || statusCode == 403)
                     {
                         AutoTranslatorSettings.AddErrorLog($"🔒 [{targetConfig.Provider}] " + "ATC_Error_Unauthorized".Translate());
@@ -322,7 +338,11 @@ namespace AutoTranslator_Core
             }
             catch (Exception ex)
             {
-
+                if (connectionTestResponse != null)
+                {
+                    connectionTestResponse(string.Empty, new ATC_WebResponse { ErrorText = ex.Message });
+                    return null;
+                }
                 ATC_Dispatcher.RunOnMainThread(() =>
                     Verse.Log.Error($"[AutoTranslationCore] Fatal Translation Bridge Error: {ex}")
                 );

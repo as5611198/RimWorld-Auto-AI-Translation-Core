@@ -370,6 +370,11 @@ namespace AutoTranslator_Core
         // EN: This method handles add error log.
         public static void AddErrorLog(string msg)
         {
+            AddErrorLog(msg, true);
+        }
+
+        internal static void AddErrorLog(string msg, bool notify)
+        {
             lock (logLock)
             {
                 if (ErrorLogs.Any(x => x.Contains(msg))) return;
@@ -381,6 +386,7 @@ namespace AutoTranslator_Core
             }
 
 
+            if (!notify) return;
             ATC_Dispatcher.RunOnMainThread(() =>
             {
                 TryShowRejectMessage(msg);

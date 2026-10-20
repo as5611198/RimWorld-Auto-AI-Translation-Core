@@ -77,6 +77,9 @@ namespace AutoTranslator_Core
         // 這個欄位保存 測試Generation 的執行狀態或快取資料。
         // EN: This method handles expose data.
         [NonSerialized] public int TestGeneration = 0;
+        [NonSerialized] internal ApiConnectionDiagnostic LastConnectionTest;
+        [NonSerialized] internal string ConnectionTestFingerprint = "";
+        [NonSerialized] internal int TestTimeoutSeconds;
         // 這個方法負責處理 Expose資料 相關流程。
         // EN: This method handles expose data.
         public void ExposeData()

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_ConnectionTest_Title>Connection test result</ATC_ConnectionTest_Title>
+  <ATC_ConnectionTest_Details>View result</ATC_ConnectionTest_Details>
+  <ATC_ConnectionTest_Copy>Copy diagnostics</ATC_ConnectionTest_Copy>
+  <ATC_ConnectionTest_Success>The API accepted the test request.</ATC_ConnectionTest_Success>
+  <ATC_ConnectionTest_Unauthorized>Authentication was rejected. Check the API key and authentication format.</ATC_ConnectionTest_Unauthorized>
+  <ATC_ConnectionTest_Forbidden>Access was denied. Check account permissions and gateway restrictions.</ATC_ConnectionTest_Forbidden>
+  <ATC_ConnectionTest_NotFound>The requested resource was not found. Check the API address and model.</ATC_ConnectionTest_NotFound>
+  <ATC_ConnectionTest_RateLimit>The service limited this request. Check your quota and retry later.</ATC_ConnectionTest_RateLimit>
+  <ATC_ConnectionTest_ServerError>The service returned a server error. Retry later.</ATC_ConnectionTest_ServerError>
+  <ATC_ConnectionTest_Rejected>The service rejected this request.</ATC_ConnectionTest_Rejected>
+  <ATC_ConnectionTest_Timeout>The connection test timed out. Check the network or try a longer timeout.</ATC_ConnectionTest_Timeout>
+  <ATC_ConnectionTest_NoResponse>No successful HTTP response was received.</ATC_ConnectionTest_NoResponse>
+  <ATC_ConnectionTest_Provider>Provider: {0}</ATC_ConnectionTest_Provider>
+  <ATC_ConnectionTest_Model>Model: {0}</ATC_ConnectionTest_Model>
+  <ATC_ConnectionTest_Endpoint>Request URL: {0}</ATC_ConnectionTest_Endpoint>
+  <ATC_ConnectionTest_ServiceMessage>Service message: {0}</ATC_ConnectionTest_ServiceMessage>
+  <ATC_ConnectionTest_TransportError>Connection details: {0}</ATC_ConnectionTest_TransportError>
+</LanguageData>

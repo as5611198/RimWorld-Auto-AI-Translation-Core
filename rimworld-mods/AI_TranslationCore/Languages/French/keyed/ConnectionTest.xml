@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_ConnectionTest_Title>Résultat du test de connexion</ATC_ConnectionTest_Title>
+  <ATC_ConnectionTest_Details>Voir le résultat</ATC_ConnectionTest_Details>
+  <ATC_ConnectionTest_Copy>Copier le diagnostic</ATC_ConnectionTest_Copy>
+  <ATC_ConnectionTest_Success>L’API a accepté la requête de test.</ATC_ConnectionTest_Success>
+  <ATC_ConnectionTest_Unauthorized>Authentification refusée. Vérifiez la clé API et le format d’authentification.</ATC_ConnectionTest_Unauthorized>
+  <ATC_ConnectionTest_Forbidden>Accès refusé. Vérifiez les autorisations du compte et les restrictions de la passerelle.</ATC_ConnectionTest_Forbidden>
+  <ATC_ConnectionTest_NotFound>Ressource introuvable. Vérifiez l’adresse API et le modèle.</ATC_ConnectionTest_NotFound>
+  <ATC_ConnectionTest_RateLimit>Requête limitée. Vérifiez votre quota et réessayez plus tard.</ATC_ConnectionTest_RateLimit>
+  <ATC_ConnectionTest_ServerError>Erreur du serveur. Réessayez plus tard.</ATC_ConnectionTest_ServerError>
+  <ATC_ConnectionTest_Rejected>Requête refusée.</ATC_ConnectionTest_Rejected>
+  <ATC_ConnectionTest_Timeout>Délai du test dépassé. Vérifiez le réseau ou augmentez le délai.</ATC_ConnectionTest_Timeout>
+  <ATC_ConnectionTest_NoResponse>Aucune réponse HTTP réussie reçue.</ATC_ConnectionTest_NoResponse>
+  <ATC_ConnectionTest_Provider>Fournisseur : {0}</ATC_ConnectionTest_Provider>
+  <ATC_ConnectionTest_Model>Modèle : {0}</ATC_ConnectionTest_Model>
+  <ATC_ConnectionTest_Endpoint>URL de la requête : {0}</ATC_ConnectionTest_Endpoint>
+  <ATC_ConnectionTest_ServiceMessage>Message du service : {0}</ATC_ConnectionTest_ServiceMessage>
+  <ATC_ConnectionTest_TransportError>Détails de connexion : {0}</ATC_ConnectionTest_TransportError>
+</LanguageData>

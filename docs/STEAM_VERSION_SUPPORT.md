@@ -20,13 +20,26 @@ pwsh -NoProfile -File tools/Build-SteamMod.ps1
 
 # 建置、備份並同步到本機 Steam 模組目錄。
 pwsh -NoProfile -File tools/Build-SteamMod.ps1 -Deploy
+
+# 英文限定的預覽版：只把本機模組介面改成繁中，發行包保留原始英文。
+pwsh -NoProfile -File tools/Build-SteamMod.ps1 -Deploy -LocalUiLanguage ChineseTraditional
 ```
 
 可用 `-RimWorldRoot`、`-RimWorld15ManagedDir`、`-RimWorld16ManagedDir`、`-Harmony17Path` 指定其他路徑。1.6 若沒有舊 Managed 安裝，專案會使用本機 NuGet 快取的 `Krafs.Rimworld.Ref 1.6.4871`；它只供編譯，不可當成執行時依賴配送。
 
 部署前必須關閉 RimWorld。腳本先完成所有建置，備份受影響的版本 DLL／PDB／JSON 與 Steam metadata，再逐檔同步並比對 SHA-256。備份及 verification.json 位於 `backups/steam-three-version-日期時間/`。若本機已存在已知 packageId 的 `!Translation_AI_Pack`，腳本另備份並更新它的支援版本 metadata，不改翻譯內容。腳本不會發布 Workshop、推送 GitHub 或處理 PR。
 
+`-Deploy` 也會備份並同步模組的 `Languages` 檔案，確保新版 UI 的翻譯鍵一起交付。選用 `-LocalUiLanguage ChineseTraditional` 時，僅在 Steam 安裝目錄的英文語系中套用本模組的繁中翻譯，讓只有英文的 1.7 預覽版也能操作中文模組介面；不修改遊戲 Core、Prefs、API 設定或 repo 發行包的英文語系。`verification.json` 會另外記錄本機覆蓋檔的預期 SHA-256。日後重新執行一般 `-Deploy` 即可恢復模組正常的英文顯示。
+
 ## 1.7 的適配內容
+
+2026-10-20 本機測試部署：執行 `-Deploy -LocalUiLanguage ChineseTraditional`，新版連線診斷 DLL 與語系已同步至 `E:\SteamLibrary\steamapps\common\RimWorld\Mods\AI_TranslationCore`。43 個配送檔案核對 SHA-256 通過；安裝目錄的英文語系已套用全部 744 個繁中 Keyed 鍵，主選單按鈕的 DefInjected 標籤也改用繁中。repo 發行包的英文檔保留原文。本機實際 1.7 DLL 通過 91 項離線 API 設定／診斷檢查，未啟動遊戲或進行 API 帶金鑰實連驗收。備份與 manifest：`backups/steam-three-version-20261020-214039-355/`。
+
+當晚 Steam 更新遊戲至 `1.7.4982 rev1280`／Waylith CoreCLR `10.0.13` 後，重新編譯並部署 1.7 與共用語系，37 個檔案核對 SHA-256 通過；實際安裝 DLL 的 91 項 API 檢查與遊戲自帶 CoreCLR 的 11 項載入／Harmony smoke 檢查通過。未啟動遊戲。檢查到使用者的啟用設定仍只有 Core；已在遊戲關閉時備份 `ModsConfig.xml`，新增 Harmony 與本機 `auto.aitranslation.core`，其他模組維持停用。備份：`backups/steam-three-version-20261020-222217-209/`，啟用前後清單另存於 `game-config/activation.json`。遊戲 Mods 清單顯示名稱為 `AI 智能漢化網絡(AI Translation Network)`；設定頁名稱為 `AI 智能漢化網絡 (AI Translation Network)V4.1 BETA`。清單搜尋僅比對顯示名稱，不比對資料夾名；尚未以遊戲畫面確認原先找不到的具體原因，後續顯示與 API 實連仍待玩家驗收。
+
+22:32 後續部署：使用者已回報兩站 API 各自配對可用。依回饋移除連線失敗自動診斷彈窗，改為左上角單則 HTTP／原因通知，仍可手動查看詳細結果。三版本編譯通過；1.5 與實際安裝 1.7 各通過 96 項離線檢查；九種語言 XML 與鍵集合檢查通過。43 個配送檔案核對 SHA-256，保留本機繁中介面。備份與驗證：`backups/steam-three-version-20261020-223210-545/`。本次未更動玩家 API 設定，亦未啟動遊戲驗收新版通知畫面。
+
+22:51 測試結束：使用者確認新版行為正常，執行 `-Deploy -LocalUiLanguage Default` 移除本機繁中覆寫，恢復各語言原有內容。三版本重新編譯及 43 個配送檔案 SHA-256 核對通過；Steam 安裝目錄的四個英文語系檔與 repo 發行包逐一相同。備份與驗證：`backups/steam-three-version-20261020-225109-489/`。
 
 - 增加 `GUI.Label(Rect,string,GUIStyle)` 攔截；Waylith 的字串重載不再經過 GUIContent 重載。沿用既有啟用／停用、日誌排除與原文提示設定。
 - GUIContent → string、Widgets → GUI 的巢狀呼叫使用同一層級防護，避免重複翻譯；例外發生時由 Finalizer 還原。

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_ConnectionTest_Title>接続テスト結果</ATC_ConnectionTest_Title>
+  <ATC_ConnectionTest_Details>結果を表示</ATC_ConnectionTest_Details>
+  <ATC_ConnectionTest_Copy>診断情報をコピー</ATC_ConnectionTest_Copy>
+  <ATC_ConnectionTest_Success>API がテスト要求を受け付けました。</ATC_ConnectionTest_Success>
+  <ATC_ConnectionTest_Unauthorized>認証が拒否されました。API キーと認証形式を確認してください。</ATC_ConnectionTest_Unauthorized>
+  <ATC_ConnectionTest_Forbidden>アクセスが拒否されました。アカウント権限やゲートウェイの制限を確認してください。</ATC_ConnectionTest_Forbidden>
+  <ATC_ConnectionTest_NotFound>要求したリソースが見つかりません。API アドレスとモデルを確認してください。</ATC_ConnectionTest_NotFound>
+  <ATC_ConnectionTest_RateLimit>要求が制限されました。利用枠を確認し、後で再試行してください。</ATC_ConnectionTest_RateLimit>
+  <ATC_ConnectionTest_ServerError>サーバーエラーが発生しました。後で再試行してください。</ATC_ConnectionTest_ServerError>
+  <ATC_ConnectionTest_Rejected>要求が拒否されました。</ATC_ConnectionTest_Rejected>
+  <ATC_ConnectionTest_Timeout>接続テストがタイムアウトしました。ネットワークを確認するか、待機時間を延長してください。</ATC_ConnectionTest_Timeout>
+  <ATC_ConnectionTest_NoResponse>成功した HTTP 応答を受信できませんでした。</ATC_ConnectionTest_NoResponse>
+  <ATC_ConnectionTest_Provider>プロバイダー：{0}</ATC_ConnectionTest_Provider>
+  <ATC_ConnectionTest_Model>モデル：{0}</ATC_ConnectionTest_Model>
+  <ATC_ConnectionTest_Endpoint>要求 URL：{0}</ATC_ConnectionTest_Endpoint>
+  <ATC_ConnectionTest_ServiceMessage>サービスのメッセージ：{0}</ATC_ConnectionTest_ServiceMessage>
+  <ATC_ConnectionTest_TransportError>接続情報：{0}</ATC_ConnectionTest_TransportError>
+</LanguageData>

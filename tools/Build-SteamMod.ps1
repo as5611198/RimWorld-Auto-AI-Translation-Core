@@ -4,7 +4,8 @@ param(
     [string]$RimWorld15ManagedDir = "$env:USERPROFILE\Documents\rimworld 1.5 data\RimWorldWin64_Data\Managed",
     [string]$RimWorld16ManagedDir = '',
     [string]$Harmony17Path = 'E:\SteamLibrary\steamapps\workshop\content\294100\2009463077\1.7\Assemblies\0Harmony.dll',
-    [switch]$Deploy
+    [switch]$Deploy,
+    [ValidateSet('Default', 'ChineseTraditional')][string]$LocalUiLanguage = 'Default'
 )
 $ErrorActionPreference = 'Stop'
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -15,11 +16,20 @@ $assemblyName = 'RimWorld_Auto_AI_Translation_Core'
 $backupRoot = Join-Path $repoRoot ('backups\steam-three-version-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
 $versionsToBuild = @($Versions | Select-Object -Unique)
 
+if ($LocalUiLanguage -ne 'Default' -and !$Deploy) {
+    throw 'LocalUiLanguage only changes a local Steam deployment; use it with -Deploy.'
+}
 if ($Deploy -and (Get-Process -ErrorAction SilentlyContinue | Where-Object ProcessName -Match '^RimWorld')) {
     throw 'Close RimWorld before deploying its mod assemblies.'
 }
 if ($Deploy -and !(Test-Path -LiteralPath (Join-Path $steamMod 'About\About.xml'))) {
     throw "Expected an existing Steam mod at $steamMod"
+}
+if ($Deploy) {
+    [xml]$installedMetadata = Get-Content -LiteralPath (Join-Path $steamMod 'About\About.xml') -Raw
+    if ($installedMetadata.ModMetaData.packageId -ne 'Auto.AITranslation.Core') {
+        throw "Refusing to replace an unrelated mod at $steamMod"
+    }
 }
 
 $builds = @{
@@ -54,6 +64,58 @@ try {
         }
     }
 
+    if ($Deploy) {
+        $languageRoot = Join-Path $packageRoot 'Languages'
+        $traditionalKeys = @{}
+        $englishKeys = @{}
+        if ($LocalUiLanguage -eq 'ChineseTraditional') {
+            foreach ($language in @('ChineseTraditional', 'English')) {
+                foreach ($file in Get-ChildItem -LiteralPath (Join-Path $languageRoot "$language\Keyed") -Filter '*.xml' -File | Sort-Object Name) {
+                    [xml]$document = Get-Content -LiteralPath $file.FullName -Raw
+                    foreach ($node in $document.LanguageData.ChildNodes) {
+                        if ($node.NodeType -ne [Xml.XmlNodeType]::Element) { continue }
+                        if ($language -eq 'English') { $englishKeys[$node.Name] = $true }
+                        else { $traditionalKeys[$node.Name] = $node.InnerText }
+                    }
+                }
+            }
+        }
+        foreach ($file in Get-ChildItem -LiteralPath $languageRoot -Recurse -File | Sort-Object FullName) {
+            $relative = 'Languages\' + $file.FullName.Substring($languageRoot.Length).TrimStart('\', '/')
+            $steamSource = $file.FullName
+            if ($LocalUiLanguage -eq 'ChineseTraditional' -and $relative.StartsWith('Languages\English\', [StringComparison]::OrdinalIgnoreCase)) {
+                $englishRelative = $relative.Substring('Languages\English\'.Length)
+                if ($englishRelative.StartsWith('Keyed\', [StringComparison]::OrdinalIgnoreCase) -and $file.Extension -eq '.xml') {
+                    # English-only previews still load English. Change only this installed mod's strings;
+                    # the distributable English files and the game's own language files stay intact.
+                    $document = New-Object Xml.XmlDocument
+                    $document.PreserveWhitespace = $true
+                    $document.Load($file.FullName)
+                    foreach ($node in $document.LanguageData.ChildNodes) {
+                        if ($node.NodeType -eq [Xml.XmlNodeType]::Element -and $traditionalKeys.ContainsKey($node.Name)) {
+                            $node.InnerText = $traditionalKeys[$node.Name]
+                        }
+                    }
+                    if ($file.Name -eq 'English.xml') {
+                        foreach ($key in $traditionalKeys.Keys | Sort-Object) {
+                            if ($englishKeys.ContainsKey($key)) { continue }
+                            $node = $document.CreateElement($key)
+                            $node.InnerText = $traditionalKeys[$key]
+                            [void]$document.LanguageData.AppendChild($node)
+                        }
+                    }
+                    $steamSource = Join-Path $backupRoot ('deployment-inputs\' + $relative)
+                    New-Item -ItemType Directory -Path (Split-Path $steamSource) -Force | Out-Null
+                    $document.Save($steamSource)
+                } else {
+                    $traditionalFile = Join-Path $languageRoot ('ChineseTraditional\' + $englishRelative)
+                    if (Test-Path -LiteralPath $traditionalFile -PathType Leaf) { $steamSource = $traditionalFile }
+                }
+            }
+            $copies += [pscustomobject]@{ Source = $file.FullName; Relative = $relative; SteamSource = $steamSource }
+        }
+    }
+
     # Back up only affected binaries and metadata. Never mirror-delete the mod,
     # its translations, player settings, or the generated translation pack.
     foreach ($item in $copies) {
@@ -81,11 +143,14 @@ try {
     foreach ($item in $copies) {
         $destination = Join-Path $packageRoot $item.Relative
         New-Item -ItemType Directory -Path (Split-Path $destination) -Force | Out-Null
-        Copy-Item -LiteralPath $item.Source -Destination $destination -Force
+        if (![string]::Equals($item.Source, $destination, [StringComparison]::OrdinalIgnoreCase)) {
+            Copy-Item -LiteralPath $item.Source -Destination $destination -Force
+        }
         if ($Deploy) {
             $destination = Join-Path $steamMod $item.Relative
             New-Item -ItemType Directory -Path (Split-Path $destination) -Force | Out-Null
-            Copy-Item -LiteralPath $item.Source -Destination $destination -Force
+            $steamSource = if ($item.SteamSource) { $item.SteamSource } else { $item.Source }
+            Copy-Item -LiteralPath $steamSource -Destination $destination -Force
         }
     }
     # Publish metadata only after every advertised version has its own assembly.
@@ -107,8 +172,10 @@ try {
         $sourceHash = (Get-FileHash -LiteralPath $item.Source -Algorithm SHA256).Hash
         $packageHash = (Get-FileHash -LiteralPath (Join-Path $packageRoot $item.Relative) -Algorithm SHA256).Hash
         $steamHash = if ($Deploy) { (Get-FileHash -LiteralPath (Join-Path $steamMod $item.Relative) -Algorithm SHA256).Hash } else { $null }
-        if ($sourceHash -ne $packageHash -or ($Deploy -and $sourceHash -ne $steamHash)) { throw "Hash mismatch: $($item.Relative)" }
-        [pscustomobject]@{ File = $item.Relative; SHA256 = $sourceHash; SteamVerified = [bool]$Deploy }
+        $steamSource = if ($item.SteamSource) { $item.SteamSource } else { $item.Source }
+        $steamExpectedHash = if ($Deploy) { (Get-FileHash -LiteralPath $steamSource -Algorithm SHA256).Hash } else { $null }
+        if ($sourceHash -ne $packageHash -or ($Deploy -and $steamExpectedHash -ne $steamHash)) { throw "Hash mismatch: $($item.Relative)" }
+        [pscustomobject]@{ File = $item.Relative; SHA256 = $sourceHash; SteamExpectedSHA256 = $steamExpectedHash; SteamVerified = [bool]$Deploy; LocalUiLanguage = $LocalUiLanguage }
     }
     if ($Deploy) {
         $generatedAbout = Join-Path $RimWorldRoot 'Mods\!Translation_AI_Pack\About\About.xml'

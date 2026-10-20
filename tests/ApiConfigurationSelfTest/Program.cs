@@ -97,6 +97,7 @@ internal static class Program
                 Check(InvokeBool("IsConfigReady", Config(provider, "", "valid-synthetic-test-key", "test-model")), provider + " default endpoint still works");
             }
             Check(!InvokeBool("IsPolicyAgentConfigReady", Config("DeepL", "", "valid-synthetic-test-key", "test-model")), "policy agent still excludes DeepL");
+            TestConnectionDiagnostics(mod);
             Console.WriteLine("PASS: " + passed + " API configuration checks against " + modPath);
             return 0;
         }
@@ -117,6 +118,82 @@ internal static class Program
         configType.GetField("UsePlayer2Protocol").SetValue(config, player2);
         configType.GetField("Player2GameClientId").SetValue(config, player2GameClientId);
         return config;
+    }
+
+    private static void TestConnectionDiagnostics(Assembly mod)
+    {
+        Type diagnosticType = mod.GetType("AutoTranslator_Core.ApiConnectionDiagnostic", true);
+        MethodInfo create = diagnosticType.GetMethod("Create", Static);
+        MethodInfo redact = diagnosticType.GetMethod("Redact", Static);
+        const BindingFlags fields = BindingFlags.Instance | BindingFlags.NonPublic;
+        const string secret = "synthetic/private+credential123";
+        Func<object, string, string> read = (value, name) => (string)diagnosticType.GetField(name, fields).GetValue(value);
+        Func<bool, long, string, string, object> report = (success, code, error, body) => create.Invoke(null,
+            new object[] { "Custom_OpenAI", "test-model", "https://api.example.com/v1/chat/completions?key=" + secret,
+                success, code, error, body, new[] { secret } });
+
+        object auth = report(false, 401, "HTTP/1.1 401 Unauthorized", "{\"error\":{\"message\":\"Invalid key " + secret + "\"}}");
+        Check(read(auth, "HintKey") == "ATC_ConnectionTest_Unauthorized", "401 has an authentication explanation");
+        Check(read(auth, "ServiceMessage") == "Invalid key [redacted]", "service error is preserved with echoed key hidden");
+        MethodInfo notificationDetail = diagnosticType.GetMethod("GetNotificationDetail", BindingFlags.Instance | BindingFlags.NonPublic);
+        Func<object, string> brief = value => (string)notificationDetail.Invoke(value, null);
+        Check(brief(auth) == "Invalid key [redacted]", "notification prefers the redacted service reason over generic transport status");
+        Check(brief(report(false, 0, "Unable to resolve\n\thost", "")) == "Unable to resolve host", "notification retains DNS errors on one line");
+        Check(brief(report(false, 400, "", new string('a', 2000))).Length == 181, "long errors stay bounded in the corner notification");
+        Check(brief(report(false, 400, "", new string('a', 179) + "😀tail")) == new string('a', 179) + "…", "notification truncation preserves Unicode character boundaries");
+        Check(read(auth, "Endpoint") == "https://api.example.com/v1/chat/completions", "request URL excludes credential query");
+        foreach (var item in new[] {
+            new { Code = 403L, Hint = "Forbidden" }, new { Code = 404L, Hint = "NotFound" },
+            new { Code = 429L, Hint = "RateLimit" }, new { Code = 503L, Hint = "ServerError" },
+            new { Code = 400L, Hint = "Rejected" } })
+            Check(read(report(false, item.Code, "", ""), "HintKey") == "ATC_ConnectionTest_" + item.Hint,
+                item.Code + " has a distinct actionable explanation");
+        Check(read(report(false, 0, "Request timed out", ""), "HintKey") == "ATC_ConnectionTest_Timeout", "transport timeout is visible without an HTTP code");
+        Check(read(report(false, 0, "Unable to resolve host", ""), "TransportError").Contains("resolve host"), "DNS failure retains transport details");
+        Check(read(report(false, 0, "", null), "HintKey") == "ATC_ConnectionTest_NoResponse", "missing response does not imply an invalid key");
+        Check(read(report(false, 403, "", "<html><script>secret</script>Sign in</html>"), "ServiceMessage") == "", "gateway HTML is not rendered as an error");
+        Check(read(report(false, 400, "", "{\"api_key\":\"unexpected-secret\",\"data\":{}}"), "ServiceMessage") == "", "unrecognized JSON fields are not copied into diagnostics");
+        Check(read(report(false, 400, "", "{\"detail\":\"Model not available\"}"), "ServiceMessage") == "Model not available", "top-level detail error is retained");
+        Check(read(report(false, 400, "", "Invalid request"), "ServiceMessage") == "Invalid request", "plain-text errors remain readable");
+        object successReport = report(true, 200, "", "{\"choices\":[{\"message\":{\"content\":\"not diagnostic data\"}}]}");
+        Check(brief(successReport) == "", "success notification does not expose response content");
+        Check(read(successReport, "HintKey") == "ATC_ConnectionTest_Success" && read(successReport, "ServiceMessage") == "", "successful response content is not exported");
+        object timeout = diagnosticType.GetMethod("TimedOut", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(successReport, null);
+        Check(!(bool)diagnosticType.GetField("Succeeded", fields).GetValue(timeout) &&
+            (long)diagnosticType.GetField("HttpCode", fields).GetValue(timeout) == 0 && read(timeout, "HintKey") == "ATC_ConnectionTest_Timeout",
+            "watchdog timeout discards an earlier success status");
+
+        Func<string, string> clean = value => (string)redact.Invoke(null, new object[] { value, new[] { secret } });
+        Check(!clean("echo " + secret).Contains(secret), "literal configured credential is redacted");
+        Check(!clean("echo " + Uri.EscapeDataString(secret)).Contains("credential123"), "percent-encoded credential is redacted");
+        Check(!clean("synthetic\\u002fprivate+credential123").Contains("credential123"), "JSON unicode-escaped credential is redacted");
+        Check(!((string)redact.Invoke(null, new object[] { "echo opaque%2Fcredential456", new[] { "opaque%2Fcredential456" } })).Contains("credential456"), "credential containing percent escapes is redacted after decoding");
+        Check(!clean("Bearer unknownCredential987").Contains("unknownCredential987"), "unconfigured bearer credentials are redacted");
+        Check(!clean("{\"x-api-key\":\"unknownCredential987\"}").Contains("unknownCredential987"), "echoed x-api-key field is redacted");
+        Check(!clean("api_key=unknownCredential987&message=denied").Contains("unknownCredential987"), "query-style key field is redacted");
+        Check(!clean("sk-syntheticSecret987654321").Contains("syntheticSecret"), "recognizable key without a field label is redacted");
+        Check(clean("<color=red>denied</color>\0").Equals("denied"), "server rich text and control characters are removed");
+        Check(clean(new string('a', 2000)).Length <= 1501, "display and clipboard data have bounded size");
+        Check(!clean(new string('a', 1490) + secret).Contains("synthetic"), "key crossing the display truncation boundary is removed before truncation");
+
+        object config = Config("Custom_OpenAI", "https://api.example.com/v1", secret, "model-a");
+        MethodInfo fingerprint = api.GetMethod("GetConnectionTestFingerprint", Static);
+        string before = (string)fingerprint.Invoke(null, new[] { config });
+        configType.GetField("SelectedModel").SetValue(config, "model-b");
+        Check(before != (string)fingerprint.Invoke(null, new[] { config }), "changing the model hides the previous test result");
+        Check(configType.GetField("LastConnectionTest", fields).IsDefined(typeof(NonSerializedAttribute), false), "diagnostic results are not serialized into player settings");
+
+        // Neither stale callbacks nor edited configurations may show a result for the wrong request.
+        configType.GetField("TestGeneration").SetValue(config, 4);
+        configType.GetField("IsTesting").SetValue(config, true);
+        MethodInfo complete = api.GetMethod("CompleteConnectionTest", Static);
+        complete.Invoke(null, new object[] { config, 3, before, auth });
+        Check((bool)configType.GetField("IsTesting").GetValue(config) &&
+            configType.GetField("LastConnectionTest", fields).GetValue(config) == null, "late callback cannot finish a newer test");
+        complete.Invoke(null, new object[] { config, 4, before, auth });
+        Check(!(bool)configType.GetField("IsTesting").GetValue(config) &&
+            (string)configType.GetField("ConnectionTestFingerprint", fields).GetValue(config) == before,
+            "edited configuration releases testing state while retaining the original result fingerprint");
     }
 
     private static bool InvokeBool(string method, object config)

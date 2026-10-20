@@ -273,17 +273,7 @@ namespace AutoTranslator_Core
                     }
                 }
 
-                if (config.IsTesting && config.TestStartedUtcTicks > 0)
-                {
-                    double elapsedSeconds = (DateTime.UtcNow.Ticks - config.TestStartedUtcTicks) / (double)TimeSpan.TicksPerSecond;
-                    if (elapsedSeconds > Math.Max(30, AutoTranslatorMod.Settings.TimeoutSeconds + 15))
-                    {
-                        config.IsTesting = false;
-                        config.TestStartedUtcTicks = 0L;
-                        config.TestGeneration++;
-                        AutoTranslatorSettings.AddErrorLog(AutoTranslatorAPI.TranslateText("ATC_Error_TestConnectionTimeout", config.Provider.ToString()));
-                    }
-                }
+                AutoTranslatorAPI.CheckConnectionTestTimeout(config);
 
                 if (config.IsTesting)
                 {
@@ -316,6 +306,7 @@ namespace AutoTranslator_Core
                 }
                 GUI.color = AutoTranslatorSettings.IsRunning ? Color.grey : Color.white;
 
+                DrawConnectionTestResult(l, config);
                 l.Gap(15f);
             }
 
@@ -661,18 +652,8 @@ namespace AutoTranslator_Core
                 }
             }
 
-            if (config.IsTesting && config.TestStartedUtcTicks > 0)
-            {
-                double elapsedSeconds = (DateTime.UtcNow.Ticks - config.TestStartedUtcTicks) / (double)TimeSpan.TicksPerSecond;
-                if (elapsedSeconds > Math.Max(30, AutoTranslatorMod.Settings.TimeoutSeconds + 15))
-                {
-                    config.IsTesting = false;
-                    config.TestStartedUtcTicks = 0L;
-                    config.TestGeneration++;
-                    AutoTranslatorSettings.AddErrorLog(AutoTranslatorAPI.TranslateText(
-                        "ATC_Error_TestConnectionTimeout", config.Provider.ToString()));
-                }
-            }
+            AutoTranslatorAPI.CheckConnectionTestTimeout(config);
+            DrawConnectionTestResult(l, config);
 
             bool ready = AutoTranslatorAPI.IsPolicyAgentConfigReady(config);
             Text.Font = GameFont.Tiny;
@@ -683,6 +664,33 @@ namespace AutoTranslator_Core
             Text.Font = GameFont.Small;
             GUI.color = Color.white;
             l.Gap(10f);
+        }
+
+        private static void DrawConnectionTestResult(Listing_Standard l, ApiKeyConfig config)
+        {
+            ApiConnectionDiagnostic diagnostic = config.LastConnectionTest;
+            if (config.IsTesting || diagnostic == null ||
+                config.ConnectionTestFingerprint != AutoTranslatorAPI.GetConnectionTestFingerprint(config)) return;
+            Color oldColor = GUI.color;
+            GameFont oldFont = Text.Font;
+            GUI.color = diagnostic.Succeeded ? new Color(0.55f, 0.9f, 0.65f) : new Color(1f, 0.75f, 0.35f);
+            Text.Font = GameFont.Small;
+            l.Label(AutoTranslatorAPI.GetConnectionTestSummary(diagnostic));
+            if (!string.IsNullOrEmpty(diagnostic.ServiceMessage))
+            {
+                string preview = diagnostic.ServiceMessage.Length > 180
+                    ? diagnostic.ServiceMessage.Substring(0, 180) + "…" : diagnostic.ServiceMessage;
+                l.Label(preview);
+            }
+            GUI.color = Color.white;
+            Rect row = l.GetRect(28f);
+            float buttonWidth = Mathf.Min(190f, (row.width - 10f) / 2f);
+            if (Widgets.ButtonText(new Rect(row.x, row.y, buttonWidth, 26f), "ATC_ConnectionTest_Details".Translate()))
+                Find.WindowStack.Add(new Window_ApiConnectionResult(diagnostic));
+            if (Widgets.ButtonText(new Rect(row.x + buttonWidth + 10f, row.y, buttonWidth, 26f), "ATC_ConnectionTest_Copy".Translate()))
+                GUIUtility.systemCopyBuffer = AutoTranslatorAPI.GetConnectionTestReport(diagnostic);
+            Text.Font = oldFont;
+            GUI.color = oldColor;
         }
 
         private static void DrawApiEndpointValidation(Listing_Standard l, ApiKeyConfig config)

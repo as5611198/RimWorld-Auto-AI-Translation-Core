@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_ConnectionTest_Title>ผลการทดสอบการเชื่อมต่อ</ATC_ConnectionTest_Title>
+  <ATC_ConnectionTest_Details>ดูผลการทดสอบ</ATC_ConnectionTest_Details>
+  <ATC_ConnectionTest_Copy>คัดลอกข้อมูลวินิจฉัย</ATC_ConnectionTest_Copy>
+  <ATC_ConnectionTest_Success>API ยอมรับคำขอทดสอบแล้ว</ATC_ConnectionTest_Success>
+  <ATC_ConnectionTest_Unauthorized>การยืนยันตัวตนถูกปฏิเสธ โปรดตรวจสอบคีย์ API และรูปแบบการยืนยันตัวตน</ATC_ConnectionTest_Unauthorized>
+  <ATC_ConnectionTest_Forbidden>การเข้าถึงถูกปฏิเสธ โปรดตรวจสอบสิทธิ์บัญชีและข้อจำกัดของเกตเวย์</ATC_ConnectionTest_Forbidden>
+  <ATC_ConnectionTest_NotFound>ไม่พบทรัพยากรที่ร้องขอ โปรดตรวจสอบที่อยู่ API และโมเดล</ATC_ConnectionTest_NotFound>
+  <ATC_ConnectionTest_RateLimit>คำขอถูกจำกัด โปรดตรวจสอบโควตาแล้วลองใหม่ภายหลัง</ATC_ConnectionTest_RateLimit>
+  <ATC_ConnectionTest_ServerError>เซิร์ฟเวอร์เกิดข้อผิดพลาด โปรดลองใหม่ภายหลัง</ATC_ConnectionTest_ServerError>
+  <ATC_ConnectionTest_Rejected>บริการปฏิเสธคำขอ</ATC_ConnectionTest_Rejected>
+  <ATC_ConnectionTest_Timeout>การทดสอบหมดเวลา โปรดตรวจสอบเครือข่ายหรือเพิ่มเวลารอ</ATC_ConnectionTest_Timeout>
+  <ATC_ConnectionTest_NoResponse>ไม่ได้รับการตอบกลับ HTTP ที่สำเร็จ</ATC_ConnectionTest_NoResponse>
+  <ATC_ConnectionTest_Provider>ผู้ให้บริการ: {0}</ATC_ConnectionTest_Provider>
+  <ATC_ConnectionTest_Model>โมเดล: {0}</ATC_ConnectionTest_Model>
+  <ATC_ConnectionTest_Endpoint>URL คำขอ: {0}</ATC_ConnectionTest_Endpoint>
+  <ATC_ConnectionTest_ServiceMessage>ข้อความจากบริการ: {0}</ATC_ConnectionTest_ServiceMessage>
+  <ATC_ConnectionTest_TransportError>รายละเอียดการเชื่อมต่อ: {0}</ATC_ConnectionTest_TransportError>
+</LanguageData>

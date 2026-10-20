@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_ConnectionTest_Title>Результат перевірки підключення</ATC_ConnectionTest_Title>
+  <ATC_ConnectionTest_Details>Переглянути результат</ATC_ConnectionTest_Details>
+  <ATC_ConnectionTest_Copy>Копіювати діагностику</ATC_ConnectionTest_Copy>
+  <ATC_ConnectionTest_Success>API прийняв тестовий запит.</ATC_ConnectionTest_Success>
+  <ATC_ConnectionTest_Unauthorized>Помилка автентифікації. Перевірте ключ API та формат автентифікації.</ATC_ConnectionTest_Unauthorized>
+  <ATC_ConnectionTest_Forbidden>Доступ заборонено. Перевірте права облікового запису й обмеження шлюзу.</ATC_ConnectionTest_Forbidden>
+  <ATC_ConnectionTest_NotFound>Ресурс не знайдено. Перевірте адресу API та модель.</ATC_ConnectionTest_NotFound>
+  <ATC_ConnectionTest_RateLimit>Запит обмежено. Перевірте квоту й повторіть спробу пізніше.</ATC_ConnectionTest_RateLimit>
+  <ATC_ConnectionTest_ServerError>Помилка сервера. Повторіть спробу пізніше.</ATC_ConnectionTest_ServerError>
+  <ATC_ConnectionTest_Rejected>Запит відхилено.</ATC_ConnectionTest_Rejected>
+  <ATC_ConnectionTest_Timeout>Час перевірки минув. Перевірте мережу або збільште час очікування.</ATC_ConnectionTest_Timeout>
+  <ATC_ConnectionTest_NoResponse>Успішну відповідь HTTP не отримано.</ATC_ConnectionTest_NoResponse>
+  <ATC_ConnectionTest_Provider>Постачальник: {0}</ATC_ConnectionTest_Provider>
+  <ATC_ConnectionTest_Model>Модель: {0}</ATC_ConnectionTest_Model>
+  <ATC_ConnectionTest_Endpoint>URL запиту: {0}</ATC_ConnectionTest_Endpoint>
+  <ATC_ConnectionTest_ServiceMessage>Повідомлення сервісу: {0}</ATC_ConnectionTest_ServiceMessage>
+  <ATC_ConnectionTest_TransportError>Відомості про підключення: {0}</ATC_ConnectionTest_TransportError>
+</LanguageData>

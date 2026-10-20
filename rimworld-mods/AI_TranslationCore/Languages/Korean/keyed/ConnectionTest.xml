@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_ConnectionTest_Title>연결 테스트 결과</ATC_ConnectionTest_Title>
+  <ATC_ConnectionTest_Details>결과 보기</ATC_ConnectionTest_Details>
+  <ATC_ConnectionTest_Copy>진단 정보 복사</ATC_ConnectionTest_Copy>
+  <ATC_ConnectionTest_Success>API가 테스트 요청을 수락했습니다.</ATC_ConnectionTest_Success>
+  <ATC_ConnectionTest_Unauthorized>인증이 거부되었습니다. API 키와 인증 형식을 확인하세요.</ATC_ConnectionTest_Unauthorized>
+  <ATC_ConnectionTest_Forbidden>접근이 거부되었습니다. 계정 권한과 게이트웨이 제한을 확인하세요.</ATC_ConnectionTest_Forbidden>
+  <ATC_ConnectionTest_NotFound>요청한 리소스를 찾을 수 없습니다. API 주소와 모델을 확인하세요.</ATC_ConnectionTest_NotFound>
+  <ATC_ConnectionTest_RateLimit>요청이 제한되었습니다. 사용 한도를 확인하고 나중에 다시 시도하세요.</ATC_ConnectionTest_RateLimit>
+  <ATC_ConnectionTest_ServerError>서버 오류가 발생했습니다. 나중에 다시 시도하세요.</ATC_ConnectionTest_ServerError>
+  <ATC_ConnectionTest_Rejected>요청이 거부되었습니다.</ATC_ConnectionTest_Rejected>
+  <ATC_ConnectionTest_Timeout>연결 테스트 시간이 초과되었습니다. 네트워크를 확인하거나 제한 시간을 늘리세요.</ATC_ConnectionTest_Timeout>
+  <ATC_ConnectionTest_NoResponse>성공한 HTTP 응답을 받지 못했습니다.</ATC_ConnectionTest_NoResponse>
+  <ATC_ConnectionTest_Provider>제공업체: {0}</ATC_ConnectionTest_Provider>
+  <ATC_ConnectionTest_Model>모델: {0}</ATC_ConnectionTest_Model>
+  <ATC_ConnectionTest_Endpoint>요청 URL: {0}</ATC_ConnectionTest_Endpoint>
+  <ATC_ConnectionTest_ServiceMessage>서비스 메시지: {0}</ATC_ConnectionTest_ServiceMessage>
+  <ATC_ConnectionTest_TransportError>연결 정보: {0}</ATC_ConnectionTest_TransportError>
+</LanguageData>
