@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_MiMo_Name>Xiaomi MiMo</ATC_MiMo_Name>
+  <ATC_MiMo_Notice>Типово: {0}. Для Token Plan вкажіть його OpenAI URL і ключ із консолі. Модель можна ввести вручну. Міркування вимкнено для перекладу й Agent.</ATC_MiMo_Notice>
+  <ATC_MiMo_OpenAiRequired>Використовуйте OpenAI URL MiMo (/v1), а не Anthropic /messages.</ATC_MiMo_OpenAiRequired>
+  <ATC_MiMo_ModelSuggestions>Ця адреса MiMo не надає списку моделей. Показано вбудовані варіанти; ключ і доступ до моделей ще не перевірено.</ATC_MiMo_ModelSuggestions>
+  <ATC_Profile_MiMo>MiMo: OpenAI-запити з вимкненим міркуванням.</ATC_Profile_MiMo>
+</LanguageData>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_BatchXml_Title>Пакетный экспорт / импорт XML</ATC_BatchXml_Title>
+  <ATC_BatchXml_Help>Язык: {0}. Выберите моды, экспортируйте и отредактируйте XML, затем проверьте изменения перед сохранением.</ATC_BatchXml_Help>
+  <ATC_BatchXml_ChooseBatch>Выбрать пакет</ATC_BatchXml_ChooseBatch>
+  <ATC_BatchXml_OpenFolder>Открыть папку</ATC_BatchXml_OpenFolder>
+  <ATC_BatchXml_SelectVisible>Выбрать видимые</ATC_BatchXml_SelectVisible>
+  <ATC_BatchXml_Clear>Снять выбор</ATC_BatchXml_Clear>
+  <ATC_BatchXml_Selected>Выбрано {0} / {1} модов (поиск по имени или ID)</ATC_BatchXml_Selected>
+  <ATC_BatchXml_ModError>Импорт невозможен: {0}</ATC_BatchXml_ModError>
+  <ATC_BatchXml_ModSummary>Изменений: {0}; без изменений: {1}; пропущено: {2}; нет файлов: {3}</ATC_BatchXml_ModSummary>
+  <ATC_BatchXml_Working>Обработка XML…</ATC_BatchXml_Working>
+  <ATC_BatchXml_Export>Экспорт оригиналов</ATC_BatchXml_Export>
+  <ATC_BatchXml_Preview>Просмотр импорта</ATC_BatchXml_Preview>
+  <ATC_BatchXml_Apply>Сохранить / применить</ATC_BatchXml_Apply>
+  <ATC_BatchXml_NoBatches>Пакетов ещё нет. Выберите моды и экспортируйте исходные XML.</ATC_BatchXml_NoBatches>
+  <ATC_BatchXml_PreviewSummary>Просмотр: {0} изменений, {1} модов с ошибками. Ещё не сохранено.</ATC_BatchXml_PreviewSummary>
+  <ATC_BatchXml_Exported>Экспортировано {0} модов, {1} строк; не прочитано {2} модов. Сохраните структуру папок и manifest.json.</ATC_BatchXml_Exported>
+  <ATC_BatchXml_Applied>Сохранено {0} модов, {1} изменений; пропущено {2} конфликтов; ошибок сохранения: {3}.</ATC_BatchXml_Applied>
+  <ATC_BatchXml_LanguageChanged>Язык изменился. Закройте и снова откройте это окно.</ATC_BatchXml_LanguageChanged>
+  <ATC_BatchXml_HelpButton>Инструкция</ATC_BatchXml_HelpButton>
+  <ATC_BatchXml_TutorialText>V4.2 BETA — Пакетный XML\n1. Выберите язык и откройте глобальный редактор → Пакетный экспорт / импорт XML.\n2. Найдите моды по имени или ID и отметьте несколько. «Выбрать видимые» относится к текущему поиску. Показаны включённые моды с доступными источниками текста.\n3. Экспортируйте оригиналы. Откроется новая папка с отдельными папками модов и категорий.\n4. Измените текст в редакторе или внешнем переводчике. Сохраните ключи XML, параметры форматирования, структуру папок и manifest.json в корне.\n5. Вернитесь и откройте просмотр импорта. После перезапуска или переноса выберите существующий пакет либо вставьте его корневой путь.\n6. Проверьте изменения, неизменённые/пропущенные строки, отсутствующие файлы и ошибки по каждому моду. Просмотр ничего не сохраняет. Подтвердите сохранение и применение.\n7. Нетронутые оригиналы и пустые значения не заменяют переводы. Изменённые источники, неизвестные ключи и неверные параметры пропускаются. Исправьте ошибки и повторите просмотр.\nЭкспорт готового пакета переводов — отдельная функция. Пакетный XML нужен для внешнего редактирования оригиналов. Дождитесь завершения перевода или остановите его перед операцией.</ATC_BatchXml_TutorialText>
+</LanguageData>

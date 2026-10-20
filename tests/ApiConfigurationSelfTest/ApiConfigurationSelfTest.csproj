@@ -7,4 +7,10 @@
     <Nullable>disable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath Condition="'$(TargetFramework)' == 'net48'">../../packages/Newtonsoft.Json.13.0.4/lib/net45/Newtonsoft.Json.dll</HintPath>
+      <HintPath Condition="'$(TargetFramework)' == 'net10.0'">../../packages/Newtonsoft.Json.13.0.4/lib/net6.0/Newtonsoft.Json.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 </Project>

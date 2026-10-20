@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_BatchXml_Title>Пакетний експорт / імпорт XML</ATC_BatchXml_Title>
+  <ATC_BatchXml_Help>Мова: {0}. Виберіть моди, експортуйте й відредагуйте XML, потім перегляньте зміни перед збереженням.</ATC_BatchXml_Help>
+  <ATC_BatchXml_ChooseBatch>Вибрати пакет</ATC_BatchXml_ChooseBatch>
+  <ATC_BatchXml_OpenFolder>Відкрити теку</ATC_BatchXml_OpenFolder>
+  <ATC_BatchXml_SelectVisible>Вибрати видимі</ATC_BatchXml_SelectVisible>
+  <ATC_BatchXml_Clear>Зняти вибір</ATC_BatchXml_Clear>
+  <ATC_BatchXml_Selected>Вибрано {0} / {1} модів (пошук за назвою чи ID)</ATC_BatchXml_Selected>
+  <ATC_BatchXml_ModError>Неможливо імпортувати: {0}</ATC_BatchXml_ModError>
+  <ATC_BatchXml_ModSummary>Змін: {0}; без змін: {1}; пропущено: {2}; немає файлів: {3}</ATC_BatchXml_ModSummary>
+  <ATC_BatchXml_Working>Обробка XML…</ATC_BatchXml_Working>
+  <ATC_BatchXml_Export>Експорт оригіналів</ATC_BatchXml_Export>
+  <ATC_BatchXml_Preview>Переглянути імпорт</ATC_BatchXml_Preview>
+  <ATC_BatchXml_Apply>Зберегти / застосувати</ATC_BatchXml_Apply>
+  <ATC_BatchXml_NoBatches>Пакетів ще немає. Виберіть моди й експортуйте оригінальні XML.</ATC_BatchXml_NoBatches>
+  <ATC_BatchXml_PreviewSummary>Перегляд: {0} змін, {1} модів із помилками. Ще не збережено.</ATC_BatchXml_PreviewSummary>
+  <ATC_BatchXml_Exported>Експортовано {0} модів, {1} рядків; не прочитано {2} модів. Збережіть структуру тек і manifest.json.</ATC_BatchXml_Exported>
+  <ATC_BatchXml_Applied>Збережено {0} модів, {1} змін; пропущено {2} конфліктів; помилок збереження: {3}.</ATC_BatchXml_Applied>
+  <ATC_BatchXml_LanguageChanged>Мову змінено. Закрийте та знову відкрийте це вікно.</ATC_BatchXml_LanguageChanged>
+  <ATC_BatchXml_HelpButton>Як користуватися</ATC_BatchXml_HelpButton>
+  <ATC_BatchXml_TutorialText>V4.2 BETA — Пакетний XML\n1. Виберіть мову й відкрийте глобальний редактор → Пакетний експорт / імпорт XML.\n2. Шукайте моди за назвою чи ID та виберіть кілька. «Вибрати видимі» діє на поточні результати пошуку. Показано ввімкнені моди з доступними джерелами тексту.\n3. Експортуйте оригінали. Відкриється нова тека з окремими теками модів і категорій.\n4. Змініть текст у редакторі чи зовнішньому перекладачі. Збережіть ключі XML, параметри форматування, структуру тек і manifest.json у корені.\n5. Поверніться до перегляду імпорту. Після перезапуску або перенесення виберіть наявний пакет чи вставте його кореневий шлях.\n6. Перевірте зміни, незмінені/пропущені рядки, відсутні файли й помилки для кожного моду. Перегляд нічого не зберігає. Підтвердьте збереження й застосування.\n7. Незмінені оригінали та порожні значення не замінюють переклади. Оновлені джерела, невідомі ключі й хибні параметри пропускаються. Виправте помилки й повторіть перегляд.\nЕкспорт готового пакета перекладів — окрема функція. Пакетний XML призначений для зовнішнього редагування оригіналів. Дочекайтеся завершення перекладу або зупиніть його перед операцією.</ATC_BatchXml_TutorialText>
+</LanguageData>

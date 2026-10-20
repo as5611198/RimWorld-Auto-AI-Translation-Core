@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_BatchXml_Title>批次 XML 匯出／匯入</ATC_BatchXml_Title>
+  <ATC_BatchXml_Help>目標語言：{0}。勾選模組並匯出，編輯資料夾內的 XML 後，先預覽變更，再儲存並套用。</ATC_BatchXml_Help>
+  <ATC_BatchXml_ChooseBatch>選擇已有批次</ATC_BatchXml_ChooseBatch>
+  <ATC_BatchXml_OpenFolder>開啟資料夾</ATC_BatchXml_OpenFolder>
+  <ATC_BatchXml_SelectVisible>全選目前清單</ATC_BatchXml_SelectVisible>
+  <ATC_BatchXml_Clear>清除選取</ATC_BatchXml_Clear>
+  <ATC_BatchXml_Selected>已選 {0}／{1} 個模組（可搜尋名稱或 ID）</ATC_BatchXml_Selected>
+  <ATC_BatchXml_ModError>無法匯入：{0}</ATC_BatchXml_ModError>
+  <ATC_BatchXml_ModSummary>變更 {0} 條；未變更 {1}；略過 {2}；缺少檔案 {3}</ATC_BatchXml_ModSummary>
+  <ATC_BatchXml_Working>正在處理 XML，請稍候…</ATC_BatchXml_Working>
+  <ATC_BatchXml_Export>匯出原文 XML</ATC_BatchXml_Export>
+  <ATC_BatchXml_Preview>預覽匯入變更</ATC_BatchXml_Preview>
+  <ATC_BatchXml_Apply>儲存並套用</ATC_BatchXml_Apply>
+  <ATC_BatchXml_NoBatches>尚無匯出批次。請先勾選模組並匯出原文 XML。</ATC_BatchXml_NoBatches>
+  <ATC_BatchXml_PreviewSummary>預覽完成：可套用 {0} 條變更，{1} 個模組發生錯誤。尚未儲存。</ATC_BatchXml_PreviewSummary>
+  <ATC_BatchXml_Exported>已匯出 {0} 個模組、{1} 條原文；{2} 個模組無法讀取。請保留資料夾結構與 manifest.json。</ATC_BatchXml_Exported>
+  <ATC_BatchXml_Applied>已儲存 {0} 個模組、{1} 條變更；略過 {2} 條已變動的內容，{3} 個模組儲存失敗。</ATC_BatchXml_Applied>
+  <ATC_BatchXml_LanguageChanged>目標語言已變更，請關閉視窗後重新開啟批次 XML。</ATC_BatchXml_LanguageChanged>
+  <ATC_BatchXml_HelpButton>使用教學</ATC_BatchXml_HelpButton>
+  <ATC_BatchXml_TutorialText>【V4.2 BETA：批次 XML 匯出／匯入】\n1. 先設定目標語言，再進入「全域工作台 → 批次 XML 匯出／匯入」。\n2. 搜尋模組名稱或 ID，勾選多個模組；「全選目前清單」只會選取目前搜尋結果。清單顯示已啟用且有可處理來源的模組。\n3. 按「匯出原文 XML」。每次會建立新的批次資料夾並自動開啟，依模組與分類分開存放。\n4. 用編輯器或外部翻譯工具修改 XML 的文字內容。保留鍵名、格式參數、資料夾結構與批次根目錄的 manifest.json。\n5. 回到批次視窗，按「預覽匯入變更」。若重開遊戲或移動資料夾，可用「選擇已有批次」或貼上批次根目錄路徑。\n6. 查看各模組的變更、未變更、略過、缺少檔案與錯誤數量。預覽不會儲存；確認後按「儲存並套用」。\n7. 未編輯的原文與空白內容不會蓋掉已有翻譯。原文已更新、鍵名無法對應或格式參數有問題時會略過；有錯誤的模組請修正後重新預覽。\n注意：「一鍵打包導出」用於輸出已完成的翻譯包；這裡的批次 XML 用於匯出原文、外部編輯與匯入。翻譯產線執行時，請先等候完成或停止，再操作批次 XML。</ATC_BatchXml_TutorialText>
+</LanguageData>

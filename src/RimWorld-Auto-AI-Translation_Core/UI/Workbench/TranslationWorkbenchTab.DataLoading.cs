@@ -143,6 +143,36 @@ namespace AutoTranslator_Core
 
             private static void LoadRealData(WorkbenchModSnapshot targetMod)
             {
+                Action<WorkbenchFocusRequest> resolveFocus;
+                var resultData = ReadWorkbenchData(targetMod, out resolveFocus);
+                ATC_Dispatcher.RunOnMainThread(() => {
+                    if (_editingMod != targetMod.Mod) return;
+                    if (AutoTranslatorMod.Settings.TargetLang != targetMod.TargetLang)
+                    {
+                        StartLoadingModForEditing(targetMod.Mod, _itemSearchText, _pendingWorkbenchFocus);
+                        return;
+                    }
+                    _loadedWorkbenchTargetLanguage = targetMod.TargetLang;
+                    _categorizedData = resultData;
+                    WorkbenchFocusRequest focus = _pendingWorkbenchFocus;
+                    resolveFocus(focus);
+                    string selectedCategory = _categorizedData.Keys.FirstOrDefault() ?? "";
+                    if (focus != null && !string.IsNullOrWhiteSpace(focus.Category) && _categorizedData.ContainsKey(focus.Category))
+                        selectedCategory = focus.Category;
+                    _selectedCategory = selectedCategory;
+                    _activeWorkbenchFocus = focus;
+                    _pendingWorkbenchFocus = null;
+                    _itemScroll = new UnityEngine.Vector2(0f, GetInitialItemScrollForFocus(focus, selectedCategory));
+                    _catListScroll = new UnityEngine.Vector2(0f, GetInitialCategoryScrollForFocus(selectedCategory));
+                    _categorizedDataVersion++;
+                    _cachedVisibleItems = null;
+                    _isLoading = false;
+                });
+            }
+
+            private static Dictionary<string, List<WorkbenchItem>> ReadWorkbenchData(
+                WorkbenchModSnapshot targetMod, out Action<WorkbenchFocusRequest> resolveFocus)
+            {
                 var resultData = new Dictionary<string, List<WorkbenchItem>>();
                 var langRoots = AutoTranslatorScanner.GetAllEffectiveLangPaths(targetMod.PackageId, targetMod.RootDir);
                 var defsRoots = AutoTranslatorScanner.GetAllEffectiveDefsPaths(targetMod.PackageId, targetMod.RootDir);
@@ -495,16 +525,7 @@ namespace AutoTranslator_Core
                     }
                 }
 
-                ATC_Dispatcher.RunOnMainThread(() => {
-                    if (_editingMod != targetMod.Mod) return;
-                    if (AutoTranslatorMod.Settings.TargetLang != targetMod.TargetLang)
-                    {
-                        StartLoadingModForEditing(targetMod.Mod, _itemSearchText, _pendingWorkbenchFocus);
-                        return;
-                    }
-                    _loadedWorkbenchTargetLanguage = targetMod.TargetLang;
-                    _categorizedData = resultData;
-                    WorkbenchFocusRequest focus = _pendingWorkbenchFocus;
+                resolveFocus = focus => {
                     if (focus != null && officialTarReference && !string.IsNullOrWhiteSpace(focus.Category))
                     {
                         focus.Key = ResolveOfficialWorkbenchDefKey(
@@ -513,21 +534,8 @@ namespace AutoTranslator_Core
                             engDefs,
                             officialNormalizedDefPaths);
                     }
-                    string selectedCategory = _categorizedData.Keys.FirstOrDefault() ?? "";
-                    if (focus != null && !string.IsNullOrWhiteSpace(focus.Category) && _categorizedData.ContainsKey(focus.Category))
-                    {
-                        selectedCategory = focus.Category;
-                    }
-
-                    _selectedCategory = selectedCategory;
-                    _activeWorkbenchFocus = focus;
-                    _pendingWorkbenchFocus = null;
-                    _itemScroll = new UnityEngine.Vector2(0f, GetInitialItemScrollForFocus(focus, selectedCategory));
-                    _catListScroll = new UnityEngine.Vector2(0f, GetInitialCategoryScrollForFocus(selectedCategory));
-                    _categorizedDataVersion++;
-                    _cachedVisibleItems = null;
-                    _isLoading = false;
-                });
+                };
+                return resultData;
             }
 
             private static void MergeOfficialDefPathAliases(

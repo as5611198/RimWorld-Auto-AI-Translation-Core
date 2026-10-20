@@ -214,7 +214,7 @@ namespace AutoTranslator_Core
                 if (XmlFileListCache.TryGetValue(cacheKey, out XmlFileListCacheEntry cached) &&
                     string.Equals(cached.Fingerprint, fingerprint, StringComparison.Ordinal))
                 {
-                    List<string> existingFiles = cached.Files.Where(File.Exists).ToList();
+                    List<string> existingFiles = cached.Files.Where(file => File.Exists(file) && !IsWorkbenchManualExportPath(file)).ToList();
                     if (existingFiles.Count == cached.Files.Count)
                     {
                         return ApplyTranslationFileLoadOrder(fullPath, existingFiles);
@@ -228,7 +228,7 @@ namespace AutoTranslator_Core
             {
                 files = ApplyTranslationFileLoadOrder(
                     fullPath,
-                    Directory.GetFiles(fullPath, "*.xml", searchOption));
+                    Directory.GetFiles(fullPath, "*.xml", searchOption).Where(file => !IsWorkbenchManualExportPath(file)));
             }
             catch
             {

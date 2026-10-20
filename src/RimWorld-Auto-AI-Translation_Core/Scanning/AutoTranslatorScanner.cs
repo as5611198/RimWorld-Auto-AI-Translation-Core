@@ -146,8 +146,9 @@ namespace AutoTranslator_Core
         {
             if (string.IsNullOrWhiteSpace(filePath)) return false;
             string normalized = filePath.Replace('\\', '/');
-            return normalized.IndexOf("/Upload_Workspace/", StringComparison.OrdinalIgnoreCase) >= 0 &&
-                   normalized.IndexOf("/Manual_Translation/", StringComparison.OrdinalIgnoreCase) >= 0;
+            return normalized.IndexOf("/Manual_XML_Batches/", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   (normalized.IndexOf("/Upload_Workspace/", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                    normalized.IndexOf("/Manual_Translation/", StringComparison.OrdinalIgnoreCase) >= 0);
         }
 
 

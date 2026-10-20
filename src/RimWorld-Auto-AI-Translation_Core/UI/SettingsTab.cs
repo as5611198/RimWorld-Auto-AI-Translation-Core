@@ -160,18 +160,16 @@ namespace AutoTranslator_Core
 
                 Rect rowA = l.GetRect(30f);
                 Rect providerRect = new Rect(rowA.x, rowA.y, rowA.width * 0.3f, rowA.height - 2f);
-                if (Widgets.ButtonText(providerRect, "ATC_Provider".Translate() + ": " + config.Provider))
+                if (Widgets.ButtonText(providerRect, "ATC_Provider".Translate() + ": " + GetProviderLabel(config.Provider)))
                 {
                     if (!AutoTranslatorSettings.IsRunning)
                     {
                         List<FloatMenuOption> opts = new List<FloatMenuOption>();
                         foreach (TranslatorProvider p in Enum.GetValues(typeof(TranslatorProvider)))
                         {
-                            opts.Add(new FloatMenuOption(p.ToString(), () =>
+                            opts.Add(new FloatMenuOption(GetProviderLabel(p), () =>
                             {
-                                config.Provider = p;
-                                config.SelectedModel = "";
-                                AutoTranslatorAPI.ResetModelFetchState(config, clearModels: true);
+                                SelectApiProvider(config, p);
                             }));
                         }
                         Find.WindowStack.Add(new FloatMenu(opts));
@@ -186,6 +184,7 @@ namespace AutoTranslator_Core
                     TooltipHandler.TipRegion(urlRect, "ATC_ApiBaseUrlHint".Translate());
                 }
                 DrawPlayer2Options(l, config, !AutoTranslatorSettings.IsRunning);
+                DrawMiMoNotice(l, config);
 
                 Rect delRect = new Rect(rowA.x + rowA.width * 0.92f, rowA.y, rowA.width * 0.08f, rowA.height - 2f);
                 GUI.color = new Color(1f, 0.4f, 0.4f);
@@ -232,7 +231,7 @@ namespace AutoTranslator_Core
                     }
                 }
 
-                if (!config.UsePlayer2Protocol && Widgets.ButtonText(modelBtnRect, "▼"))
+                if (!(config.Provider == TranslatorProvider.Custom_OpenAI && config.UsePlayer2Protocol) && Widgets.ButtonText(modelBtnRect, "▼"))
                 {
                     if (config.FetchedModels.Count > 0 && !AutoTranslatorSettings.IsRunning && !config.IsFetching)
                     {
@@ -498,7 +497,7 @@ namespace AutoTranslator_Core
 
             Rect providerRow = l.GetRect(30f);
             Rect providerRect = new Rect(providerRow.x, providerRow.y, providerRow.width * 0.30f, providerRow.height - 2f);
-            if (Widgets.ButtonText(providerRect, "ATC_Provider".Translate() + ": " + config.Provider))
+            if (Widgets.ButtonText(providerRect, "ATC_Provider".Translate() + ": " + GetProviderLabel(config.Provider)))
             {
                 if (canEdit)
                 {
@@ -507,11 +506,9 @@ namespace AutoTranslator_Core
                     {
                         if (provider == TranslatorProvider.DeepL) continue;
                         TranslatorProvider capturedProvider = provider;
-                        options.Add(new FloatMenuOption(capturedProvider.ToString(), () =>
+                        options.Add(new FloatMenuOption(GetProviderLabel(capturedProvider), () =>
                         {
-                            config.Provider = capturedProvider;
-                            config.SelectedModel = "";
-                            AutoTranslatorAPI.ResetModelFetchState(config, clearModels: true);
+                            SelectApiProvider(config, capturedProvider);
                         }));
                     }
                     Find.WindowStack.Add(new FloatMenu(options));
@@ -536,6 +533,7 @@ namespace AutoTranslator_Core
             }
 
             DrawPlayer2Options(l, config, canEdit);
+            DrawMiMoNotice(l, config);
 
             GUI.color = canEdit ? Color.white : Color.grey;
             Rect credentialsRow = l.GetRect(30f);
@@ -579,7 +577,7 @@ namespace AutoTranslator_Core
                 Widgets.Label(modelInputRect, config.SelectedModel ?? "");
             }
 
-            if (!config.UsePlayer2Protocol && Widgets.ButtonText(modelButtonRect, "▼") && canEdit && !config.IsFetching)
+            if (!(config.Provider == TranslatorProvider.Custom_OpenAI && config.UsePlayer2Protocol) && Widgets.ButtonText(modelButtonRect, "▼") && canEdit && !config.IsFetching)
             {
                 if (config.FetchedModels.Count > 0)
                 {
@@ -664,6 +662,28 @@ namespace AutoTranslator_Core
             Text.Font = GameFont.Small;
             GUI.color = Color.white;
             l.Gap(10f);
+        }
+
+        private static string GetProviderLabel(TranslatorProvider provider)
+        {
+            return provider == TranslatorProvider.MiMo ? "ATC_MiMo_Name".Translate().ToString() : provider.ToString();
+        }
+
+        private static void SelectApiProvider(ApiKeyConfig config, TranslatorProvider provider)
+        {
+            config.Provider = provider;
+            config.SelectedModel = provider == TranslatorProvider.MiMo ? MiMoApi.DefaultModel : "";
+            AutoTranslatorAPI.ResetModelFetchState(config, clearModels: true);
+            if (provider == TranslatorProvider.MiMo) config.FetchedModels.AddRange(MiMoApi.SuggestedModels());
+        }
+
+        private static void DrawMiMoNotice(Listing_Standard l, ApiKeyConfig config)
+        {
+            if (config.Provider != TranslatorProvider.MiMo) return;
+            GameFont font = Text.Font;
+            Text.Font = GameFont.Tiny;
+            l.Label("ATC_MiMo_Notice".Translate(MiMoApi.BaseUrl));
+            Text.Font = font;
         }
 
         private static void DrawConnectionTestResult(Listing_Standard l, ApiKeyConfig config)

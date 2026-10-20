@@ -20,6 +20,12 @@ namespace AutoTranslator_Core
     // EN: This class manages the main workflow and state for AutoTranslatorScanner.
     public static partial class AutoTranslatorScanner
     {
+        internal static bool IsManualXmlTranslationFormatValid(string translated, string original)
+        {
+            return !HasProtectedTokenMismatch(translated, original) &&
+                !HasFormatArgumentMismatch(translated, original) &&
+                !HasTranslatableTitleTagMismatch(translated, original);
+        }
 
 
         // 這個方法負責清理並標準化 翻譯Result 內容。

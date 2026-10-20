@@ -1,5 +1,9 @@
-全自動補位翻譯 V4.4 (Auto Translation Core)
+全自動補位翻譯 V4.2 BETA (Auto Translation Core)
 支援 RimWorld Steam 版 1.5、1.6、1.7（Waylith）。請更新並啟用 Harmony；[三版本建置與部署說明](docs/STEAM_VERSION_SUPPORT.md)。
+
+工作台支援[批次 XML 匯出／匯入](docs/WORKBENCH_BATCH_XML.md)：多選模組匯出原文，外部編輯後預覽變更，再儲存並套用。
+
+供應商選單支援[小米 MiMo](docs/API_CONFIGURATION.md#xiaomi-mimo)，可分別設定翻譯 API 與 Policy Agent；Token Plan 可填入控制台提供的 OpenAI 相容網址與對應金鑰。
 
 受夠了下載漢化包後，卻發現新道具有一半還是英文嗎？
 受夠了每次模組更新，都要苦苦等待漢化作者發布補丁嗎？
@@ -10,13 +14,13 @@
 ​
 ✨ 核心黑科技特點
 ​
-🌍 原生多國語系支援 (Multi-Language UI) 【V4.4 新增】
+🌍 原生多國語系支援 (Multi-Language UI)
 模組自身的設定介面與數位戰情日誌已全面本地化！完美支援繁體中文、簡體中文、日本語、한국어，讓全世界玩家都能無障礙使用。
 ​
 🧠 AI 智慧精準焊接 & 多國翻譯
 內建 API 介面，支援接入 Google (Gemini), DeepSeek, OpenAI, Grok 等多種主流 AI 模型。自動抓取模組中缺失的 Keyed 與 DefInjected 進行精準翻譯，並且內建術語保護（如 {0} 參數防破壞）。
 ​
-🔗 自訂 API 與本地模型支援 (Custom Base URL) 【V4.4 新增】
+🔗 自訂 API 與本地模型支援 (Custom Base URL)
 新增自訂 API 網址功能！除了雲端大模型，現在你更可以無縫接入 LM Studio、Ollama、vLLM 等本地部署模型！API Key 留空也能跑，享受完全免費且斷網可用的本地化翻譯！
 ​
 🌐 全域翻譯記憶體池 (Global Translation Memory)

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_MiMo_Name>Xiaomi MiMo</ATC_MiMo_Name>
+  <ATC_MiMo_Notice>기본 주소: {0}. Token Plan은 콘솔의 OpenAI 호환 주소와 해당 키를 사용하세요. 모델 직접 입력 가능. 번역과 Agent의 심층 사고는 비활성화됩니다.</ATC_MiMo_Notice>
+  <ATC_MiMo_OpenAiRequired>MiMo의 OpenAI 호환 주소(/v1)를 사용하세요. Anthropic /messages는 지원하지 않습니다.</ATC_MiMo_OpenAiRequired>
+  <ATC_MiMo_ModelSuggestions>이 MiMo 주소에 모델 목록 API가 없어 기본 후보를 표시합니다. 키와 모델 사용 권한은 아직 검증되지 않았습니다.</ATC_MiMo_ModelSuggestions>
+  <ATC_Profile_MiMo>MiMo: OpenAI 호환 요청, 심층 사고 비활성화.</ATC_Profile_MiMo>
+</LanguageData>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_BatchXml_Title>Batch XML export / import</ATC_BatchXml_Title>
+  <ATC_BatchXml_Help>Target language: {0}. Select mods and export, edit the XML files, then preview changes before saving and applying.</ATC_BatchXml_Help>
+  <ATC_BatchXml_ChooseBatch>Choose a batch</ATC_BatchXml_ChooseBatch>
+  <ATC_BatchXml_OpenFolder>Open folder</ATC_BatchXml_OpenFolder>
+  <ATC_BatchXml_SelectVisible>Select visible mods</ATC_BatchXml_SelectVisible>
+  <ATC_BatchXml_Clear>Clear selection</ATC_BatchXml_Clear>
+  <ATC_BatchXml_Selected>Selected {0} / {1} mods (search by name or ID)</ATC_BatchXml_Selected>
+  <ATC_BatchXml_ModError>Cannot import: {0}</ATC_BatchXml_ModError>
+  <ATC_BatchXml_ModSummary>Changes: {0}; unchanged: {1}; skipped: {2}; missing files: {3}</ATC_BatchXml_ModSummary>
+  <ATC_BatchXml_Working>Processing XML, please wait…</ATC_BatchXml_Working>
+  <ATC_BatchXml_Export>Export original XML</ATC_BatchXml_Export>
+  <ATC_BatchXml_Preview>Preview import</ATC_BatchXml_Preview>
+  <ATC_BatchXml_Apply>Save and apply</ATC_BatchXml_Apply>
+  <ATC_BatchXml_NoBatches>No batches yet. Select mods and export their original XML first.</ATC_BatchXml_NoBatches>
+  <ATC_BatchXml_PreviewSummary>Preview: {0} changes ready, {1} mods with errors. Nothing has been saved.</ATC_BatchXml_PreviewSummary>
+  <ATC_BatchXml_Exported>Exported {0} mods, {1} source entries; {2} mods could not be read. Keep the folder structure and manifest.json.</ATC_BatchXml_Exported>
+  <ATC_BatchXml_Applied>Saved {0} mods, {1} changes; skipped {2} conflicting entries; {3} mods failed to save.</ATC_BatchXml_Applied>
+  <ATC_BatchXml_LanguageChanged>The target language changed. Close this window and reopen Batch XML.</ATC_BatchXml_LanguageChanged>
+  <ATC_BatchXml_HelpButton>How to use</ATC_BatchXml_HelpButton>
+  <ATC_BatchXml_TutorialText>V4.2 BETA — Batch XML export / import\n1. Set the target language, then open Global Editor → Batch XML export / import.\n2. Search by mod name or ID and select multiple mods. Select visible mods applies to the current search results. The list contains enabled mods with supported translation sources.\n3. Click Export original XML. A new batch folder opens, with separate mod and category folders.\n4. Edit the text values using an editor or an external translation tool. Preserve XML keys, format arguments, folder structure, and manifest.json in the batch root.\n5. Return and click Preview import. After restarting or moving the batch, use Choose a batch or paste the batch root path.\n6. Review changes, unchanged/skipped entries, missing files, and errors for each mod. Preview does not save anything. Confirm with Save and apply.\n7. Untouched originals and blank values do not overwrite existing translations. Updated sources, unknown keys, and invalid format arguments are skipped. Fix errors and preview again.\nOne-Click Pack Export exports completed translation packs. Batch XML is for exporting original text, external editing, and importing it back. Wait for the translation pipeline to finish or stop it before using Batch XML.</ATC_BatchXml_TutorialText>
+</LanguageData>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_MiMo_Name>Xiaomi MiMo</ATC_MiMo_Name>
+  <ATC_MiMo_Notice>Default: {0}. For Token Plan, use its matching OpenAI-compatible URL and key from the console. Model IDs can be entered manually. Thinking is disabled for translation and Agent requests.</ATC_MiMo_Notice>
+  <ATC_MiMo_OpenAiRequired>Use MiMo's OpenAI-compatible URL (/v1), not an Anthropic /messages URL.</ATC_MiMo_OpenAiRequired>
+  <ATC_MiMo_ModelSuggestions>This MiMo endpoint has no model-list API. Built-in suggestions are available; you can enter a model ID manually. Credentials and model access are not yet verified.</ATC_MiMo_ModelSuggestions>
+  <ATC_Profile_MiMo>MiMo: OpenAI-compatible requests with thinking disabled.</ATC_Profile_MiMo>
+</LanguageData>

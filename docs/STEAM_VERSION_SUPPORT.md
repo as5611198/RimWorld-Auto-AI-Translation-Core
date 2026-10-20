@@ -41,6 +41,10 @@ pwsh -NoProfile -File tools/Build-SteamMod.ps1 -Deploy -LocalUiLanguage ChineseT
 
 22:51 測試結束：使用者確認新版行為正常，執行 `-Deploy -LocalUiLanguage Default` 移除本機繁中覆寫，恢復各語言原有內容。三版本重新編譯及 43 個配送檔案 SHA-256 核對通過；Steam 安裝目錄的四個英文語系檔與 repo 發行包逐一相同。備份與驗證：`backups/steam-three-version-20261020-225109-489/`。
 
+V4.2 BETA 本機候選版：九語系的模組顯示標題與使用教學改為 4.2，更新日誌在舊紀錄之前加入 2026-10-20 的 4.2 條目；批次 XML 視窗新增教學按鈕，主畫面教學也共用同一章節。批次教學涵蓋目標語言、多選／全選、匯出、外部編輯時保留鍵名與 manifest.json、匯入預覽、確認套用及衝突／錯誤處理。三版本編譯與 1.7 CoreCLR 的 29 項 smoke 檢查通過。62 個配送檔案核對 SHA-256，使用正常語系，備份：`backups/steam-three-version-20261020-233757-840/`。此驗證快照尚未包含 Workshop 更新。
+
+同晚遊戲內 UI 檢查：標題實際顯示 V4.2 BETA；更新日誌最上方顯示 4.2 並保留 4.1 歷史；「全域工作台 → 批次 XML」右上角的 How to use 按鈕可開啟完整七步教學，文字換行與排版正常。遊戲採正常英文語系，未套用測試用繁中覆寫。
+
 - 增加 `GUI.Label(Rect,string,GUIStyle)` 攔截；Waylith 的字串重載不再經過 GUIContent 重載。沿用既有啟用／停用、日誌排除與原文提示設定。
 - GUIContent → string、Widgets → GUI 的巢狀呼叫使用同一層級防護，避免重複翻譯；例外發生時由 Finalizer 還原。
 - 雲端 ZIP 使用 HttpClient 串流寫入檔案，保留替代記錄回應標頭；HTTP 失敗、截斷與逾時會清除殘檔。

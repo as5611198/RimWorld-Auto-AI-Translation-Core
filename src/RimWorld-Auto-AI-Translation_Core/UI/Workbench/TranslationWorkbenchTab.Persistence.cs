@@ -47,21 +47,31 @@ namespace AutoTranslator_Core
             private static WorkbenchSaveSnapshot CreateSaveSnapshot()
             {
                 TargetLanguage targetLang = _loadedWorkbenchTargetLanguage ?? AutoTranslatorMod.Settings.TargetLang;
+                WorkbenchModSnapshot mod = CreateWorkbenchModSnapshot(_editingMod);
+                mod.TargetLang = targetLang;
+                mod.TargetLangFolder = AutoTranslatorScanner.GetFolderNameByLanguage(targetLang);
+                return CreateSaveSnapshot(mod, _categorizedData);
+            }
+
+            private static WorkbenchSaveSnapshot CreateSaveSnapshot(WorkbenchModSnapshot mod,
+                Dictionary<string, List<WorkbenchItem>> data)
+            {
+                TargetLanguage targetLang = mod.TargetLang;
                 string targetLangFolder = AutoTranslatorScanner.GetFolderNameByLanguage(targetLang);
                 string packPath = AutoTranslatorScanner.GetLocalPackPath();
-                string cleanPackageId = _editingMod.PackageId.Replace(".", "_").ToLower();
+                string cleanPackageId = mod.PackageId.Replace(".", "_").ToLowerInvariant();
                 WorkbenchSaveSnapshot snapshot = new WorkbenchSaveSnapshot
                 {
-                    Mod = _editingMod,
-                    PackageId = _editingMod.PackageId,
-                    RootDir = _editingMod.RootDir != null ? _editingMod.RootDir.FullName : "",
+                    Mod = mod.Mod,
+                    PackageId = mod.PackageId,
+                    RootDir = mod.RootDir,
                     TargetLang = targetLang,
                     TargetLangFolder = targetLangFolder,
                     PackPath = packPath,
                     CleanPackageId = cleanPackageId
                 };
 
-                foreach (var categoryPair in _categorizedData)
+                foreach (var categoryPair in data)
                 {
                     bool categoryModified = categoryPair.Value.Any(HasWorkbenchItemUnsavedChanges);
                     if (!categoryModified) continue;
@@ -522,13 +532,19 @@ namespace AutoTranslator_Core
                     return;
                 }
 
-                TranslationUnresolvedManager.ResolveMatching(BuildResolvedWorkbenchEntries(snapshot));
-                MarkSavedSnapshotItems(snapshot);
+                FinalizeWorkbenchSave(snapshot, result);
                 SetWorkbenchStatus("ATC_Workbench_SavedInline".Translate().ToString());
                 AutoTranslatorSettings.AddLog("? " + "ATC_Log_WorkbenchSaved".Translate(result.SavedCount));
                 Verse.Messages.Message("ATC_Workbench_SaveSuccess".Translate(), MessageTypeDefOf.PositiveEvent, false);
 
-                if (result.TouchedTranslationFiles)
+            }
+
+            private static void FinalizeWorkbenchSave(WorkbenchSaveSnapshot snapshot, WorkbenchSaveResult result)
+            {
+                TranslationUnresolvedManager.ResolveMatching(BuildResolvedWorkbenchEntries(snapshot));
+                if (_editingMod == snapshot.Mod && _loadedWorkbenchTargetLanguage == snapshot.TargetLang)
+                    MarkSavedSnapshotItems(snapshot);
+                if (result.TouchedTranslationFiles && AutoTranslatorMod.Settings.TargetLang == snapshot.TargetLang)
                 {
                     AutoTranslatorScanner.RequestMemoryDropForPackage(snapshot.PackageId, result.ClearKeysByDefType);
                     UIInterceptor.RefreshRuntimeUICache();

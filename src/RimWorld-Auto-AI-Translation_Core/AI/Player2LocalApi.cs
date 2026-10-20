@@ -49,7 +49,10 @@ namespace AutoTranslator_Core
             }
             string key = (apiKey ?? string.Empty).Trim();
             if (key.Length > 0 && provider != TranslatorProvider.Google)
-                headers.Add("Authorization", (provider == TranslatorProvider.DeepL ? "DeepL-Auth-Key " : "Bearer ") + key);
+            {
+                if (provider == TranslatorProvider.MiMo) headers.Add("api-key", key);
+                else headers.Add("Authorization", (provider == TranslatorProvider.DeepL ? "DeepL-Auth-Key " : "Bearer ") + key);
+            }
             return headers;
         }
     }

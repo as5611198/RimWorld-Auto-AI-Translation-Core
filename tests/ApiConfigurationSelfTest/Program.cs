@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using Newtonsoft.Json.Linq;
 
 internal static class Program
 {
@@ -98,6 +100,7 @@ internal static class Program
             }
             Check(!InvokeBool("IsPolicyAgentConfigReady", Config("DeepL", "", "valid-synthetic-test-key", "test-model")), "policy agent still excludes DeepL");
             TestConnectionDiagnostics(mod);
+            TestMiMo(mod);
             Console.WriteLine("PASS: " + passed + " API configuration checks against " + modPath);
             return 0;
         }
@@ -106,6 +109,66 @@ internal static class Program
             Console.Error.WriteLine(error);
             return 1;
         }
+    }
+
+    private static void TestMiMo(Assembly mod)
+    {
+        object provider = Enum.Parse(providerType, "MiMo");
+        Check(Convert.ToInt32(Enum.Parse(providerType, "Custom_OpenAI")) == 8 && Convert.ToInt32(provider) == 9,
+            "MiMo is appended without renumbering saved providers");
+        object config = Config("MiMo", "", "sk-synthetic-mimo-test", "mimo-v2.6-flash");
+        Check(InvokeBool("IsConfigReady", config) && InvokeBool("IsPolicyAgentConfigReady", config), "MiMo supports translation and Policy Agent");
+        Check(!InvokeBool("IsConfigReady", Config("MiMo", "", "", "mimo-v2.6-flash")), "MiMo requires its own API key");
+        Check((string)api.GetMethod("GetBaseUrl", Static).Invoke(null, new[] { config }) == "https://api.xiaomimimo.com/v1",
+            "MiMo defaults to the official pay-as-you-go endpoint");
+        object plan = Config("MiMo", "https://token-plan-cn.xiaomimimo.com", "tp-synthetic-plan-key", "mimo-v2.6-pro");
+        Check((string)api.GetMethod("GetBaseUrl", Static).Invoke(null, new[] { plan }) == "https://token-plan-cn.xiaomimimo.com/v1",
+            "MiMo accepts a separate Token Plan URL and appends v1 once");
+        object planWithV1 = Config("MiMo", "https://token-plan-sgp.xiaomimimo.com/v1", "tp-synthetic-plan-key", "mimo-v2.6-pro");
+        Check((string)api.GetMethod("GetBaseUrl", Static).Invoke(null, new[] { planWithV1 }) == "https://token-plan-sgp.xiaomimimo.com/v1",
+            "MiMo preserves the selected Token Plan region without duplicating v1");
+        Check((string)api.GetMethod("GetApiEndpointError", Static).Invoke(null,
+            new[] { Config("MiMo", "https://api.xiaomimimo.com/anthropic", "synthetic-key", "model") }) == "ATC_MiMo_OpenAiRequired",
+            "MiMo explains when an Anthropic URL is used in the OpenAI route");
+
+        Type headersType = mod.GetType("AutoTranslator_Core.ApiRequestHeaders", true);
+        MethodInfo headers = headersType.GetMethod("Build", Static);
+        var mimoHeaders = (Dictionary<string, string>)headers.Invoke(null, new object[] { provider, " tp-synthetic-plan-key ", null, false });
+        Check(mimoHeaders["api-key"] == "tp-synthetic-plan-key" && !mimoHeaders.ContainsKey("Authorization") &&
+            !mimoHeaders.ContainsKey("player2-game-key"), "MiMo emits its documented api-key header without unrelated credentials");
+        var genericHeaders = (Dictionary<string, string>)headers.Invoke(null,
+            new object[] { Enum.Parse(providerType, "Custom_OpenAI"), "synthetic-bearer", null, false });
+        Check(genericHeaders["Authorization"] == "Bearer synthetic-bearer" && !genericHeaders.ContainsKey("api-key"),
+            "adding MiMo preserves custom OpenAI Bearer authentication");
+
+        MethodInfo prepare = api.GetMethod("PrepareProviderChatPayload", Static);
+        JObject payload = JObject.Parse("{\"model\":\"mimo-v2.6-flash\",\"messages\":[{\"role\":\"system\",\"content\":\"Translate JSON\"},{\"role\":\"user\",\"content\":\"[\\\"hello\\\"]\"}],\"max_tokens\":4096}");
+        JObject result = (JObject)prepare.Invoke(null, new object[] { payload, provider, false });
+        Check(result["max_tokens"] == null && (int)result["max_completion_tokens"] == 4096, "MiMo converts the output budget to max_completion_tokens");
+        Check((string)result["thinking"]["type"] == "disabled" && !(bool)result["stream"], "MiMo translation uses non-streaming output with thinking disabled");
+        Check(JToken.DeepEquals(result["messages"], payload["messages"]), "MiMo preserves the mod's translation instructions and input JSON");
+        Check(payload["max_tokens"] != null && payload["thinking"] == null, "MiMo payload preparation does not mutate the caller's data");
+        JObject policyPayload = JObject.Parse("{\"model\":\"mimo-v2.6-pro\",\"messages\":[],\"max_tokens\":8192}");
+        Check((int)((JObject)prepare.Invoke(null, new object[] { policyPayload, provider, false }))["max_completion_tokens"] == 8192,
+            "MiMo preserves the independent Policy Agent output budget");
+        object unchanged = prepare.Invoke(null, new object[] { payload, Enum.Parse(providerType, "Custom_OpenAI"), false });
+        Check(ReferenceEquals(unchanged, payload), "other OpenAI providers keep their original payload");
+        JObject player2 = (JObject)prepare.Invoke(null, new object[] { payload, Enum.Parse(providerType, "Custom_OpenAI"), true });
+        Check(player2["model"] == null && player2["max_tokens"] != null && player2["thinking"] == null,
+            "Player2 model handling remains separate from MiMo");
+
+        MethodInfo fallback = api.GetMethod("TryUseMiMoModelSuggestions", Static);
+        object fallbackConfig = Config("MiMo", "", "synthetic-key", "");
+        Check((bool)fallback.Invoke(null, new object[] { fallbackConfig, 404, "test-fingerprint" }) &&
+            (string)configType.GetField("SelectedModel").GetValue(fallbackConfig) == "mimo-v2.6-flash",
+            "missing MiMo model-list endpoint offers current documented text models");
+        Check((bool)fallback.Invoke(null, new object[] { config, 405, "test-fingerprint" }) &&
+            (string)configType.GetField("SelectedModel").GetValue(config) == "mimo-v2.6-flash", "model suggestions preserve the configured model");
+        foreach (int code in new[] { 0, 401, 403, 429, 500 })
+            Check(!(bool)fallback.Invoke(null, new object[] { config, code, "test-fingerprint" }),
+                "MiMo suggestions do not hide HTTP " + code + " failures");
+        Check(!(bool)fallback.Invoke(null, new object[] { Config("Custom_OpenAI", "https://example.com/v1", "key", "model"), 404, "fp" }),
+            "MiMo model fallback does not affect generic providers");
     }
 
     private static object Config(string provider, string url, string key, string model, bool player2 = false, string player2GameClientId = "")

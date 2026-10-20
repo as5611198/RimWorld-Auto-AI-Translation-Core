@@ -195,7 +195,8 @@ namespace AutoTranslator_Core
 
                                 if (!isGoogleRaw && !string.IsNullOrEmpty(apiKey))
                                 {
-                                    request.SetRequestHeader("Authorization", $"Bearer {apiKey}");
+                                    request.SetRequestHeader(config.Provider == TranslatorProvider.MiMo ? "api-key" : "Authorization",
+                                        config.Provider == TranslatorProvider.MiMo ? apiKey : $"Bearer {apiKey}");
                                 }
 
                                 var operation = request.SendWebRequest();
@@ -282,6 +283,12 @@ namespace AutoTranslator_Core
                         }
 
                         int statusCode = (int)resHolder.HttpCode;
+                        if (TryUseMiMoModelSuggestions(config, statusCode, fetchFingerprint))
+                        {
+                            AutoTranslatorSettings.AddLog(TranslateText("ATC_MiMo_ModelSuggestions"));
+                            success = true;
+                            return;
+                        }
                         if (statusCode == 404 && !alternateTried && !string.IsNullOrEmpty(alternateBaseUrl))
                         {
                             alternateTried = true;
@@ -432,6 +439,15 @@ namespace AutoTranslator_Core
             config.PendingFetchFingerprint = "";
             config.FetchRetryCount = 0;
             config.NextModelFetchRetryUtcTicks = 0L;
+        }
+
+        internal static bool TryUseMiMoModelSuggestions(ApiKeyConfig config, int statusCode, string fingerprint)
+        {
+            if (config == null || config.Provider != TranslatorProvider.MiMo || (statusCode != 404 && statusCode != 405)) return false;
+            config.FetchedModels = new List<string>(MiMoApi.SuggestedModels());
+            if (string.IsNullOrEmpty(config.SelectedModel)) config.SelectedModel = MiMoApi.DefaultModel;
+            MarkModelFetchSuccess(config, fingerprint);
+            return true;
         }
 
         // 這個方法負責處理 Schedule模型取得Retry 相關流程。

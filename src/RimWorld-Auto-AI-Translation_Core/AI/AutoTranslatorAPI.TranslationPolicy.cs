@@ -300,7 +300,7 @@ namespace AutoTranslator_Core
                     },
                     max_tokens = maximumOutputTokens
                 };
-                if (isPlayer2) payload = Player2LocalApi.PrepareChatPayload(payload);
+                payload = PrepareProviderChatPayload(payload, config.Provider, isPlayer2);
             }
 
             int configuredTimeout = AutoTranslatorMod.Settings != null

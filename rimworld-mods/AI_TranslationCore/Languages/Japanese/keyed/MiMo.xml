@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_MiMo_Name>Xiaomi MiMo</ATC_MiMo_Name>
+  <ATC_MiMo_Notice>既定：{0}。Token Plan はコンソールの OpenAI 互換 URL と対応キーを使用します。モデルは手入力可。翻訳・Agent とも深度思考を無効にします。</ATC_MiMo_Notice>
+  <ATC_MiMo_OpenAiRequired>MiMo の OpenAI 互換 URL（/v1）を使用してください。Anthropic /messages は使用できません。</ATC_MiMo_OpenAiRequired>
+  <ATC_MiMo_ModelSuggestions>この MiMo 接続先にモデル一覧 API がないため内蔵候補を表示します。キーやモデル利用権限は未確認です。</ATC_MiMo_ModelSuggestions>
+  <ATC_Profile_MiMo>MiMo：OpenAI 互換、深度思考は無効。</ATC_Profile_MiMo>
+</LanguageData>

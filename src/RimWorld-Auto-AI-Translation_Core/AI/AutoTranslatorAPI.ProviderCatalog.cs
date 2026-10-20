@@ -64,6 +64,8 @@ namespace AutoTranslator_Core
                     return new ProviderRuntimeProfile { BatchSize = 50, FormatRetries = 0, TimeoutFloorSeconds = 60, QualityHintKey = "ATC_Profile_DeepL" };
                 case TranslatorProvider.Custom_OpenAI:
                     return new ProviderRuntimeProfile { BatchSize = reasoning ? 12 : 24, FormatRetries = 1, TimeoutFloorSeconds = reasoning ? 300 : 90, QualityHintKey = "ATC_Profile_Custom" };
+                case TranslatorProvider.MiMo:
+                    return new ProviderRuntimeProfile { BatchSize = 24, FormatRetries = 1, TimeoutFloorSeconds = 90, QualityHintKey = "ATC_Profile_MiMo" };
                 case TranslatorProvider.OpenRouter:
                     return new ProviderRuntimeProfile { BatchSize = reasoning ? 12 : 28, FormatRetries = 1, TimeoutFloorSeconds = reasoning ? 300 : 90, QualityHintKey = "ATC_Profile_OpenRouter" };
                 default:
@@ -98,7 +100,8 @@ namespace AutoTranslator_Core
                 return config.ResolvedBaseUrl;
             if (config.Provider == TranslatorProvider.Custom_OpenAI && config.UsePlayer2Protocol)
                 return Player2LocalApi.NormalizeBaseUrl(custom);
-            if (!string.IsNullOrEmpty(custom)) return AppendCustomV1(custom, config.Provider == TranslatorProvider.Custom_OpenAI);
+            if (!string.IsNullOrEmpty(custom)) return AppendCustomV1(custom,
+                config.Provider == TranslatorProvider.Custom_OpenAI || config.Provider == TranslatorProvider.MiMo);
 
             if (config.Provider == TranslatorProvider.DeepL)
             {
@@ -144,6 +147,10 @@ namespace AutoTranslator_Core
             string errorKey;
             ApiEndpointRules.TryNormalize(config.CustomBaseUrl, CleanInput(config.Key), out normalized, out errorKey);
             if (!string.IsNullOrEmpty(errorKey)) return errorKey;
+            if (config.Provider == TranslatorProvider.MiMo && !string.IsNullOrEmpty(normalized) &&
+                (new Uri(normalized).AbsolutePath.IndexOf("/anthropic", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 normalized.EndsWith("/messages", StringComparison.OrdinalIgnoreCase)))
+                return "ATC_MiMo_OpenAiRequired";
             if (config.Provider == TranslatorProvider.Custom_OpenAI && config.UsePlayer2Protocol)
             {
                 Uri endpoint = new Uri(Player2LocalApi.NormalizeBaseUrl(normalized));

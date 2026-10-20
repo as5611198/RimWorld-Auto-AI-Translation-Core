@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Xml;
 
-internal static class Program
+internal static partial class Program
 {
     private const BindingFlags Static = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
     private static int passed;
@@ -106,6 +106,7 @@ internal static class Program
                 Check(xml.SelectNodes("/ModMetaData/supportedVersions/li").Count == 3 && xml.SelectSingleNode("/ModMetaData/name").InnerText == "Keep this name" && File.ReadAllText(Path.Combine(packRoot, "translation.xml")) == "preserve", "existing generated pack gains versions without losing metadata or translations");
                 scanner.GetMethod("EnsurePackSkeleton", Static).Invoke(null, null);
                 xml.Load(packAbout);Check(xml.SelectNodes("/ModMetaData/supportedVersions/li").Count == 3, "pack version migration is idempotent");
+                TestWorkbenchBatch(mod, temporary);
                 harmonyType.GetMethod("UnpatchAll").Invoke(patcher, new object[] { "atc.product-smoke" });
             }
             Console.WriteLine("PASS: " + passed + " product smoke checks for " + version);return 0;

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_BatchXml_Title>批量 XML 导出／导入</ATC_BatchXml_Title>
+  <ATC_BatchXml_Help>目标语言：{0}。勾选模组并导出，编辑文件夹内的 XML 后，先预览更改，再保存并应用。</ATC_BatchXml_Help>
+  <ATC_BatchXml_ChooseBatch>选择已有批次</ATC_BatchXml_ChooseBatch>
+  <ATC_BatchXml_OpenFolder>打开文件夹</ATC_BatchXml_OpenFolder>
+  <ATC_BatchXml_SelectVisible>全选当前列表</ATC_BatchXml_SelectVisible>
+  <ATC_BatchXml_Clear>清除选择</ATC_BatchXml_Clear>
+  <ATC_BatchXml_Selected>已选 {0}／{1} 个模组（可搜索名称或 ID）</ATC_BatchXml_Selected>
+  <ATC_BatchXml_ModError>无法导入：{0}</ATC_BatchXml_ModError>
+  <ATC_BatchXml_ModSummary>更改 {0} 条；未更改 {1}；跳过 {2}；缺少文件 {3}</ATC_BatchXml_ModSummary>
+  <ATC_BatchXml_Working>正在处理 XML，请稍候…</ATC_BatchXml_Working>
+  <ATC_BatchXml_Export>导出原文 XML</ATC_BatchXml_Export>
+  <ATC_BatchXml_Preview>预览导入更改</ATC_BatchXml_Preview>
+  <ATC_BatchXml_Apply>保存并应用</ATC_BatchXml_Apply>
+  <ATC_BatchXml_NoBatches>尚无导出批次。请先勾选模组并导出原文 XML。</ATC_BatchXml_NoBatches>
+  <ATC_BatchXml_PreviewSummary>预览完成：可应用 {0} 条更改，{1} 个模组出错。尚未保存。</ATC_BatchXml_PreviewSummary>
+  <ATC_BatchXml_Exported>已导出 {0} 个模组、{1} 条原文；{2} 个模组无法读取。请保留文件夹结构和 manifest.json。</ATC_BatchXml_Exported>
+  <ATC_BatchXml_Applied>已保存 {0} 个模组、{1} 条更改；跳过 {2} 条已变动的内容，{3} 个模组保存失败。</ATC_BatchXml_Applied>
+  <ATC_BatchXml_LanguageChanged>目标语言已更改，请关闭窗口后重新打开批量 XML。</ATC_BatchXml_LanguageChanged>
+  <ATC_BatchXml_HelpButton>使用教学</ATC_BatchXml_HelpButton>
+  <ATC_BatchXml_TutorialText>【V4.2 BETA：批量 XML 导出／导入】\n1. 先设置目标语言，再进入“全域工作台 → 批量 XML 导出／导入”。\n2. 搜索模组名称或 ID，勾选多个模组；“全选当前列表”只选择当前搜索结果。列表显示已启用且有可处理来源的模组。\n3. 点击“导出原文 XML”。每次会新建并打开批次文件夹，按模组和分类分别存放。\n4. 使用编辑器或外部翻译工具修改 XML 的文本内容。保留键名、格式参数、文件夹结构及批次根目录中的 manifest.json。\n5. 返回批量窗口，点击“预览导入更改”。重开游戏或移动文件夹后，可用“选择已有批次”或粘贴批次根目录路径。\n6. 检查每个模组的更改、未更改、跳过、缺失文件及错误数量。预览不会保存；确认后点击“保存并应用”。\n7. 未编辑的原文和空白内容不会覆盖已有翻译。原文更新、键名不匹配或格式参数有问题的条目会跳过；出错的模组请修正后重新预览。\n注意：“一键打包导出”用于输出已完成的翻译包；批量 XML 用于原文导出、外部编辑及导入。翻译运行时，请先等待完成或停止，再操作批量 XML。</ATC_BatchXml_TutorialText>
+</LanguageData>

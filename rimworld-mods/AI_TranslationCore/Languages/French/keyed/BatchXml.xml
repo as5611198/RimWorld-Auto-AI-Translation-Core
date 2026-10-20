@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_BatchXml_Title>Export / import XML par lot</ATC_BatchXml_Title>
+  <ATC_BatchXml_Help>Langue cible : {0}. Sélectionnez les mods, exportez et modifiez les XML, puis vérifiez les changements avant de les appliquer.</ATC_BatchXml_Help>
+  <ATC_BatchXml_ChooseBatch>Choisir un lot</ATC_BatchXml_ChooseBatch>
+  <ATC_BatchXml_OpenFolder>Ouvrir le dossier</ATC_BatchXml_OpenFolder>
+  <ATC_BatchXml_SelectVisible>Tout sélectionner</ATC_BatchXml_SelectVisible>
+  <ATC_BatchXml_Clear>Effacer la sélection</ATC_BatchXml_Clear>
+  <ATC_BatchXml_Selected>{0} / {1} mods sélectionnés (nom ou ID)</ATC_BatchXml_Selected>
+  <ATC_BatchXml_ModError>Import impossible : {0}</ATC_BatchXml_ModError>
+  <ATC_BatchXml_ModSummary>Modifiés : {0} ; identiques : {1} ; ignorés : {2} ; fichiers absents : {3}</ATC_BatchXml_ModSummary>
+  <ATC_BatchXml_Working>Traitement XML en cours…</ATC_BatchXml_Working>
+  <ATC_BatchXml_Export>Exporter les originaux</ATC_BatchXml_Export>
+  <ATC_BatchXml_Preview>Aperçu de l’import</ATC_BatchXml_Preview>
+  <ATC_BatchXml_Apply>Enregistrer / appliquer</ATC_BatchXml_Apply>
+  <ATC_BatchXml_NoBatches>Aucun lot. Sélectionnez des mods et exportez les XML originaux.</ATC_BatchXml_NoBatches>
+  <ATC_BatchXml_PreviewSummary>Aperçu : {0} changements, {1} mods en erreur. Rien n’est enregistré.</ATC_BatchXml_PreviewSummary>
+  <ATC_BatchXml_Exported>{0} mods et {1} textes exportés ; {2} mods illisibles. Conservez les dossiers et manifest.json.</ATC_BatchXml_Exported>
+  <ATC_BatchXml_Applied>{0} mods et {1} changements enregistrés ; {2} conflits ignorés ; {3} échecs.</ATC_BatchXml_Applied>
+  <ATC_BatchXml_LanguageChanged>La langue cible a changé. Fermez puis rouvrez cette fenêtre.</ATC_BatchXml_LanguageChanged>
+  <ATC_BatchXml_HelpButton>Mode d’emploi</ATC_BatchXml_HelpButton>
+  <ATC_BatchXml_TutorialText>V4.2 BETA — XML par lot\n1. Définissez la langue cible, puis ouvrez l’éditeur global → Export / import XML par lot.\n2. Recherchez les mods par nom ou ID et cochez-en plusieurs. Tout sélectionner s’applique aux résultats visibles. Seuls les mods activés avec des sources traduisibles figurent dans la liste.\n3. Exportez les originaux : un nouveau dossier s’ouvre, organisé par mod et catégorie.\n4. Modifiez les textes avec un éditeur ou outil externe. Conservez les clés XML, paramètres de format, dossiers et manifest.json à la racine.\n5. Revenez à l’aperçu de l’import. Après un redémarrage ou déplacement, choisissez un lot existant ou collez son chemin racine.\n6. Vérifiez les changements, éléments identiques/ignorés, fichiers absents et erreurs. L’aperçu n’enregistre rien. Confirmez avec Enregistrer / appliquer.\n7. Les originaux intacts et valeurs vides ne remplacent pas les traductions. Les sources modifiées, clés inconnues et paramètres invalides sont ignorés. Corrigez les erreurs puis relancez l’aperçu.\nL’export de packs concerne les traductions terminées ; XML par lot sert à l’édition externe des originaux. Attendez la fin de la traduction ou arrêtez-la avant cette opération.</ATC_BatchXml_TutorialText>
+</LanguageData>

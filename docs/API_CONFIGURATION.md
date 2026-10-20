@@ -14,6 +14,23 @@
 
 這是通用 OpenAI 相容接口的設定說明，未代表已完成 Player2 帳號、授權與實際翻譯驗收。
 
+## Xiaomi MiMo
+
+供應商選單新增「小米 MiMo／Xiaomi MiMo」，翻譯 API 和 Policy Agent 都可選用。使用 MiMo 的 OpenAI Chat Completions 接口，預設 Base URL 為 `https://api.xiaomimimo.com/v1`；自訂網址保留可編輯，缺少 `/v1` 時補一次。
+
+- 按量付費：使用 API Keys 頁面的金鑰，網址可留空以沿用預設。
+- Token Plan：使用控制台該方案提供的 **OpenAI 相容**網址和對應金鑰；中國、新加坡等區域沿用使用者填入的位址，不依金鑰內容自動切換站台。
+- 預選 `mimo-v2.6-flash`，另提供 `mimo-v2.6-pro` 作為候選，仍可手填其他模型 ID。候選不代表帳號一定具有該模型權限；以官方模型列表與控制台為準。
+- POST 請求及模型清單 GET 使用官方支援的 `api-key` 標頭；不加入 Player2 或 Anthropic 的驗證標頭。
+- 翻譯、連線測試與 Policy Agent 共用 MiMo 請求準備流程：將輸出上限寫為 `max_completion_tokens`，設定 `stream=false`、`thinking.type=disabled`，保留原有翻譯／分類提示詞與輸入資料。
+- 模型清單接口若回傳 404／405，顯示內建文字模型候選；不把這當作金鑰驗證成功。401、403、429、連線錯誤及伺服器錯誤仍照常回報。
+- 本接口不處理 Anthropic Messages；填入 `/anthropic` 或 `/messages` 位址時顯示改用 OpenAI 相容網址的提示。
+- 既有 `Custom_OpenAI`、Player2 與其他供應商的驗證及請求參數維持各自處理；MiMo 列舉附加於最後，不改變舊供應商的數值或玩家設定。
+
+官方依據：[首次呼叫 API](https://mimo.mi.com/docs/zh-CN/quick-start/summary/first-api-call)、[API 接入 FAQ](https://mimo.mi.com/docs/zh-CN/quick-start/faq/api-integration)、[深度思考](https://mimo.mi.com/docs/zh-CN/quick-start/usage-guide/text-generation/deep-thinking)、[模型列表](https://mimo.mi.com/docs/zh-CN/quick-start/summary/model)。模型候選查核日期：2026-10-20。
+
+本機驗證：三版本 Release 建置通過；實際 1.5 與 Steam 安裝 1.7 DLL 各通過 120 項離線 API 檢查（原有 96 項與新增 24 項 MiMo 檢查）。九語系各五個新增鍵的 XML、鍵集合與 Base URL 參數檢查通過；1.7 自帶 CoreCLR 的 29 項載入／批次 XML smoke 測試通過。已以正常語系部署 61 個檔案並核對 SHA-256，備份：`backups/steam-three-version-20261020-232456-859/`。未取得 MiMo 真實金鑰，未驗收正式服務的帳號權限、額度與實際翻譯；此驗證快照尚未包含工作坊更新。
+
 ## 修正內容
 
 - 自訂 OpenAI 相容網址預設先補 `/v1`；模型清單收到 404 時自動退回未加 `/v1` 的網址，並沿用成功路徑。

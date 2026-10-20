@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_BatchXml_Title>ส่งออก / นำเข้า XML แบบกลุ่ม</ATC_BatchXml_Title>
+  <ATC_BatchXml_Help>ภาษาเป้าหมาย: {0} เลือกม็อด ส่งออกและแก้ไข XML แล้วดูการเปลี่ยนแปลงก่อนบันทึกและใช้งาน</ATC_BatchXml_Help>
+  <ATC_BatchXml_ChooseBatch>เลือกชุดเดิม</ATC_BatchXml_ChooseBatch>
+  <ATC_BatchXml_OpenFolder>เปิดโฟลเดอร์</ATC_BatchXml_OpenFolder>
+  <ATC_BatchXml_SelectVisible>เลือกทั้งหมดที่แสดง</ATC_BatchXml_SelectVisible>
+  <ATC_BatchXml_Clear>ล้างการเลือก</ATC_BatchXml_Clear>
+  <ATC_BatchXml_Selected>เลือก {0} / {1} ม็อด (ค้นหาชื่อหรือ ID)</ATC_BatchXml_Selected>
+  <ATC_BatchXml_ModError>นำเข้าไม่ได้: {0}</ATC_BatchXml_ModError>
+  <ATC_BatchXml_ModSummary>เปลี่ยน {0}; ไม่เปลี่ยน {1}; ข้าม {2}; ไฟล์หาย {3}</ATC_BatchXml_ModSummary>
+  <ATC_BatchXml_Working>กำลังประมวลผล XML…</ATC_BatchXml_Working>
+  <ATC_BatchXml_Export>ส่งออก XML ต้นฉบับ</ATC_BatchXml_Export>
+  <ATC_BatchXml_Preview>ดูตัวอย่างการนำเข้า</ATC_BatchXml_Preview>
+  <ATC_BatchXml_Apply>บันทึกและใช้งาน</ATC_BatchXml_Apply>
+  <ATC_BatchXml_NoBatches>ยังไม่มีชุดข้อมูล เลือกม็อดและส่งออก XML ต้นฉบับก่อน</ATC_BatchXml_NoBatches>
+  <ATC_BatchXml_PreviewSummary>ตัวอย่าง: พร้อมใช้ {0} รายการ ม็อดผิดพลาด {1} ม็อด ยังไม่ได้บันทึก</ATC_BatchXml_PreviewSummary>
+  <ATC_BatchXml_Exported>ส่งออก {0} ม็อด {1} ข้อความ อ่านไม่ได้ {2} ม็อด โปรดเก็บโครงสร้างโฟลเดอร์และ manifest.json</ATC_BatchXml_Exported>
+  <ATC_BatchXml_Applied>บันทึก {0} ม็อด {1} รายการ ข้ามข้อขัดแย้ง {2} รายการ บันทึกไม่สำเร็จ {3} ม็อด</ATC_BatchXml_Applied>
+  <ATC_BatchXml_LanguageChanged>ภาษาเป้าหมายเปลี่ยนแล้ว โปรดปิดและเปิดหน้าต่างนี้ใหม่</ATC_BatchXml_LanguageChanged>
+  <ATC_BatchXml_HelpButton>วิธีใช้</ATC_BatchXml_HelpButton>
+  <ATC_BatchXml_TutorialText>V4.2 BETA — XML แบบกลุ่ม\n1. ตั้งค่าภาษาเป้าหมาย แล้วเปิดตัวแก้ไขรวม → ส่งออก / นำเข้า XML แบบกลุ่ม\n2. ค้นหาชื่อหรือ ID แล้วเลือกหลายม็อด ปุ่มเลือกทั้งหมดที่แสดงใช้กับผลค้นหาปัจจุบัน รายการแสดงม็อดที่เปิดใช้และมีข้อความที่รองรับการแปล\n3. กดส่งออก XML ต้นฉบับ จะเปิดโฟลเดอร์ชุดใหม่ที่แยกตามม็อดและหมวดหมู่\n4. แก้ข้อความด้วยโปรแกรมแก้ไขหรือเครื่องมือแปลภายนอก เก็บชื่อคีย์ XML พารามิเตอร์รูปแบบ โครงสร้างโฟลเดอร์ และ manifest.json ในโฟลเดอร์รากไว้\n5. กลับมาดูตัวอย่างการนำเข้า หลังเปิดเกมใหม่หรือย้ายโฟลเดอร์ ให้เลือกชุดเดิมหรือวางพาธโฟลเดอร์ราก\n6. ตรวจรายการเปลี่ยน ไม่เปลี่ยน ข้าม ไฟล์หาย และข้อผิดพลาดของแต่ละม็อด ตัวอย่างยังไม่บันทึก ให้กดบันทึกและใช้งานเพื่อยืนยัน\n7. ต้นฉบับที่ไม่ได้แก้และค่าว่างไม่ทับคำแปลเดิม จะข้ามต้นฉบับที่เปลี่ยน คีย์ที่ไม่รู้จัก และพารามิเตอร์ที่ผิด แก้ข้อผิดพลาดแล้วดูตัวอย่างอีกครั้ง\nการส่งออกแพ็กคำแปลที่เสร็จแล้วเป็นอีกฟังก์ชันหนึ่ง XML แบบกลุ่มใช้แก้ต้นฉบับภายนอก รอการแปลให้เสร็จหรือหยุดก่อนใช้งาน</ATC_BatchXml_TutorialText>
+</LanguageData>

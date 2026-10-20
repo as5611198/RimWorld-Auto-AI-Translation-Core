@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_MiMo_Name>Xiaomi MiMo</ATC_MiMo_Name>
+  <ATC_MiMo_Notice>ค่าเริ่มต้น: {0} สำหรับ Token Plan ใช้ URL แบบ OpenAI และคีย์ที่ตรงกันจากคอนโซล ป้อนรุ่นเองได้ ปิดการคิดเชิงลึกสำหรับการแปลและ Agent</ATC_MiMo_Notice>
+  <ATC_MiMo_OpenAiRequired>ใช้ URL ของ MiMo ที่รองรับ OpenAI (/v1) ไม่ใช่ Anthropic /messages</ATC_MiMo_OpenAiRequired>
+  <ATC_MiMo_ModelSuggestions>ปลายทาง MiMo นี้ไม่มี API รายการรุ่น จึงแสดงรุ่นแนะนำในตัว ยังไม่ได้ยืนยันคีย์หรือสิทธิ์ใช้รุ่น</ATC_MiMo_ModelSuggestions>
+  <ATC_Profile_MiMo>MiMo: ใช้รูปแบบ OpenAI และปิดการคิดเชิงลึก</ATC_Profile_MiMo>
+</LanguageData>

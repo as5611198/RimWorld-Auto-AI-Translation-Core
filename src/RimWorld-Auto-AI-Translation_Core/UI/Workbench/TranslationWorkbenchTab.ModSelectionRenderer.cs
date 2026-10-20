@@ -57,6 +57,13 @@ namespace AutoTranslator_Core
 
             Widgets.DrawLineHorizontal(leftOutRect.x, leftOutRect.y + 94f, leftOutRect.width);
 
+            bool batchEnabled = GUI.enabled;
+            GUI.enabled = batchEnabled && AutoTranslatorMod.GetValidModsCached().Count > 0;
+            if (Widgets.ButtonText(new Rect(leftOutRect.x + 5f, leftOutRect.y + 100f, leftOutRect.width - 10f, 30f),
+                "ATC_BatchXml_Title".Translate()))
+                Find.WindowStack.Add(new Window_WorkbenchBatchXml());
+            GUI.enabled = batchEnabled;
+
             DrawModList(leftOutRect);
             DrawGlobalSearchPanel(rightOutRect);
         }
@@ -68,11 +75,11 @@ namespace AutoTranslator_Core
             HashSet<string> translatedPackageIds = GetTranslatedPackageIdsSafe();
             List<ModMetaData> displayMods = GetModSelectionDisplayMods(translatedPackageIds);
             bool showModListProgress = AutoTranslatorMod.IsValidModsCacheRefreshing && displayMods.Count == 0;
-            float listTop = showModListProgress ? 166f : 99f;
+            float listTop = showModListProgress ? 202f : 135f;
 
             if (showModListProgress)
             {
-                DrawModListLoadingProgress(new Rect(leftOutRect.x, leftOutRect.y + 99f, leftOutRect.width, 62f));
+                DrawModListLoadingProgress(new Rect(leftOutRect.x, leftOutRect.y + 135f, leftOutRect.width, 62f));
             }
 
             Rect listOutRect = new Rect(leftOutRect.x, leftOutRect.y + listTop, leftOutRect.width, leftOutRect.height - listTop);

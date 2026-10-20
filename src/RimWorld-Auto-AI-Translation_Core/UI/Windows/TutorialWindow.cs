@@ -21,23 +21,27 @@ namespace AutoTranslator_Core
         // 這個欄位保存 scrollPos 的執行狀態或快取資料。
         // EN: This field stores scroll pos runtime state or cached data.
         private Vector2 scrollPos = Vector2.zero;
+        private bool batchXmlOnly;
         // 這個屬性提供 InitialSize 的讀寫或計算結果。
         // EN: This method handles vector2.
         public override Vector2 InitialSize => new Vector2(750f, 700f);
         // 這個方法負責處理 Tutorial視窗 相關流程。
         // EN: This constructor initializes tutorial window.
         public TutorialWindow() { this.doCloseButton = true; this.doCloseX = true; this.forcePause = true; this.absorbInputAroundWindow = true; }
+        internal TutorialWindow(bool batchXmlOnly) : this() { this.batchXmlOnly = batchXmlOnly; }
         // 這個方法負責處理 Do視窗Contents 相關流程。
         // EN: This method handles do window contents.
         public override void DoWindowContents(Rect inRect)
         {
 
             Text.Font = GameFont.Medium;
-            Widgets.Label(new Rect(0, 0, inRect.width, 40f), "📖 " + "ATC_Tutorial_Btn".Translate());
+            Widgets.Label(new Rect(0, 0, inRect.width, 40f), "📖 " +
+                (batchXmlOnly ? "ATC_BatchXml_Title" : "ATC_Tutorial_Btn").Translate());
             Text.Font = GameFont.Small;
             Widgets.DrawLineHorizontal(0, 35f, inRect.width);
             Rect outRect = new Rect(0, 45f, inRect.width, inRect.height - 100f);
-            string contentText = "ATC_Tutorial_FullText".Translate();
+            string contentText = batchXmlOnly ? "ATC_BatchXml_TutorialText".Translate().ToString()
+                : "ATC_Tutorial_FullText".Translate().ToString() + "\n\n" + "ATC_BatchXml_TutorialText".Translate().ToString();
             float textHeight = Text.CalcHeight(contentText, inRect.width - 20f);
             Rect viewRect = new Rect(0, 0, inRect.width - 20f, Mathf.Max(textHeight + 50f, outRect.height));
             Widgets.BeginScrollView(outRect, ref scrollPos, viewRect);

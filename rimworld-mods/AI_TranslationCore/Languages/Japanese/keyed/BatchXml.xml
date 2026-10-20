@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_BatchXml_Title>XML 一括エクスポート／インポート</ATC_BatchXml_Title>
+  <ATC_BatchXml_Help>対象言語：{0}。Mod を選択して原文 XML を出力し、編集後に変更を確認して保存・適用します。</ATC_BatchXml_Help>
+  <ATC_BatchXml_ChooseBatch>既存のバッチ</ATC_BatchXml_ChooseBatch>
+  <ATC_BatchXml_OpenFolder>フォルダーを開く</ATC_BatchXml_OpenFolder>
+  <ATC_BatchXml_SelectVisible>表示中を全選択</ATC_BatchXml_SelectVisible>
+  <ATC_BatchXml_Clear>選択を解除</ATC_BatchXml_Clear>
+  <ATC_BatchXml_Selected>{0}／{1} Mod を選択（名前・ID で検索）</ATC_BatchXml_Selected>
+  <ATC_BatchXml_ModError>インポート不可：{0}</ATC_BatchXml_ModError>
+  <ATC_BatchXml_ModSummary>変更 {0}、変更なし {1}、スキップ {2}、不足ファイル {3}</ATC_BatchXml_ModSummary>
+  <ATC_BatchXml_Working>XML を処理しています…</ATC_BatchXml_Working>
+  <ATC_BatchXml_Export>原文 XML を出力</ATC_BatchXml_Export>
+  <ATC_BatchXml_Preview>変更をプレビュー</ATC_BatchXml_Preview>
+  <ATC_BatchXml_Apply>保存して適用</ATC_BatchXml_Apply>
+  <ATC_BatchXml_NoBatches>バッチがありません。Mod を選択して原文 XML を出力してください。</ATC_BatchXml_NoBatches>
+  <ATC_BatchXml_PreviewSummary>プレビュー：変更 {0} 件、エラー {1} Mod。まだ保存されていません。</ATC_BatchXml_PreviewSummary>
+  <ATC_BatchXml_Exported>{0} Mod、原文 {1} 件を出力。{2} Mod は読み取り失敗。フォルダー構成と manifest.json を保持してください。</ATC_BatchXml_Exported>
+  <ATC_BatchXml_Applied>{0} Mod、変更 {1} 件を保存。競合 {2} 件をスキップ、{3} Mod の保存に失敗。</ATC_BatchXml_Applied>
+  <ATC_BatchXml_LanguageChanged>対象言語が変更されました。このウィンドウを閉じて開き直してください。</ATC_BatchXml_LanguageChanged>
+  <ATC_BatchXml_HelpButton>使い方</ATC_BatchXml_HelpButton>
+  <ATC_BatchXml_TutorialText>V4.2 BETA：XML 一括エクスポート／インポート\n1. 対象言語を設定し、全体エディター → XML 一括エクスポート／インポートを開きます。\n2. 名前や ID で検索して複数の Mod を選択します。「表示中を全選択」は現在の検索結果が対象です。有効で翻訳元のある Mod が表示されます。\n3. 「原文 XML を出力」を押すと、新しいバッチフォルダーが開き、Mod と分類ごとに保存されます。\n4. エディターや外部翻訳ツールで本文を編集します。XML キー、書式引数、フォルダー構成、ルートの manifest.json は保持してください。\n5. 戻って「変更をプレビュー」を押します。再起動や移動後は既存バッチを選ぶか、ルートパスを貼り付けます。\n6. Mod ごとの変更、変更なし、スキップ、不足ファイル、エラーを確認し、「保存して適用」で確定します。プレビューだけでは保存しません。\n7. 未編集の原文や空欄は既存翻訳を上書きしません。原文の更新、未知のキー、書式引数の不一致はスキップします。エラーを修正して再確認してください。\n完成した翻訳パックの出力とは別の、外部編集用の機能です。翻訳処理の完了を待つか停止してから使用してください。</ATC_BatchXml_TutorialText>
+</LanguageData>
