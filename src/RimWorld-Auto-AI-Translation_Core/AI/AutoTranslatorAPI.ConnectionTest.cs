@@ -45,7 +45,8 @@ namespace AutoTranslator_Core
                 Provider = config.Provider, Key = config.Key, CustomBaseUrl = config.CustomBaseUrl,
                 SelectedModel = config.SelectedModel, UsePlayer2Protocol = config.UsePlayer2Protocol,
                 Player2GameClientId = config.Player2GameClientId, ResolvedBaseUrl = config.ResolvedBaseUrl,
-                ResolvedBaseUrlFingerprint = config.ResolvedBaseUrlFingerprint
+                ResolvedBaseUrlFingerprint = config.ResolvedBaseUrlFingerprint,
+                ThinkingMode = config.ThinkingMode,
             };
             string endpoint = GetBaseUrl(snapshot);
             if (snapshot.Provider == TranslatorProvider.Google)
@@ -71,7 +72,8 @@ namespace AutoTranslator_Core
                     var testTask = TranslateBatchCoreAsync(new List<string> { "Connection Test" }, snapshot, false,
                         (url, response) => diagnostic = CreateConnectionDiagnostic(snapshot,
                             string.IsNullOrEmpty(url) ? endpoint : url, response),
-                        () => config.TestGeneration != testGeneration || !config.IsTesting);
+                        () => config.TestGeneration != testGeneration || !config.IsTesting,
+                        ReferenceEquals(config, AutoTranslatorMod.Settings?.PolicyAgentApiConfig));
                     var completedTask = await Task.WhenAny(testTask, Task.Delay(TimeSpan.FromSeconds(timeoutSeconds)));
 
                     if (completedTask != testTask)
@@ -118,7 +120,11 @@ namespace AutoTranslator_Core
 
         internal static string GetConnectionTestFingerprint(ApiKeyConfig config)
         {
-            return GetModelFetchFingerprint(config) + "|" + CleanInput(config.SelectedModel);
+            return GetModelFetchFingerprint(config) + "|" + CleanInput(config.SelectedModel)
+                + "|" + config.ThinkingMode
+                + "|" + (ReferenceEquals(config, AutoTranslatorMod.Settings?.PolicyAgentApiConfig) ? "policy" :
+                    TranslationPolicy.TranslationPolicyIdentity.ComputeSha256(NormalizeTranslationInstructions(AutoTranslatorMod.Settings?.ExtraTranslationInstructions)))
+                ;
         }
 
         internal static void CheckConnectionTestTimeout(ApiKeyConfig config)

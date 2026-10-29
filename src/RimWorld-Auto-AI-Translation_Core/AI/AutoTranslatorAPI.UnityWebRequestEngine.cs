@@ -1,3 +1,4 @@
+#if !RIMWORLD_1_7
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -259,3 +260,4 @@ namespace AutoTranslator_Core
         }
     }
 }
+#endif

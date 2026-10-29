@@ -1,4 +1,4 @@
-using RimWorld;
+﻿using RimWorld;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -206,6 +206,7 @@ namespace AutoTranslator_Core
 
             private class WorkbenchModSnapshot
             {
+                public int EditorGeneration;
                 public Verse.ModMetaData Mod;
                 public string PackageId;
                 public string ModName;
@@ -216,6 +217,8 @@ namespace AutoTranslator_Core
 
             private class WorkbenchSaveSnapshot
             {
+                public object EditorData;
+                public int EditorGeneration;
                 public Verse.ModMetaData Mod;
                 public string PackageId;
                 public string RootDir;
@@ -265,8 +268,10 @@ namespace AutoTranslator_Core
                 }
                 InitTranslatedModsCache();
 
-                float contentHeight = 600f;
-                float leftWidth = Mathf.Min(360f, viewRect.width * 0.36f);
+                float contentHeight = Mathf.Max(240f, viewRect.height - l.CurHeight);
+                float leftWidth = _editingMod == null
+                    ? Mathf.Min(360f, viewRect.width * 0.36f)
+                    : Mathf.Min(260f, viewRect.width * 0.25f);
                 float spacing = 15f;
                 float rightWidth = viewRect.width - leftWidth - spacing;
 

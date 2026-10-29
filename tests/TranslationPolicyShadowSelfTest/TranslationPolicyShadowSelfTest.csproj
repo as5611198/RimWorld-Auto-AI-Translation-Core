@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="../../src/RimWorld-Auto-AI-Translation_Core/Scanning/TranslationXmlEntryCodec.cs" Link="TranslationXmlEntryCodec.cs" />
     <Compile Include="..\..\src\RimWorld-Auto-AI-Translation_Core\Scanning\DefXmlInheritanceResolver.cs"
              Link="DefXmlInheritanceResolver.cs" />
     <Reference Include="Newtonsoft.Json">

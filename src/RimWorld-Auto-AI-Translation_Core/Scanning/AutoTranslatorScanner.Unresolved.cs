@@ -42,14 +42,16 @@ namespace AutoTranslator_Core
             {
                 try
                 {
-                    if (!TryValidateCurrentUnresolvedSources(selected, out TranslationUnresolvedEntry staleEntry))
+                    selected = SelectCurrentUnresolvedSources(selected, out List<TranslationUnresolvedEntry> staleEntries);
+                    if (staleEntries.Count > 0)
                     {
+                        LogStaleUnresolvedSources(staleEntries);
                         ATC_Dispatcher.RunOnMainThread(() => Messages.Message(
-                            "ATC_Unresolved_SourceChanged".Translate(staleEntry != null ? staleEntry.Key : string.Empty),
+                            "ATC_Unresolved_SourceChanged".Translate(staleEntries[0].Key),
                             MessageTypeDefOf.RejectInput,
                             false));
-                        return;
                     }
+                    if (selected.Count == 0) return;
 
                     if (!await AutoTranslatorAPI.TestConnectionAsync())
                     {
@@ -250,14 +252,16 @@ namespace AutoTranslator_Core
                     false);
                 return;
             }
-            if (!TryValidateCurrentUnresolvedSources(selected, out TranslationUnresolvedEntry staleEntry))
+            selected = SelectCurrentUnresolvedSources(selected, out List<TranslationUnresolvedEntry> staleEntries);
+            if (staleEntries.Count > 0)
             {
+                LogStaleUnresolvedSources(staleEntries);
                 Messages.Message(
-                    "ATC_Unresolved_SourceChanged".Translate(staleEntry != null ? staleEntry.Key : string.Empty),
+                    "ATC_Unresolved_SourceChanged".Translate(staleEntries[0].Key),
                     MessageTypeDefOf.RejectInput,
                     false);
-                return;
             }
+            if (selected.Count == 0) return;
 
             List<string> ignoredIds = new List<string>();
             foreach (IGrouping<string, TranslationUnresolvedEntry> group in selected
@@ -414,22 +418,43 @@ namespace AutoTranslator_Core
             IEnumerable<TranslationUnresolvedEntry> entries,
             out TranslationUnresolvedEntry staleEntry)
         {
-            staleEntry = null;
+            SelectCurrentUnresolvedSources(entries, out List<TranslationUnresolvedEntry> staleEntries);
+            staleEntry = staleEntries.FirstOrDefault();
+            return staleEntry == null;
+        }
+
+        private static List<TranslationUnresolvedEntry> SelectCurrentUnresolvedSources(
+            IEnumerable<TranslationUnresolvedEntry> entries,
+            out List<TranslationUnresolvedEntry> staleEntries)
+        {
+            staleEntries = new List<TranslationUnresolvedEntry>();
+            var current = new List<TranslationUnresolvedEntry>();
+            HashSet<string> currentPackages = TranslationUnresolvedManager.GetCurrentPackageIds();
             Dictionary<string, Dictionary<string, Dictionary<string, string>>> rawDefsByPackage =
                 new Dictionary<string, Dictionary<string, Dictionary<string, string>>>(StringComparer.OrdinalIgnoreCase);
 
             foreach (TranslationUnresolvedEntry entry in entries ?? Enumerable.Empty<TranslationUnresolvedEntry>())
             {
                 if (entry == null) continue;
-                if (!TryGetCurrentUnresolvedSource(entry, rawDefsByPackage, out string currentSource) ||
-                    !string.Equals(currentSource ?? string.Empty, entry.SourceText ?? string.Empty, StringComparison.Ordinal))
+                if (TranslationPatchIdentity.IsMatch(entry.PackageId, entry.ModName)) continue;
+                if (!currentPackages.Contains(entry.PackageId ?? string.Empty) ||
+                    !TryGetCurrentUnresolvedSource(entry, rawDefsByPackage, out string currentSource) ||
+                    !string.Equals(TranslationXmlDictionaryParser.NormalizeValue(currentSource),
+                        TranslationXmlDictionaryParser.NormalizeValue(entry.SourceText), StringComparison.Ordinal))
                 {
-                    staleEntry = entry;
-                    return false;
+                    staleEntries.Add(entry);
                 }
+                else current.Add(entry);
             }
+            return current;
+        }
 
-            return true;
+        private static void LogStaleUnresolvedSources(List<TranslationUnresolvedEntry> entries)
+        {
+            Log.Warning("[AutoTranslationCore] Skipped " + entries.Count +
+                " unresolved entries outside the current mod scan scope or whose source could not be confirmed. " +
+                string.Join("; ", entries.Take(5).Select(entry =>
+                    "package=" + entry.PackageId + ", key=" + entry.Key + ", source=" + entry.SourceFile)));
         }
 
         private static bool TryGetCurrentUnresolvedSource(
@@ -508,12 +533,7 @@ namespace AutoTranslator_Core
                     return false;
                 }
 
-                foreach (XmlNode node in document.DocumentElement.ChildNodes)
-                {
-                    if (node.NodeType != XmlNodeType.Element) continue;
-                    string value = node.InnerText ?? string.Empty;
-                    data[node.Name] = value.Replace("\\n", "\n").Replace("\\r", "\r").Replace("/n", "\n");
-                }
+                data = new Dictionary<string, string>(TranslationXmlDictionaryParser.Parse(document.DocumentElement), StringComparer.OrdinalIgnoreCase);
                 return true;
             }
             catch (Exception ex)

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_Advanced_Title>詳細設定</ATC_Advanced_Title>
+  <ATC_Advanced_ThinkingLabel>思考モード</ATC_Advanced_ThinkingLabel>
+  <ATC_Advanced_Mode_Auto>自動（推奨）</ATC_Advanced_Mode_Auto>
+  <ATC_Advanced_Mode_PreferOff>可能なら無効</ATC_Advanced_Mode_PreferOff>
+  <ATC_Advanced_Mode_Enabled>思考を有効にする</ATC_Advanced_Mode_Enabled>
+  <ATC_Advanced_ThinkingReviewHelp>自動では審査用の思考を維持します。思考により待ち時間や使用量が増える場合があります。この設定は審査 API のみに適用されます。</ATC_Advanced_ThinkingReviewHelp>
+  <ATC_Advanced_ThinkingTranslationHelp>自動では通常の翻訳の思考を可能な限り無効にします。思考により待ち時間や使用量が増える場合があります。</ATC_Advanced_ThinkingTranslationHelp>
+  <ATC_Advanced_ThinkingNotApplicable>このプロバイダーには思考の設定はありません。</ATC_Advanced_ThinkingNotApplicable>
+  <ATC_Advanced_ThinkingPlayer2>モデルと思考は Player2 で管理されます。Player2 アプリで変更してください。</ATC_Advanced_ThinkingPlayer2>
+  <ATC_Advanced_ThinkingUnknown>このモデルまたは接続先の思考設定は未確認のため、サービスの既定値を維持します。OpenRouter ではモデル一覧を再取得してください。</ATC_Advanced_ThinkingUnknown>
+  <ATC_Advanced_ThinkingMinimum>このモデルの思考は完全には無効にできません。対応が確認できた最低レベル、または必須の思考を維持します。</ATC_Advanced_ThinkingMinimum>
+  <ATC_Advanced_ThinkingOn>モデルの思考を有効化または維持します。</ATC_Advanced_ThinkingOn>
+  <ATC_Advanced_ThinkingOff>モデルに思考の無効化を要求します。</ATC_Advanced_ThinkingOff>
+  <ATC_Advanced_PromptOpen>詳細：翻訳の追加指定…</ATC_Advanced_PromptOpen>
+  <ATC_Advanced_PromptTitle>翻訳の追加指定</ATC_Advanced_PromptTitle>
+  <ATC_Advanced_PromptHelp>審査 Agent と DeepL を除く通常の AI 翻訳すべてに適用します。用語、文体、人名の扱いなどを指定できます。対象言語、JSON 形式、順序、変数、タグの保護は維持されます。保存後の新しいリクエストに適用され、既存の翻訳は自動でやり直しません。</ATC_Advanced_PromptHelp>
+  <ATC_Advanced_PromptPreviewLabel>プロンプト全体のプレビュー（対象言語：{0}）</ATC_Advanced_PromptPreviewLabel>
+  <ATC_Advanced_PromptCount>追加指定：{0} / {1} 文字</ATC_Advanced_PromptCount>
+  <ATC_Advanced_PromptEdit>編集に戻る</ATC_Advanced_PromptEdit>
+  <ATC_Advanced_PromptPreview>プロンプト全体を表示</ATC_Advanced_PromptPreview>
+  <ATC_Advanced_PromptReset>消去／既定に戻す</ATC_Advanced_PromptReset>
+  <ATC_Advanced_PromptSave>保存して閉じる</ATC_Advanced_PromptSave>
+  <ATC_Advanced_PromptCancel>キャンセル</ATC_Advanced_PromptCancel>
+  <ATC_Advanced_MiMoProfile>MiMo は OpenAI 互換 API を使用します。思考モードは詳細設定で変更できます。</ATC_Advanced_MiMoProfile>
+</LanguageData>

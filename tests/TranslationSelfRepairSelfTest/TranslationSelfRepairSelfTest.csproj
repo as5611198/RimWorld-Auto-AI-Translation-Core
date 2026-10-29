@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/RimWorld-Auto-AI-Translation_Core/Scanning/TranslationRepairRun.cs" Link="TranslationRepairRun.cs" Condition="Exists('../../src/RimWorld-Auto-AI-Translation_Core/Scanning/TranslationRepairRun.cs')" />
+    <Compile Include="../../src/RimWorld-Auto-AI-Translation_Core/Scanning/KnownTranslationXmlRepair.cs" Link="KnownTranslationXmlRepair.cs" />
+    <Compile Include="../../src/RimWorld-Auto-AI-Translation_Core/Scanning/DefTranslationPathValidator.cs" Link="DefTranslationPathValidator.cs" Condition="Exists('../../src/RimWorld-Auto-AI-Translation_Core/Scanning/DefTranslationPathValidator.cs')" />
+    <Compile Include="../../src/RimWorld-Auto-AI-Translation_Core/Scanning/TranslationRepairJournal.cs" Link="TranslationRepairJournal.cs" Condition="Exists('../../src/RimWorld-Auto-AI-Translation_Core/Scanning/TranslationRepairJournal.cs')" />
+    <Compile Include="../../src/RimWorld-Auto-AI-Translation_Core/Scanning/TranslationXmlAtomicFileStore.cs" Link="TranslationXmlAtomicFileStore.cs" />
+    <Compile Include="../../src/RimWorld-Auto-AI-Translation_Core/Scanning/TranslationFileTransaction.cs" />
+    <Reference Include="Newtonsoft.Json"><HintPath>../../packages/Newtonsoft.Json.13.0.4/lib/net6.0/Newtonsoft.Json.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>

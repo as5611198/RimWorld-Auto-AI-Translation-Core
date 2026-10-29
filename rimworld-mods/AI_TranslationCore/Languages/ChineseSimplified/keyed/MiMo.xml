@@ -5,4 +5,5 @@
   <ATC_MiMo_OpenAiRequired>MiMo 请使用 OpenAI 兼容网址（/v1），此处不支持 Anthropic /messages 网址。</ATC_MiMo_OpenAiRequired>
   <ATC_MiMo_ModelSuggestions>此 MiMo 端点未提供模型列表，已载入内置候选，可手动输入；这不代表密钥或模型权限已验证。</ATC_MiMo_ModelSuggestions>
   <ATC_Profile_MiMo>MiMo：使用 OpenAI 兼容接口并关闭深度思考。</ATC_Profile_MiMo>
+  <ATC_MiMo_Notice_Purpose>默认地址：{0}。Token Plan 请填写控制台提供的 OpenAI 兼容地址和对应密钥。可手填模型；自动模式下，支持的模型在翻译时关闭思考，审查 Agent 保留思考。</ATC_MiMo_Notice_Purpose>
 </LanguageData>

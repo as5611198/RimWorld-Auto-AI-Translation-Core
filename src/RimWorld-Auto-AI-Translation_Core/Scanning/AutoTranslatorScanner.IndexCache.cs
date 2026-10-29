@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -104,7 +104,8 @@ namespace AutoTranslator_Core
                     XmlResolver = null
                 };
                 XmlDocument doc = new XmlDocument { XmlResolver = null };
-                using (XmlReader reader = XmlReader.Create(filePath, settings))
+                string contents = TranslationSelfRepairHooks.RepairReadContent(filePath, File.ReadAllText(filePath));
+                using (XmlReader reader = XmlReader.Create(new StringReader(contents), settings))
                 {
                     doc.Load(reader);
                 }
@@ -114,7 +115,14 @@ namespace AutoTranslator_Core
                     return false;
                 }
 
-                dict = TranslationXmlDictionaryParser.Parse(doc.DocumentElement);
+                dict = TranslationXmlDictionaryParser.Parse(doc.DocumentElement, (key, previous, selected) => {
+                    if (!IsOwnedTranslationFile(filePath)) return;
+                    var check = new DefTranslationPathResult { Path = key, Reason = "duplicate_key", Evidence = "same XML file; existing last-node precedence preserved; original XML archived" };
+                    string type = Path.GetFileName(Path.GetDirectoryName(filePath));
+                    PreserveRepairInput(filePath);
+                    RecordDefRepair(type, key, previous, filePath, check, "xml", previous == selected ? "相同譯文合併" : "衝突");
+                    RecordDefRepair(type, key, selected, filePath, check, "xml-selected", "保留候選");
+                });
 
                 return true;
             }
@@ -577,40 +585,22 @@ namespace AutoTranslator_Core
         {
             if (string.IsNullOrEmpty(rootPath) || !Directory.Exists(rootPath)) return "missing";
 
-            unchecked
+            string root = Path.GetFullPath(rootPath).TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
+            using (var data = new MemoryStream())
+            using (var writer = new System.IO.BinaryWriter(data, System.Text.Encoding.UTF8, true))
             {
-                long count = 0L;
-                long totalLength = 0L;
-                long latestTicks = 0L;
-                long hash = 1469598103934665603L;
-
-                try
+                writer.Write("atc-xml-manifest-v2");
+                foreach (string file in Directory.GetFiles(rootPath, "*.xml", SearchOption.AllDirectories)
+                    .OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
                 {
-                    foreach (string file in GetXmlFilesCached(rootPath, SearchOption.AllDirectories))
-                    {
-                        FileInfo info;
-                        try
-                        {
-                            info = new FileInfo(file);
-                        }
-                        catch
-                        {
-                            continue;
-                        }
-
-                        count++;
-                        totalLength += info.Length;
-                        latestTicks = Math.Max(latestTicks, info.LastWriteTimeUtc.Ticks);
-
-                        string normalized = NormalizeCachePath(file);
-                        hash = (hash ^ StringComparer.OrdinalIgnoreCase.GetHashCode(normalized)) * 1099511628211L;
-                        hash = (hash ^ info.Length) * 1099511628211L;
-                        hash = (hash ^ info.LastWriteTimeUtc.Ticks) * 1099511628211L;
-                    }
+                    writer.Write(Path.GetFullPath(file).Substring(root.Length).Replace('\\', '/').ToLowerInvariant());
+                    using (var stream = File.OpenRead(file))
+                    using (var sha = System.Security.Cryptography.SHA256.Create())
+                        writer.Write(sha.ComputeHash(stream));
                 }
-                catch { }
-
-                return count + ":" + totalLength + ":" + latestTicks + ":" + hash;
+                writer.Flush();
+                using (var sha = System.Security.Cryptography.SHA256.Create())
+                    return BitConverter.ToString(sha.ComputeHash(data.ToArray())).Replace("-", "").ToLowerInvariant();
             }
         }
 

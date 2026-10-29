@@ -52,6 +52,9 @@ namespace AutoTranslator_Core
         public int Attempts { get; set; }
         public string SourceHash { get; set; }
         public string State { get; set; }
+        // Derived when loading/recording; pending counts are queried every UI frame.
+        [JsonIgnore]
+        internal bool IsTranslationPatch { get; set; }
     }
 
     internal sealed class TranslationUnresolvedReport
@@ -115,9 +118,10 @@ namespace AutoTranslator_Core
             get
             {
                 EnsureLoaded();
+                HashSet<string> currentPackages = GetCurrentPackageIds();
                 lock (Sync)
                 {
-                    return Entries.Values.Count(IsPending);
+                    return Entries.Values.Count(entry => IsPending(entry) && currentPackages.Contains(entry.PackageId));
                 }
             }
         }
@@ -130,6 +134,7 @@ namespace AutoTranslator_Core
         public static bool HasPendingForPackage(string packageId, string targetLanguage)
         {
             if (string.IsNullOrWhiteSpace(packageId)) return false;
+            if (!GetCurrentPackageIds().Contains(packageId)) return false;
             EnsureLoaded();
             lock (Sync)
             {
@@ -315,9 +320,11 @@ namespace AutoTranslator_Core
         public static List<TranslationUnresolvedEntry> Snapshot()
         {
             EnsureLoaded();
+            HashSet<string> currentPackages = GetCurrentPackageIds();
             lock (Sync)
             {
                 return Entries.Values
+                    .Where(entry => !entry.IsTranslationPatch && currentPackages.Contains(entry.PackageId))
                     .Select(CloneEntry)
                     .OrderBy(entry => entry.ModName ?? string.Empty, StringComparer.OrdinalIgnoreCase)
                     .ThenBy(entry => entry.Bucket ?? string.Empty, StringComparer.OrdinalIgnoreCase)
@@ -326,6 +333,17 @@ namespace AutoTranslator_Core
                     .ThenBy(entry => entry.Key ?? string.Empty, StringComparer.OrdinalIgnoreCase)
                     .ToList();
             }
+        }
+
+        // Availability is a view over the retained report, never a resolved/ignored
+        // state. Rebuild once per query so settings/catalog changes take effect and
+        // large backlogs do not perform an installed-mod search for every entry.
+        internal static HashSet<string> GetCurrentPackageIds()
+        {
+            bool onlyActive = AutoTranslatorMod.Settings == null || AutoTranslatorMod.Settings.OnlyScanActiveMods;
+            return new HashSet<string>(ModLister.AllInstalledMods
+                .Where(mod => mod != null && !string.IsNullOrWhiteSpace(mod.PackageId) && (!onlyActive || mod.Active))
+                .Select(mod => mod.PackageId), StringComparer.OrdinalIgnoreCase);
         }
 
         public static bool Ignore(IEnumerable<string> ids)
@@ -487,7 +505,7 @@ namespace AutoTranslator_Core
 
         private static bool IsPending(TranslationUnresolvedEntry entry)
         {
-            return entry != null && string.Equals(
+            return entry != null && !entry.IsTranslationPatch && string.Equals(
                 entry.State,
                 TranslationUnresolvedStates.Pending,
                 StringComparison.OrdinalIgnoreCase);
@@ -517,6 +535,7 @@ namespace AutoTranslator_Core
             normalized.TargetLanguage = (normalized.TargetLanguage ?? string.Empty).Trim();
             normalized.PackageId = (normalized.PackageId ?? string.Empty).Trim();
             normalized.ModName = (normalized.ModName ?? string.Empty).Trim();
+            normalized.IsTranslationPatch = TranslationPatchIdentity.IsMatch(normalized.PackageId, normalized.ModName);
             normalized.Bucket = string.IsNullOrWhiteSpace(normalized.Bucket)
                 ? "Unknown"
                 : normalized.Bucket.Trim();
@@ -586,7 +605,8 @@ namespace AutoTranslator_Core
                 Detail = source.Detail,
                 Attempts = source.Attempts,
                 SourceHash = source.SourceHash,
-                State = source.State
+                State = source.State,
+                IsTranslationPatch = source.IsTranslationPatch
             };
         }
 

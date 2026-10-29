@@ -1,4 +1,4 @@
-using RimWorld;
+﻿using RimWorld;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -22,6 +22,10 @@ namespace AutoTranslator_Core
             public Dictionary<string, Dictionary<string, string>> DataByCategory =
                 new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
             public string Error;
+            public object EditorData;
+            public string PackageId;
+            public TargetLanguage Target;
+            public int Revision, EditorGeneration;
         }
 
         private static void ExportCurrentWorkbenchOriginalXml()
@@ -35,6 +39,10 @@ namespace AutoTranslator_Core
                 return;
             }
 
+            var capturedData = _categorizedData;
+            int capturedRevision = _categorizedDataVersion;
+            int editorGeneration = _editorGeneration;
+            var capturedTarget = AutoTranslatorMod.Settings.TargetLang;
             string packageId = _editingMod.PackageId;
             string languageFolder = AutoTranslatorScanner.GetFolderNameByLanguage(AutoTranslatorMod.Settings.TargetLang);
             _isManualXmlBusy = true;
@@ -49,8 +57,7 @@ namespace AutoTranslator_Core
                     foreach (WorkbenchManualXmlCategory category in categories)
                     {
                         string path = GetWorkbenchManualXmlPath(packageId, languageFolder, category.Category);
-                        AutoTranslatorScanner.SaveXml(path, category.Data);
-                        exported += category.Data.Count;
+                        exported += AutoTranslatorScanner.ExportSourceXml(path, category.Data);
                     }
                 }
                 catch (Exception ex)
@@ -80,6 +87,10 @@ namespace AutoTranslator_Core
             if (_editingMod == null || _isManualXmlBusy) return;
 
             List<string> categories = GetSelectedManualXmlCategoryNames();
+            var capturedData = _categorizedData;
+            int capturedRevision = _categorizedDataVersion;
+            int editorGeneration = _editorGeneration;
+            var capturedTarget = AutoTranslatorMod.Settings.TargetLang;
             string packageId = _editingMod.PackageId;
             string languageFolder = AutoTranslatorScanner.GetFolderNameByLanguage(AutoTranslatorMod.Settings.TargetLang);
             _isManualXmlBusy = true;
@@ -87,7 +98,8 @@ namespace AutoTranslator_Core
 
             Task.Run(() =>
             {
-                WorkbenchManualXmlImportResult result = new WorkbenchManualXmlImportResult();
+                WorkbenchManualXmlImportResult result = new WorkbenchManualXmlImportResult {
+                    EditorData = capturedData, EditorGeneration = editorGeneration, Revision = capturedRevision, Target = capturedTarget, PackageId = packageId };
                 try
                 {
                     foreach (string category in categories)
@@ -117,6 +129,8 @@ namespace AutoTranslator_Core
                 return;
             }
 
+            if (_isLoading || result.EditorGeneration != _editorGeneration || !ReferenceEquals(result.EditorData, _categorizedData) || result.Revision != _categorizedDataVersion ||
+                result.Target != AutoTranslatorMod.Settings.TargetLang || result.PackageId != _editingMod?.PackageId) return;
             int imported = 0;
             foreach (KeyValuePair<string, Dictionary<string, string>> categoryPair in result.DataByCategory)
             {
@@ -130,6 +144,7 @@ namespace AutoTranslator_Core
                 {
                     if (string.IsNullOrWhiteSpace(pair.Value) || !itemsByKey.TryGetValue(pair.Key, out WorkbenchItem item)) continue;
                     if (SameWorkbenchText(item.TranslatedText, pair.Value)) continue;
+                    if (!AutoTranslatorScanner.IsManualXmlTranslationFormatValid(pair.Value, item.OriginalText)) continue;
                     item.TranslatedText = pair.Value;
                     RefreshWorkbenchItemModifiedState(item);
                     imported++;

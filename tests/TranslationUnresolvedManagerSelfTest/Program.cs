@@ -2,6 +2,7 @@ using AutoTranslator_Core;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace TranslationUnresolvedManagerSelfTest
 {
@@ -113,6 +114,8 @@ namespace TranslationUnresolvedManagerSelfTest
 
                 TestFileLevelFailureClassification();
                 TestBatchFaultGuard();
+                TestTranslationPatchBacklog(root);
+                TestUnavailableModBacklog(root);
 
                 Console.WriteLine("PASS: unresolved translation manager self-test");
                 return 0;
@@ -175,6 +178,76 @@ namespace TranslationUnresolvedManagerSelfTest
             AssertFalse(
                 TranslationUnresolvedManager.IsFileLevelFailure(ordinaryEntry),
                 "Ordinary translation entry remains actionable");
+        }
+
+        private static void TestTranslationPatchBacklog(string root)
+        {
+            var main = CreateEntry("Main source");
+            var patch = CreateEntry("Patch source");
+            patch.PackageId = "zh.example.mod";
+            patch.ModName = "Example_zh";
+            string reportPath = Path.Combine(root, "Reports", "TranslationUnresolved", "latest.json");
+            Directory.CreateDirectory(Path.GetDirectoryName(reportPath));
+            File.WriteAllText(reportPath, Newtonsoft.Json.JsonConvert.SerializeObject(new {
+                ReportVersion = 2, Entries = new[] { main, patch }
+            }));
+            Type manager = typeof(TranslationUnresolvedManager);
+            const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
+            ((System.Collections.IDictionary)manager.GetField("Entries", flags).GetValue(null)).Clear();
+            manager.GetField("_loaded", flags).SetValue(null, false);
+            AssertEqual(1, TranslationUnresolvedManager.Count, "Legacy translation-patch backlog is excluded from pending count");
+            AssertTrue(TranslationUnresolvedManager.HasPendingForPackage(main.PackageId), "Main mod still has genuine pending entries");
+            AssertFalse(TranslationUnresolvedManager.HasPendingForPackage(patch.PackageId), "Patch backlog does not block status");
+            AssertEqual(1, TranslationUnresolvedManager.Snapshot().Count, "Patch backlog is excluded from the UI snapshot");
+            TranslationUnresolvedManager.RecordFailure(patch);
+            AssertEqual(1, TranslationUnresolvedManager.Count, "Repeated patch scan failure cannot reintroduce pending entries");
+        }
+
+        private static void TestUnavailableModBacklog(string root)
+        {
+            var active = CreateEntry("Active source");
+            var disabled = CreateEntry("Disabled source");
+            disabled.PackageId = "disabled.mod";
+            var removed = CreateEntry("Removed source");
+            removed.PackageId = "removed.mod";
+            Verse.ModLister.AllInstalledMods.Add(new Verse.ModMetaData { PackageId = "DISABLED.MOD", Active = false });
+            string reportPath = Path.Combine(root, "Reports", "TranslationUnresolved", "latest.json");
+            string original = Newtonsoft.Json.JsonConvert.SerializeObject(new {
+                ReportVersion = 2, Entries = new[] { active, disabled, removed }
+            });
+            File.WriteAllText(reportPath, original);
+            Type manager = typeof(TranslationUnresolvedManager);
+            const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
+            ((System.Collections.IDictionary)manager.GetField("Entries", flags).GetValue(null)).Clear();
+            manager.GetField("_loaded", flags).SetValue(null, false);
+
+            AssertEqual(1, TranslationUnresolvedManager.Count, "Inactive and removed backlog is excluded from pending count");
+            AssertTrue(TranslationUnresolvedManager.HasPending, "Active backlog remains actionable");
+            AssertFalse(TranslationUnresolvedManager.HasPendingForPackage(disabled.PackageId), "Disabled backlog does not block package status");
+            AssertFalse(TranslationUnresolvedManager.HasPendingForPackage(removed.PackageId, "Traditional"), "Removed backlog does not block language status");
+            AssertEqual(1, TranslationUnresolvedManager.Snapshot().Count, "Unavailable backlog is excluded from the window snapshot");
+            AssertEqual(original, File.ReadAllText(reportPath), "Availability queries do not rewrite history");
+
+            AutoTranslatorMod.Settings.OnlyScanActiveMods = false;
+            AssertEqual(2, TranslationUnresolvedManager.Count, "Explicit inactive scanning includes installed disabled mods");
+            AssertTrue(TranslationUnresolvedManager.HasPendingForPackage(disabled.PackageId, "Traditional"), "Inactive scanning and package status agree");
+            AssertFalse(TranslationUnresolvedManager.HasPendingForPackage(removed.PackageId), "Removed mods stay excluded even during inactive scanning");
+
+            AutoTranslatorMod.Settings.OnlyScanActiveMods = true;
+            Verse.ModLister.AllInstalledMods[1].Active = true;
+            AssertEqual(2, TranslationUnresolvedManager.Count, "Re-enabled mod exposes preserved backlog without a reload");
+            Verse.ModLister.AllInstalledMods.Clear();
+            AssertEqual(0, TranslationUnresolvedManager.Count, "Empty installed catalog does not expose stale backlog");
+            AssertFalse(TranslationUnresolvedManager.HasPending, "No actionable backlog without installed mods");
+            TranslationUnresolvedManager.BeginRun();
+            TranslationUnresolvedManager.CompleteRun();
+            var saved = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(reportPath));
+            AssertEqual(3, saved["Entries"].Count(), "Unavailable history survives subsequent scan runs");
+            foreach (var item in saved["Entries"])
+                AssertEqual("pending", (string)item["State"], "Hidden records are not falsely resolved or ignored");
+            Verse.ModLister.AllInstalledMods.Add(new Verse.ModMetaData { PackageId = removed.PackageId, Active = true });
+            AssertEqual(1, TranslationUnresolvedManager.Count, "Reinstalled mod exposes preserved backlog");
+            AssertEqual("Removed source", TranslationUnresolvedManager.Snapshot()[0].SourceText, "Reinstallation preserves source evidence");
         }
 
         private static void TestBatchFaultGuard()

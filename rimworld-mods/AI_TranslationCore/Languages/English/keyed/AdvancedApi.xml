@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_Advanced_Title>Advanced settings</ATC_Advanced_Title>
+  <ATC_Advanced_ThinkingLabel>Thinking mode</ATC_Advanced_ThinkingLabel>
+  <ATC_Advanced_Mode_Auto>Automatic (recommended)</ATC_Advanced_Mode_Auto>
+  <ATC_Advanced_Mode_PreferOff>Prefer off</ATC_Advanced_Mode_PreferOff>
+  <ATC_Advanced_Mode_Enabled>Enable thinking</ATC_Advanced_Mode_Enabled>
+  <ATC_Advanced_ThinkingReviewHelp>Automatic keeps thinking for policy review. Thinking may increase latency and usage; this setting only affects the review API.</ATC_Advanced_ThinkingReviewHelp>
+  <ATC_Advanced_ThinkingTranslationHelp>Automatic turns thinking off for normal translation where supported. Thinking may increase latency and usage.</ATC_Advanced_ThinkingTranslationHelp>
+  <ATC_Advanced_ThinkingNotApplicable>This provider has no thinking setting.</ATC_Advanced_ThinkingNotApplicable>
+  <ATC_Advanced_ThinkingPlayer2>Player2 manages the model and thinking. Adjust them in the Player2 application.</ATC_Advanced_ThinkingPlayer2>
+  <ATC_Advanced_ThinkingUnknown>Thinking controls for this model or endpoint are unconfirmed; service defaults are preserved. For OpenRouter, try refreshing the model list.</ATC_Advanced_ThinkingUnknown>
+  <ATC_Advanced_ThinkingMinimum>This model cannot fully disable thinking. Its lowest known supported level or required thinking will be retained.</ATC_Advanced_ThinkingMinimum>
+  <ATC_Advanced_ThinkingOn>Model thinking will be enabled or retained.</ATC_Advanced_ThinkingOn>
+  <ATC_Advanced_ThinkingOff>The model will be asked to disable thinking.</ATC_Advanced_ThinkingOff>
+  <ATC_Advanced_PromptOpen>Advanced: translation preferences…</ATC_Advanced_PromptOpen>
+  <ATC_Advanced_PromptTitle>Additional translation preferences</ATC_Advanced_PromptTitle>
+  <ATC_Advanced_PromptHelp>Applies to all normal AI translations, excluding the policy Agent and DeepL. Specify terminology, tone or names, e.g. keep character names unchanged. Target language, JSON format, order, variables and tag protection remain built in. Only new requests use saved changes; existing translations are not automatically redone.</ATC_Advanced_PromptHelp>
+  <ATC_Advanced_PromptPreviewLabel>Full prompt preview (target language: {0})</ATC_Advanced_PromptPreviewLabel>
+  <ATC_Advanced_PromptCount>Additional preferences: {0} / {1} characters</ATC_Advanced_PromptCount>
+  <ATC_Advanced_PromptEdit>Back to editing</ATC_Advanced_PromptEdit>
+  <ATC_Advanced_PromptPreview>Preview full prompt</ATC_Advanced_PromptPreview>
+  <ATC_Advanced_PromptReset>Clear / restore defaults</ATC_Advanced_PromptReset>
+  <ATC_Advanced_PromptSave>Save and close</ATC_Advanced_PromptSave>
+  <ATC_Advanced_PromptCancel>Cancel</ATC_Advanced_PromptCancel>
+  <ATC_Advanced_MiMoProfile>MiMo uses the OpenAI-compatible API. Adjust thinking mode in advanced settings.</ATC_Advanced_MiMoProfile>
+</LanguageData>

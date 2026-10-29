@@ -1,4 +1,4 @@
-using HarmonyLib;
+﻿using HarmonyLib;
 using Newtonsoft.Json;
 using RimWorld;
 using System;
@@ -24,12 +24,18 @@ namespace AutoTranslator_Core
         // 這個欄位保存 HasManual目標語言 的執行狀態或快取資料。
         // EN: This field stores has manual target language runtime state or cached data.
         public bool HasManualTargetLanguage = false;
+        public string LastRepairNotice = "";
+        public List<string> SeenRepairIssues = new List<string>();
+        // Set only after an owned-pack repair has completed and verified.
+        public string StartupRepairSignature = "";
+        public bool HasSeenUsageGuide = false;
         // 這個欄位保存 Only掃描Active模組 的執行狀態或快取資料。
         // EN: This field stores only scan active mods runtime state or cached data.
         public bool OnlyScanActiveMods = true;
         // 這個欄位保存 MaxThreads 的執行狀態或快取資料。
         // EN: This field stores max threads runtime state or cached data.
         public int MaxThreads = 3;
+        public string ExtraTranslationInstructions = "";
         public bool EnableTranslationPolicyAgent = false;
         public int PolicyAgentMaxCallsPerRun = 20;
         public long PolicyAgentMaxEstimatedTokensPerRun = 200000L;
@@ -86,7 +92,11 @@ namespace AutoTranslator_Core
 
         // 這個欄位保存 IsCancellationRequested 的執行狀態或快取資料。
         // EN: This field stores is cancellation requested runtime state or cached data.
-        public static bool IsCancellationRequested = false;
+        public static volatile bool IsCancellationRequested = false;
+        public static int PipelineCancellationGeneration;
+        private static readonly object PipelineTokenGate = new object();
+        private static System.Threading.CancellationTokenSource pipelineToken = new System.Threading.CancellationTokenSource();
+        internal static System.Threading.CancellationToken PipelineCancellationToken { get { lock (PipelineTokenGate) return pipelineToken.Token; } }
         // 這個欄位保存 IsRunning 的執行狀態或快取資料。
         // EN: This field stores is running runtime state or cached data.
         public static bool IsRunning = false;
@@ -95,7 +105,11 @@ namespace AutoTranslator_Core
         // EN: This method requests pipeline cancellation.
         public static void RequestPipelineCancellation()
         {
+            System.Threading.Interlocked.Increment(ref PipelineCancellationGeneration);
             IsCancellationRequested = true;
+            System.Threading.CancellationTokenSource toCancel;
+            lock (PipelineTokenGate) toCancel = pipelineToken;
+            toCancel.Cancel();
             IsSkipCurrentRequested = false;
             AutoTranslatorAPI.AbortActiveTranslationRequests("Pipeline cancellation requested");
         }
@@ -104,6 +118,8 @@ namespace AutoTranslator_Core
         // EN: This method resets pipeline cancellation.
         public static void ResetPipelineCancellation()
         {
+            lock (PipelineTokenGate)
+                if (pipelineToken.IsCancellationRequested) pipelineToken = new System.Threading.CancellationTokenSource();
             IsCancellationRequested = false;
             IsSkipCurrentRequested = false;
         }
@@ -449,6 +465,10 @@ namespace AutoTranslator_Core
             base.ExposeData();
             Scribe_Values.Look(ref TargetLang, "TargetLang", TargetLanguage.Traditional);
             Scribe_Values.Look(ref HasManualTargetLanguage, "HasManualTargetLanguage", false);
+            Scribe_Values.Look(ref LastRepairNotice, "LastRepairNotice", "");
+            Scribe_Collections.Look(ref SeenRepairIssues, "SeenRepairIssues", LookMode.Value);
+            Scribe_Values.Look(ref StartupRepairSignature, "StartupRepairSignature", "");
+            Scribe_Values.Look(ref HasSeenUsageGuide, "HasSeenUsageGuide", false);
             Scribe_Values.Look(ref OnlyScanActiveMods, "OnlyScanActiveMods", true);
             Scribe_Values.Look(ref EnableUIInterceptor, "EnableUIInterceptor", false);
             Scribe_Values.Look(ref EnableUINewTranslation, "EnableUINewTranslation", true);
@@ -457,6 +477,8 @@ namespace AutoTranslator_Core
             Scribe_Values.Look(ref TranslateWorkbenchModNames, "TranslateWorkbenchModNames", false);
             Scribe_Values.Look(ref ShowWorldMainButton, "ShowWorldMainButton", true);
             Scribe_Values.Look(ref MaxThreads, "MaxThreads", 3);
+            Scribe_Values.Look(ref ExtraTranslationInstructions, "ExtraTranslationInstructions", "");
+            ExtraTranslationInstructions = AutoTranslatorAPI.NormalizeTranslationInstructions(ExtraTranslationInstructions);
             Scribe_Values.Look(ref EnableTranslationPolicyAgent, "EnableTranslationPolicyAgent", false);
             Scribe_Values.Look(ref PolicyAgentMaxCallsPerRun, "PolicyAgentMaxCallsPerRun", 20);
             Scribe_Values.Look(ref PolicyAgentMaxEstimatedTokensPerRun, "PolicyAgentMaxEstimatedTokensPerRun", 200000L);

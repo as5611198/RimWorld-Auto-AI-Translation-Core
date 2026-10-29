@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_Advanced_Title>進階設定</ATC_Advanced_Title>
+  <ATC_Advanced_ThinkingLabel>思考模式</ATC_Advanced_ThinkingLabel>
+  <ATC_Advanced_Mode_Auto>自動（推薦）</ATC_Advanced_Mode_Auto>
+  <ATC_Advanced_Mode_PreferOff>盡量關閉</ATC_Advanced_Mode_PreferOff>
+  <ATC_Advanced_Mode_Enabled>啟用思考</ATC_Advanced_Mode_Enabled>
+  <ATC_Advanced_ThinkingReviewHelp>自動：審查保留思考。啟用思考可能增加等待時間與用量；此處只影響審查 API。</ATC_Advanced_ThinkingReviewHelp>
+  <ATC_Advanced_ThinkingTranslationHelp>自動：一般翻譯能關閉思考就關閉。啟用思考可能增加等待時間與用量。</ATC_Advanced_ThinkingTranslationHelp>
+  <ATC_Advanced_ThinkingNotApplicable>此供應商沒有思考模式設定。</ATC_Advanced_ThinkingNotApplicable>
+  <ATC_Advanced_ThinkingPlayer2>模型與思考由 Player2 應用程式管理，請到該程式調整。</ATC_Advanced_ThinkingPlayer2>
+  <ATC_Advanced_ThinkingUnknown>尚未確認此模型或端點的思考參數，將保留服務預設。OpenRouter 可嘗試重新取得模型清單。</ATC_Advanced_ThinkingUnknown>
+  <ATC_Advanced_ThinkingMinimum>此模型無法完全關閉思考；將使用已知可用的最低程度，或保留必要思考。</ATC_Advanced_ThinkingMinimum>
+  <ATC_Advanced_ThinkingOn>目前將啟用或保留模型思考。</ATC_Advanced_ThinkingOn>
+  <ATC_Advanced_ThinkingOff>目前將要求模型關閉思考。</ATC_Advanced_ThinkingOff>
+  <ATC_Advanced_PromptOpen>進階：自訂翻譯要求…</ATC_Advanced_PromptOpen>
+  <ATC_Advanced_PromptTitle>額外翻譯要求</ATC_Advanced_PromptTitle>
+  <ATC_Advanced_PromptHelp>套用到所有一般 AI 翻譯，不影響審查 Agent 或 DeepL。可指定用語、語氣及專有名詞，例如：使用台灣繁體中文，人名保留原文。目標語言、JSON 格式、順序、變數與標籤保護規則仍保留。儲存後的新請求才會套用，既有譯文不會自動重翻。</ATC_Advanced_PromptHelp>
+  <ATC_Advanced_PromptPreviewLabel>完整提示詞預覽（目標語言：{0}）</ATC_Advanced_PromptPreviewLabel>
+  <ATC_Advanced_PromptCount>額外要求：{0} / {1} 字元</ATC_Advanced_PromptCount>
+  <ATC_Advanced_PromptEdit>返回編輯</ATC_Advanced_PromptEdit>
+  <ATC_Advanced_PromptPreview>預覽完整提示詞</ATC_Advanced_PromptPreview>
+  <ATC_Advanced_PromptReset>清空／還原預設</ATC_Advanced_PromptReset>
+  <ATC_Advanced_PromptSave>儲存並關閉</ATC_Advanced_PromptSave>
+  <ATC_Advanced_PromptCancel>取消</ATC_Advanced_PromptCancel>
+  <ATC_Advanced_MiMoProfile>MiMo：使用 OpenAI 相容接口；思考模式可在進階設定調整。</ATC_Advanced_MiMoProfile>
+</LanguageData>

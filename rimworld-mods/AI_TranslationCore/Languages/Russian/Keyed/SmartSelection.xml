@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LanguageData>
+  <ATC_SelectUntranslated>Выбрать непереведённые</ATC_SelectUntranslated>
+  <ATC_SelectUntranslated_Checking>Проверка…</ATC_SelectUntranslated_Checking>
+  <ATC_SelectUntranslated_Tip>Добавляет непереведённые моды из текущих результатов поиска к выбранным. Исключает базовую игру, DLC, заблокированные моды и языковые пакеты.</ATC_SelectUntranslated_Tip>
+</LanguageData>

@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -157,13 +157,13 @@ namespace AutoTranslator_Core
         private static int GetTranslationTimeoutSeconds(TranslatorProvider provider, string model)
         {
             int seconds = AutoTranslatorMod.Settings.TimeoutSeconds > 0 ? AutoTranslatorMod.Settings.TimeoutSeconds : 60;
-            if (IsReasoningModel(model)) seconds = 300;
+            if (IsReasoningModel(model)) seconds = Math.Max(seconds, 300);
             return Math.Max(seconds, GetRuntimeProfile(provider, model).TimeoutFloorSeconds);
         }
 
         private static async Task<List<string>> TranslateBatchCoreAsync(List<string> texts, ApiKeyConfig forceConfig,
             bool suppressFinalParseError, Action<string, ATC_WebResponse> connectionTestResponse,
-            Func<bool> connectionTestCancelled)
+            Func<bool> connectionTestCancelled, bool policyReview = false)
         {
             if (AutoTranslatorSettings.IsCancellationRequested) return null;
 
@@ -182,7 +182,7 @@ namespace AutoTranslator_Core
                 string url;
                 object payload;
                 TargetLanguage requestTargetLang = AutoTranslatorMod.Settings.TargetLang;
-                string prompt = GetSystemPrompt(requestTargetLang);
+                string prompt = GetSystemPrompt(requestTargetLang, policyReview ? null : AutoTranslatorMod.Settings?.ExtraTranslationInstructions);
                 string inputJson = JsonConvert.SerializeObject(texts);
 
                 if (targetConfig.Provider == TranslatorProvider.Google)
@@ -212,7 +212,7 @@ namespace AutoTranslator_Core
                         payload = new { model = string.IsNullOrEmpty(model) ? "local-model" : model, messages = new[] { new { role = "system", content = prompt }, new { role = "user", content = inputJson } }, max_tokens = safeMaxTokens };
                     }
                 }
-                payload = PrepareProviderChatPayload(payload, targetConfig.Provider, isPlayer2);
+                payload = PrepareApiRequestPayload(payload, targetConfig, policyReview);
                 string jsonPayload = JsonConvert.SerializeObject(payload);
                 var profile = GetRuntimeProfile(targetConfig.Provider, model);
                 bool isConnectionTestRequest = texts.Count == 1 && texts[0] == "Connection Test";
@@ -329,7 +329,11 @@ namespace AutoTranslator_Core
 
 
                     ATC_Dispatcher.RunOnMainThread(() =>
+#if RIMWORLD_1_7
+                        Verse.Log.Error($"[AutoTranslationCore] HttpClient request failed [{targetConfig.Provider}] (HTTP {statusCode}): {errText}\nBody: {resHolder.ResponseBody}")
+#else
                         Verse.Log.Error($"[AutoTranslationCore] UnityWebRequest Package Lost [{targetConfig.Provider}] (HTTP {statusCode}): {errText}\nBody: {resHolder.ResponseBody}")
+#endif
                     );
 
                     return null;

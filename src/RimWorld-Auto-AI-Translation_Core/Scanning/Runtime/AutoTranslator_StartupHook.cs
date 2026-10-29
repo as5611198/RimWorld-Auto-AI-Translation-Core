@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
@@ -55,7 +55,7 @@ namespace AutoTranslator_Core
                 hook.AddComponent<UIInterceptorLifecycle>();
                 AutoTranslatorScanner.ApplyStartupKeyedHotfixes();
                 TargetedHardcodedUi.HardcodedUiTargetedPatchManager.Initialize();
-                AutoTranslatorScanner.RequestKeyedMemoryDrop();
+                if (!AutoTranslatorScanner.NativeStartupInjectionIsCurrent()) AutoTranslatorScanner.RequestKeyedMemoryDrop();
             }
             catch (Exception ex)
             {
@@ -87,14 +87,26 @@ namespace AutoTranslator_Core
             }
         }
 
+        internal static void ResetPlayDataLifecycle()
+        {
+            StartupTranslationGate.Reset();
+            System.Threading.Interlocked.Exchange(ref _defsLoadedMemoryDropQueued, 0);
+        }
+
         private static void AfterPlayDataLoaded()
         {
+            // Initialize the explicit post-load guard. It never registers global
+            // setter patches, so third-party native exceptions cannot acquire ATC
+            // as a suspect merely because the report was opened after startup.
+            TranslationSelfRepairHooks.EnsureConfigGuardInstalled();
             if (System.Threading.Interlocked.Exchange(ref _defsLoadedMemoryDropQueued, 1) == 1)
             {
                 return;
             }
 
-            ATC_Dispatcher.RunOnMainThread(QueueDefsLoadedMemoryDrop);
+            // Join the native completion list rather than waiting for a later
+            // MonoBehaviour update, which could let Entry draw one frame first.
+            AutoTranslator_LongEventCompat.ExecuteWhenFinished(QueueDefsLoadedMemoryDrop);
         }
 
         public static void PollForLoadedPlayData()
@@ -134,7 +146,7 @@ namespace AutoTranslator_Core
             {
                 AutoTranslatorMod.EnsureNetworkDispatchReady();
                 EnsureInstalled();
-                AutoTranslatorScanner.QueueStartupFullMemoryDrop(1000);
+                StartupTranslationGate.Queue();
             }
             catch (Exception ex)
             {

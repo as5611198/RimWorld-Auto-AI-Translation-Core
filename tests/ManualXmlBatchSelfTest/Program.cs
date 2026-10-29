@@ -10,11 +10,19 @@ using Store = AutoTranslator_Core.ManualXmlBatchStore;
 internal static class Program
 {
     private static int passed;
-    private static void Main()
+    private static int Main(string[] args)
     {
         string root = Path.Combine(Path.GetTempPath(), "ATC-BatchXml-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
-        try { Run(root); Console.WriteLine("PASS: " + passed + " batch XML checks"); }
+        try
+        {
+            if (args.Length == 0) Run(root);
+            if (args.Length == 0 || args[0] == "numeric") NumericKeys(root);
+            if (args.Length == 0 || args[0] == "long") LongBatchPath(root);
+            Console.WriteLine("PASS: " + passed + " batch XML checks; CLR=" + Environment.Version);
+            return 0;
+        }
+        catch (Exception ex) { Console.Error.WriteLine("FAIL: " + ex.GetType().FullName + ": " + ex.Message); return 1; }
         finally
         {
             if (!Path.GetFullPath(root).StartsWith(Path.GetFullPath(Path.Combine(Path.GetTempPath(), "ATC-BatchXml-")), StringComparison.OrdinalIgnoreCase))
@@ -95,6 +103,56 @@ internal static class Program
         manifest.Mods.Add(manifest.Mods[0]);
         File.WriteAllText(Path.Combine(batch, "manifest.json"), JsonConvert.SerializeObject(manifest));
         Throws(() => Store.ReadManifest(batch, language), "ambiguous duplicate package records are rejected");
+    }
+
+    private static void NumericKeys(string root)
+    {
+        const string language = "ChineseTraditional";
+        string[] keys = {
+            "2FemaleMissionaryThreesomeTrain_BEV_Stage5.label", "2MaleMissionaryThreesomeTrain_BEV_Stage5.label",
+            "2Male2MissionaryThreesomeTrain_BEV_Stage5.label", "2FemaleMissionaryThreesomeTrain_BEV_Intro1.label",
+            "2Male2MissionaryThreesomeTrain_BEV_Intro1.label", "2MaleMissionaryThreesomeTrain_BEV_Intro1.label",
+            "2FemaleDoggystyleThreesomeTrain_BEV_Stage5.label", "2MaleDoggystyleThreesomeTrain_BEV_Stage5.label",
+            "2Male2DoggystyleThreesomeTrain_BEV_Stage5.label", "2FemaleDoggystyleThreesomeTrain_BEV_Intro1.label",
+            "2Male2DoggystyleThreesomeTrain_BEV_Intro1.label", "2MaleDoggystyleThreesomeTrain_BEV_Intro1.label",
+            "21stCenturyArsenal_HandsSettings.label", "_x0032_Literal.label", "Normal.label"
+        };
+        var mod = new Store.ModData { PackageId = "test.numeric", Name = "numeric" };
+        mod.Categories["ThingDef"] = keys.Select(k => new Store.Entry { Key = k, OriginalText = "Source & <tag>\nline", TranslatedText = "舊譯文" }).ToList();
+        string batch = Path.Combine(root, "numeric");
+        Check(Store.Export(batch, language, new[] { mod }) == keys.Length, "batch exports every numeric and ordinary key without skipping");
+        string path = Store.XmlPath(batch, mod.PackageId, language, "ThingDef");
+        var xml = new XmlDocument(); xml.Load(path);
+        Check(xml.SelectNodes("/LanguageData/rep").Count == 13, "numeric keys use native DefInjected rep syntax");
+        Check(xml.SelectSingleNode("/LanguageData/_x0032_Literal.label") != null, "literal XML escape-looking key is not decoded or renamed");
+        var manifest = Store.ReadManifest(batch, language);
+        Check(Store.Preview(batch, language, manifest, mod).Unchanged == keys.Length, "original numeric exports roundtrip without phantom changes");
+        foreach (XmlElement rep in xml.SelectNodes("/LanguageData/rep")) rep["trans"].InnerText = "新譯文 & <tag>\n第二行";
+        xml.Save(path);
+        var plan = Store.Preview(batch, language, manifest, mod);
+        Check(plan.Error == null && plan.Changes.Count == 13 && plan.Changes.All(c => keys.Contains(c.Key) && c.TranslatedText == "新譯文 & <tag>\n第二行"),
+            "numeric import preserves original keys, rich text and newlines");
+        xml.DocumentElement.AppendChild(xml.DocumentElement.FirstChild.CloneNode(true)); xml.Save(path);
+        Check(Store.Preview(batch, language, manifest, mod).Error != null, "duplicate rep paths are rejected");
+        File.WriteAllText(path, "<LanguageData><rep><path>21stCenturyArsenal_HandsSettings.label</path><trans><bad>nested</bad></trans></rep></LanguageData>");
+        Check(Store.Preview(batch, language, manifest, mod).Error != null, "rep text must escape nested markup");
+    }
+
+    private static void LongBatchPath(string root)
+    {
+        const string language = "ChineseTraditional";
+        var mod = new Store.ModData { PackageId = "chezhou.rimsim.restaurantextension", Name = "long path" };
+        const string category = "RimSimRestaurantExtension.Inventory.RestaurantProductDef";
+        mod.Categories[category] = new List<Store.Entry> { new Store.Entry { Key = "Item.label", OriginalText = "A product" } };
+        string batchBase = Path.Combine(root, "Manual_XML_Batches");
+        string probe = Store.XmlPath(Path.Combine(batchBase, "b"), mod.PackageId, language, category);
+        string batch = Path.Combine(batchBase, new string('b', 252 - probe.Length + 1));
+        string path = Store.XmlPath(batch, mod.PackageId, language, category);
+        Check(path.Length == 252, "fixture reproduces a valid 252-character destination");
+        Check(Store.Export(batch, language, new[] { mod }) == 1 && File.Exists(path), "batch exports near MAX_PATH on legacy runtime");
+        Check(Store.ReadManifest(batch, language).Mods.Count == 1, "long-path export commits manifest last");
+        Check(Store.Preview(batch, language, Store.ReadManifest(batch, language), mod).Unchanged == 1, "long-path batch is readable for import");
+        Check(Directory.GetFiles(Path.GetDirectoryName(path)).All(p => p.EndsWith(".xml")), "long-path export leaves no temporary files");
     }
 
     private static void Check(bool valid, string name)

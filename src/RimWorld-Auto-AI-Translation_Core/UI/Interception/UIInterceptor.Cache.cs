@@ -485,6 +485,7 @@ namespace AutoTranslator_Core
         public static bool TryGetCachedTranslationKnownSafe(string text, out string translated)
         {
             translated = null;
+            if (UIDynamicNumberTemplate.IsNumericDisplayText(text)) return false;
 
             string lookupText = GetTranslationLookupText(text);
             string cacheKey = BuildCacheKey(lookupText);
@@ -530,8 +531,21 @@ namespace AutoTranslator_Core
         private static bool TryResolveRenderTextCore(string original, bool bypassAlreadyChecked, out string translated)
         {
             translated = null;
+            if (UIDynamicNumberTemplate.IsNumericDisplayText(original)) return false;
             EnsureRenderDecisionSettingsCurrent();
             string renderKey = BuildRenderDecisionKey(original);
+
+            // A mod may retain an old translated string in a readonly field or
+            // an instance cache. Prefer existing native Keyed data over an old
+            // render/AI decision. Ignored AI candidates need no new AI request
+            // when the language files already supply this exact caption.
+            if (NativeUiTranslationLookup.TryResolve(original, out translated) &&
+                (bypassAlreadyChecked || !ShouldBypassUIPatchText(original)))
+            {
+                CaptureSourceOwnerIfNeeded(original);
+                if (!IsSourceOwnerBlacklisted(original)) return true;
+            }
+            translated = null;
 
             // A render decision is the hot-path cache. Check it before the
             // validated translation cache so stable labels do not repeatedly
@@ -579,6 +593,13 @@ namespace AutoTranslator_Core
                 return true;
             }
 
+            // The bounded native snapshot may take several frames. Let an
+            // existing AI cache render above, but wait before queuing new work.
+            if (NativeUiTranslationLookup.Preparing || NativeUiTranslationLookup.PendingMatch)
+            {
+                RememberRenderDecision(renderKey, UIRenderDecisionKind.Pending, null, DateTime.UtcNow.Ticks + RenderPendingRetryInterval.Ticks);
+                return false;
+            }
             if (QueueForClassification(original))
             {
                 RememberRenderDecision(renderKey, UIRenderDecisionKind.Classifying, null, 0L);

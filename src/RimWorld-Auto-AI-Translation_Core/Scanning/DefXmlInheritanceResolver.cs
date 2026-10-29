@@ -9,6 +9,8 @@ namespace AutoTranslator_Core
     {
         public XmlDocument Document;
         public string SourceFile;
+        public string PackageId = string.Empty;
+        public int LoadOrder;
     }
 
     public sealed class ResolvedDefXmlNode
@@ -16,18 +18,34 @@ namespace AutoTranslator_Core
         public XmlNode OriginalNode;
         public XmlNode ResolvedNode;
         public string SourceFile;
+        public bool InheritanceIncomplete;
     }
 
-    public static class DefXmlInheritanceResolver
+    // A context belongs to one immutable scan snapshot. Its memoized nodes are never
+    // returned directly, so callers cannot mutate another module's inheritance data.
+    public sealed class DefXmlInheritanceContext
     {
-        public static List<ResolvedDefXmlNode> Resolve(
-            IEnumerable<DefXmlSourceDocument> sourceDocuments,
-            Action<string> warning = null)
+        private readonly List<DefXmlSourceDocument> documents;
+        private readonly Dictionary<string, List<XmlNode>> namedNodes = new Dictionary<string, List<XmlNode>>(StringComparer.Ordinal);
+        private readonly Dictionary<XmlNode, DefXmlSourceDocument> owners = new Dictionary<XmlNode, DefXmlSourceDocument>();
+        private readonly Dictionary<XmlNode, XmlNode> resolvedNodes = new Dictionary<XmlNode, XmlNode>();
+        private readonly HashSet<XmlNode> incomplete = new HashSet<XmlNode>();
+        private readonly HashSet<string> reported = new HashSet<string>(StringComparer.Ordinal);
+        private readonly HashSet<string> duplicateListFields;
+        private readonly Action<string> warning;
+        private readonly object sync = new object();
+        private readonly DefXmlInheritanceContext baseContext;
+
+        public DefXmlInheritanceContext(IEnumerable<DefXmlSourceDocument> sourceDocuments,
+            Action<string> warning = null, IEnumerable<string> duplicateListFields = null,
+            DefXmlInheritanceContext baseContext = null)
         {
-            List<DefXmlSourceDocument> documents = (sourceDocuments ?? Enumerable.Empty<DefXmlSourceDocument>())
+            this.baseContext = baseContext;
+            this.warning = warning;
+            this.duplicateListFields = new HashSet<string>(duplicateListFields ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
+            documents = (sourceDocuments ?? Enumerable.Empty<DefXmlSourceDocument>())
                 .Where(source => source != null && source.Document != null)
                 .ToList();
-            var namedNodes = new Dictionary<string, XmlNode>(StringComparer.OrdinalIgnoreCase);
 
             foreach (DefXmlSourceDocument source in documents)
             {
@@ -36,33 +54,48 @@ namespace AutoTranslator_Core
 
                 foreach (XmlNode node in ElementChildren(root))
                 {
+                    owners[node] = source;
                     string name = GetAttribute(node, "Name");
-                    if (!string.IsNullOrWhiteSpace(name)) namedNodes[name.Trim()] = node;
+                    if (string.IsNullOrWhiteSpace(name)) continue;
+                    if (!namedNodes.TryGetValue(name, out List<XmlNode> candidates))
+                        namedNodes[name] = candidates = new List<XmlNode>();
+                    // RimWorld rejects a duplicate Name within the same mod (first wins).
+                    if (candidates.Any(n => owners[n].PackageId == source.PackageId))
+                        WarnOnce("duplicate|" + source.PackageId + "|" + name,
+                            "Duplicate named XML parent: " + name + "; first definition retained; " + Describe(node));
+                    else candidates.Add(node);
                 }
             }
+        }
 
-            var result = new List<ResolvedDefXmlNode>();
-            foreach (DefXmlSourceDocument source in documents)
+        public List<ResolvedDefXmlNode> ResolveTargets(IEnumerable<string> targetFiles)
+        {
+            lock (sync)
             {
-                XmlElement root = source.Document.DocumentElement;
-                if (root == null || !root.Name.Equals("Defs", StringComparison.OrdinalIgnoreCase)) continue;
-
-                foreach (XmlNode node in ElementChildren(root))
+                var targets = new HashSet<string>(targetFiles ?? Enumerable.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+                var result = new List<ResolvedDefXmlNode>();
+                foreach (DefXmlSourceDocument source in documents.Where(d => targets.Contains(d.SourceFile ?? string.Empty)))
                 {
-                    result.Add(new ResolvedDefXmlNode
-                    {
-                        OriginalNode = node,
-                        ResolvedNode = ResolveNode(
-                            node,
-                            namedNodes,
-                            new HashSet<string>(StringComparer.OrdinalIgnoreCase),
-                            warning),
-                        SourceFile = source.SourceFile ?? string.Empty
-                    });
-                }
-            }
+                    XmlElement root = source.Document.DocumentElement;
+                    if (root == null || !root.Name.Equals("Defs", StringComparison.OrdinalIgnoreCase)) continue;
 
-            return result;
+                    foreach (XmlNode node in ElementChildren(root))
+                    {
+                        XmlNode resolved;
+                        try { resolved = ResolveNode(node, new HashSet<XmlNode>()); }
+                        catch (InheritanceCycleException) { resolved = null; }
+                        result.Add(new ResolvedDefXmlNode
+                        {
+                            OriginalNode = CloneIntoNewDocument(node),
+                            ResolvedNode = CloneIntoNewDocument(resolved),
+                            InheritanceIncomplete = incomplete.Contains(node),
+                            SourceFile = source.SourceFile ?? string.Empty
+                        });
+                    }
+                }
+
+                return result;
+            }
         }
 
         public static string GetDirectChildText(XmlNode parent, string childName)
@@ -78,73 +111,124 @@ namespace AutoTranslator_Core
             return string.Empty;
         }
 
-        private static XmlNode ResolveNode(
-            XmlNode node,
-            Dictionary<string, XmlNode> namedNodes,
-            HashSet<string> resolvingNames,
-            Action<string> warning)
+        private sealed class InheritanceCycleException : Exception { }
+
+        private void WarnOnce(string key, string message)
         {
-            if (node == null) return null;
-            if (IsFalse(GetAttribute(node, "Inherit"))) return CloneIntoNewDocument(node);
-
-            string parentName = GetAttribute(node, "ParentName");
-            if (string.IsNullOrWhiteSpace(parentName)) return CloneIntoNewDocument(node);
-            parentName = parentName.Trim();
-
-            if (!namedNodes.TryGetValue(parentName, out XmlNode parent))
-            {
-                warning?.Invoke("Named XML parent was not found: " + parentName);
-                return CloneIntoNewDocument(node);
-            }
-
-            if (!resolvingNames.Add(parentName))
-            {
-                warning?.Invoke("Named XML inheritance cycle detected at: " + parentName);
-                return CloneIntoNewDocument(node);
-            }
-
-            XmlNode resolvedParent = ResolveNode(parent, namedNodes, resolvingNames, warning);
-            resolvingNames.Remove(parentName);
-            return MergeNodes(resolvedParent, node);
+            if (reported.Add(key)) warning?.Invoke(message);
         }
 
-        private static XmlNode MergeNodes(XmlNode parent, XmlNode child)
+        private string Describe(XmlNode node)
+        {
+            DefXmlSourceDocument source = Owner(node);
+            return "package=" + source.PackageId + "; file=" + source.SourceFile + "; node=" + node.Name +
+                "; Name=" + GetAttribute(node, "Name") + "; defName=" + GetDirectChildText(node, "defName") + "; order=" + source.LoadOrder;
+        }
+
+        private DefXmlSourceDocument Owner(XmlNode node)
+        {
+            return owners.TryGetValue(node, out DefXmlSourceDocument source) ? source : baseContext.Owner(node);
+        }
+
+        private IEnumerable<XmlNode> Candidates(string name)
+        {
+            IEnumerable<XmlNode> local = namedNodes.TryGetValue(name, out List<XmlNode> nodes) ? nodes : Enumerable.Empty<XmlNode>();
+            return baseContext == null ? local : local.Concat(baseContext.Candidates(name));
+        }
+
+        private bool IsIncomplete(XmlNode node)
+        {
+            lock (sync) return incomplete.Contains(node) || (!owners.ContainsKey(node) && baseContext != null && baseContext.IsIncomplete(node));
+        }
+
+        private XmlNode ResolveShared(XmlNode node)
+        {
+            lock (sync) return ResolveNode(node, new HashSet<XmlNode>());
+        }
+
+        private XmlNode ResolveNode(XmlNode node, HashSet<XmlNode> resolving)
+        {
+            if (node == null) return null;
+            if (!owners.ContainsKey(node) && baseContext != null) return baseContext.ResolveShared(node);
+            if (resolvedNodes.TryGetValue(node, out XmlNode cached)) return cached;
+            if (!resolving.Add(node))
+            {
+                string cycle = string.Join(" -> ", resolving.Select(n => Describe(n)).OrderBy(s => s, StringComparer.Ordinal));
+                WarnOnce("cycle|" + cycle, "Named XML inheritance cycle detected: " + cycle);
+                throw new InheritanceCycleException();
+            }
+            try
+            {
+                string parentName = GetAttribute(node, "ParentName");
+                XmlNode resolved = CloneIntoNewDocument(node);
+                if (!string.IsNullOrWhiteSpace(parentName))
+                {
+                    // Latest provider at or before the child's mod, including same-mod
+                    // forward references. A later mod must not change an earlier parent.
+                    XmlNode parent = Candidates(parentName).Where(n => Owner(n).LoadOrder <= Owner(node).LoadOrder)
+                        .OrderByDescending(n => Owner(n).LoadOrder).FirstOrDefault();
+                    if (parent == null)
+                    {
+                        incomplete.Add(node);
+                        WarnOnce("missing|" + owners[node].PackageId + "|" + parentName,
+                            "Named XML parent was not found: " + parentName + "; " + Describe(node) + "; further occurrences in this package/context are suppressed.");
+                    }
+                    else
+                    {
+                        XmlNode resolvedParent = ResolveNode(parent, resolving);
+                        if (resolvedParent == null) throw new InheritanceCycleException();
+                        if (IsIncomplete(parent)) incomplete.Add(node);
+                        resolved = MergeNodes(resolvedParent, node);
+                    }
+                }
+                return resolvedNodes[node] = resolved;
+            }
+            catch (InheritanceCycleException)
+            {
+                incomplete.Add(node);
+                resolvedNodes[node] = null;
+                throw;
+            }
+            finally { resolving.Remove(node); }
+        }
+
+        private XmlNode MergeNodes(XmlNode parent, XmlNode child)
         {
             if (parent == null) return CloneIntoNewDocument(child);
             if (child == null) return CloneIntoNewDocument(parent);
-            if (IsFalse(GetAttribute(child, "Inherit"))) return CloneIntoNewDocument(child);
-
             XmlNode merged = CloneIntoNewDocument(parent);
             XmlDocument owner = merged.OwnerDocument;
+            if (IsFalse(GetAttribute(child, "Inherit")))
+            {
+                while (merged.HasChildNodes) merged.RemoveChild(merged.FirstChild);
+                foreach (XmlNode element in child.ChildNodes) merged.AppendChild(owner.ImportNode(element, true));
+                CopyAttributes(child, merged);
+                merged.Attributes?.RemoveNamedItem("Inherit");
+                return merged;
+            }
+            merged.Attributes?.RemoveAll();
             CopyAttributes(child, merged);
 
             List<XmlNode> childElements = ElementChildren(child).ToList();
-            Dictionary<string, int> childOrdinals = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            if (childElements.Count == 0 && ElementChildren(parent).Any() && !child.ChildNodes.Cast<XmlNode>().Any(n => n.NodeType == XmlNodeType.Text || n.NodeType == XmlNodeType.CDATA)) return merged;
             foreach (XmlNode childElement in childElements)
             {
-                int ordinal = 0;
-                childOrdinals.TryGetValue(childElement.Name, out ordinal);
-                childOrdinals[childElement.Name] = ordinal + 1;
-
                 List<XmlNode> matches = ElementChildren(merged)
-                    .Where(candidate => candidate.Name.Equals(childElement.Name, StringComparison.OrdinalIgnoreCase))
+                    .Where(candidate => candidate.Name == childElement.Name)
                     .ToList();
 
                 XmlNode imported;
-                if (childElement.Name.Equals("li", StringComparison.OrdinalIgnoreCase))
+                if (childElement.Name == "li" || duplicateListFields.Contains(child.Name))
                 {
                     imported = owner.ImportNode(childElement, true);
                     merged.AppendChild(imported);
                     continue;
                 }
 
-                if (ordinal < matches.Count)
+                if (matches.Count > 0)
                 {
-                    XmlNode existing = matches[ordinal];
-                    bool canMergeChildren = ElementChildren(existing).Any() && ElementChildren(childElement).Any();
-                    imported = canMergeChildren
-                        ? owner.ImportNode(MergeNodes(existing, childElement), true)
-                        : owner.ImportNode(childElement, true);
+                    XmlNode existing = matches[0];
+                    imported = owner.ImportNode(MergeNodes(existing, childElement), true);
                     merged.ReplaceChild(imported, existing);
                 }
                 else
@@ -152,6 +236,12 @@ namespace AutoTranslator_Core
                     imported = owner.ImportNode(childElement, true);
                     merged.AppendChild(imported);
                 }
+            }
+
+            if (childElements.Count == 0)
+            {
+                while (merged.HasChildNodes) merged.RemoveChild(merged.FirstChild);
+                foreach (XmlNode text in child.ChildNodes) merged.AppendChild(owner.ImportNode(text, true));
             }
 
             return merged;
@@ -199,6 +289,20 @@ namespace AutoTranslator_Core
         private static bool IsFalse(string value)
         {
             return string.Equals(value, "false", StringComparison.OrdinalIgnoreCase) || value == "0";
+        }
+    }
+
+    public static class DefXmlInheritanceResolver
+    {
+        public static List<ResolvedDefXmlNode> Resolve(IEnumerable<DefXmlSourceDocument> sourceDocuments, Action<string> warning = null)
+        {
+            var documents = (sourceDocuments ?? Enumerable.Empty<DefXmlSourceDocument>()).Where(d => d?.Document != null).ToList();
+            return new DefXmlInheritanceContext(documents, warning).ResolveTargets(documents.Select(d => d.SourceFile ?? string.Empty));
+        }
+
+        public static string GetDirectChildText(XmlNode parent, string childName)
+        {
+            return DefXmlInheritanceContext.GetDirectChildText(parent, childName);
         }
     }
 }

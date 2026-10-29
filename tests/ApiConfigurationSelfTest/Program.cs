@@ -4,7 +4,7 @@ using System.IO;
 using System.Reflection;
 using Newtonsoft.Json.Linq;
 
-internal static class Program
+internal static partial class Program
 {
     private const BindingFlags Static = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
     private static int passed;
@@ -26,7 +26,7 @@ internal static class Program
         AppDomain.CurrentDomain.AssemblyResolve += (_, request) =>
         {
             string file = new AssemblyName(request.Name).Name + ".dll";
-            foreach (string directory in new[] { Path.GetDirectoryName(modPath), Path.GetDirectoryName(harmonyPath), gameDirectory })
+            foreach (string directory in new[] { gameDirectory, Path.GetDirectoryName(harmonyPath), Path.GetDirectoryName(modPath) })
             {
                 string path = Path.Combine(directory, file);
                 if (File.Exists(path)) return Assembly.LoadFrom(path);
@@ -35,6 +35,11 @@ internal static class Program
         };
         try
         {
+            Assembly game = Assembly.LoadFrom(Path.Combine(gameDirectory, "Assembly-CSharp.dll"));
+            Console.WriteLine("Game dependency: " + game.FullName + "; " + game.Location);
+            // Legacy build output can contain compile-only Unity reference assemblies.
+            // Prefer explicitly supplied runtime dependencies before loading the product.
+            foreach (string path in Directory.GetFiles(gameDirectory, "Unity*.dll")) Assembly.LoadFrom(path);
             Assembly mod = Assembly.LoadFrom(modPath);
             api = mod.GetType("AutoTranslator_Core.AutoTranslatorAPI", true);
             configType = mod.GetType("AutoTranslator_Core.ApiKeyConfig", true);
@@ -71,7 +76,12 @@ internal static class Program
             Check(InvokeBool("IsConfigReady", custom), "keyless custom service can translate");
             Check(InvokeBool("IsPolicyAgentConfigReady", custom), "keyless custom service can serve policy agent");
             Check(InvokeBool("HasModelFetchCredential", custom), "keyless custom service can fetch models");
-            Check(InvokeBool("ShouldAutoFetchModels", custom), "keyless custom service passes auto-fetch gate");
+            Check(!InvokeBool("ShouldAutoFetchModels", custom),
+                "keyless custom service waits for explicit model refresh on all versions");
+            Check(!InvokeBool("ShouldAutoFetchModels", Config("Custom_OpenAI", "http://127.0.0.1:4315", "synthetic-key", "test-model")),
+                "custom model auto-fetch remains manual even when a key is present");
+            Check(InvokeBool("ShouldAutoFetchModels", Config("DeepSeek", "", "synthetic-key", "test-model")),
+                "built-in providers retain automatic model fetching");
             Check((string)api.GetMethod("GetBaseUrl", Static).Invoke(null, new[] { custom }) == "http://127.0.0.1:4315/v1", "custom base URL defaults to v1");
             Check((string)api.GetMethod("BuildModelsUrl", Static).Invoke(null,
                 new object[] { custom, "http://127.0.0.1:4315/v1", "", false }) == "http://127.0.0.1:4315/v1/models", "production model list URL");
@@ -101,6 +111,8 @@ internal static class Program
             Check(!InvokeBool("IsPolicyAgentConfigReady", Config("DeepL", "", "valid-synthetic-test-key", "test-model")), "policy agent still excludes DeepL");
             TestConnectionDiagnostics(mod);
             TestMiMo(mod);
+            TestSharedApiPreferences(mod);
+            TestApiPipelines(mod, harmonyPath);
             Console.WriteLine("PASS: " + passed + " API configuration checks against " + modPath);
             return 0;
         }

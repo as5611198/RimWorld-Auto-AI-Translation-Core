@@ -1,4 +1,4 @@
-#if RIMWORLD_1_7
+﻿#if RIMWORLD_1_7
 using System;
 using System.IO;
 using System.Linq;
@@ -20,11 +20,12 @@ namespace AutoTranslator_Core
             };
 
             internal static async Task<CloudDownloadAttemptResult> DownloadAsync(
-                string url, string path, int timeoutSeconds)
+                string url, string path, int timeoutSeconds, CancellationToken operationToken)
             {
                 TryDeleteCloudTempFile(path);
-                using (var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
+                using (var cancellation = CancellationTokenSource.CreateLinkedTokenSource(operationToken))
                 {
+                    cancellation.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
                     try
                     {
                         using (var response = await Client.GetAsync(

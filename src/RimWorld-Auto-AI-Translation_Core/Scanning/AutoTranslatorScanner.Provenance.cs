@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -140,7 +140,8 @@ namespace AutoTranslator_Core
 
             try
             {
-                Dictionary<string, TranslationProvenanceEntry> index = LoadProvenanceIndex(languageRoot, packageId);
+                string expectedHash = TranslationFileTransaction.FileHash(GetProvenancePath(languageRoot, packageId));
+                Dictionary<string, TranslationProvenanceEntry> index = new Dictionary<string, TranslationProvenanceEntry>(LoadProvenanceIndex(languageRoot, packageId), StringComparer.OrdinalIgnoreCase);
                 string relativePath = GetRelativeTranslationPath(languageRoot, translationFile);
                 if (string.IsNullOrEmpty(relativePath)) return false;
 
@@ -176,7 +177,7 @@ namespace AutoTranslator_Core
                     }
                 }
 
-                SaveProvenanceIndex(languageRoot, packageId, index);
+                SaveProvenanceIndex(languageRoot, packageId, index, expectedHash);
                 return true;
             }
             catch (Exception ex)
@@ -362,7 +363,11 @@ namespace AutoTranslator_Core
             Dictionary<string, TranslationProvenanceEntry> empty =
                 new Dictionary<string, TranslationProvenanceEntry>(StringComparer.OrdinalIgnoreCase);
             string path = GetProvenancePath(languageRoot, packageId);
-            if (string.IsNullOrEmpty(path) || !File.Exists(path)) return empty;
+            if (string.IsNullOrEmpty(path)) return empty;
+            TranslationFileTransaction.Current?.Observe(path);
+            if (TranslationFileTransaction.Current != null && TranslationFileTransaction.Current.TryRead(path, out var staged))
+                return staged == null ? empty : JsonConvert.DeserializeObject<TranslationProvenanceFile>(Encoding.UTF8.GetString(staged)).Entries;
+            if (!File.Exists(path)) return empty;
 
             GetProvenanceFileStamp(path, out long lastWriteUtcTicks, out long length);
             lock (ProvenanceIndexCacheGate)
@@ -396,7 +401,7 @@ namespace AutoTranslator_Core
             }
         }
 
-        private static void SaveProvenanceIndex(string languageRoot, string packageId, Dictionary<string, TranslationProvenanceEntry> entries)
+        private static void SaveProvenanceIndex(string languageRoot, string packageId, Dictionary<string, TranslationProvenanceEntry> entries, string expectedHash)
         {
             string path = GetProvenancePath(languageRoot, packageId);
             if (string.IsNullOrEmpty(path)) return;
@@ -410,13 +415,10 @@ namespace AutoTranslator_Core
                 Entries = entries ?? new Dictionary<string, TranslationProvenanceEntry>(StringComparer.OrdinalIgnoreCase)
             };
             byte[] json = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(data, Formatting.Indented));
-            TranslationXmlAtomicFileStore.Save(path, stream => stream.Write(json, 0, json.Length));
+            TranslationXmlAtomicFileStore.SaveIfCurrent(path, stream => stream.Write(json, 0, json.Length),
+                () => TranslationFileTransaction.FileHash(path) == expectedHash);
             GetProvenanceFileStamp(path, out long lastWriteUtcTicks, out long length);
-            CacheProvenanceIndex(
-                path,
-                lastWriteUtcTicks,
-                length,
-                entries ?? new Dictionary<string, TranslationProvenanceEntry>(StringComparer.OrdinalIgnoreCase));
+            lock (ProvenanceIndexCacheGate) ProvenanceIndexCache.Remove(path);
         }
 
         private static void CacheProvenanceIndex(

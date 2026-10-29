@@ -14,6 +14,7 @@ using static AutoTranslator_Core.DeleteTranslationWindow;
 
 namespace AutoTranslator_Core
 {
+    public enum ApiThinkingMode { Auto, PreferOff, Enabled }
     // 這個類別負責 ApiKey設定 的主要流程與狀態。
     // EN: This class manages the main workflow and state for ApiKeyConfig.
     public class ApiKeyConfig : IExposable
@@ -40,6 +41,8 @@ namespace AutoTranslator_Core
         // 這個欄位保存 Selected模型 的執行狀態或快取資料。
         // EN: This field stores selected model runtime state or cached data.
         public string SelectedModel = "";
+        public ApiThinkingMode ThinkingMode = ApiThinkingMode.Auto;
+        [NonSerialized] public bool AdvancedExpanded;
 
         public List<string> FetchedModels = new List<string>();
 
@@ -92,6 +95,8 @@ namespace AutoTranslator_Core
             Scribe_Values.Look(ref UsePlayer2Protocol, "UsePlayer2Protocol", false);
             Scribe_Values.Look(ref Player2GameClientId, "Player2GameClientId", "");
             Scribe_Values.Look(ref SelectedModel, "SelectedModel", "");
+            Scribe_Values.Look(ref ThinkingMode, "ThinkingMode", ApiThinkingMode.Auto);
+            if (!Enum.IsDefined(typeof(ApiThinkingMode), ThinkingMode)) ThinkingMode = ApiThinkingMode.Auto;
             Scribe_Collections.Look(ref FetchedModels, "FetchedModels", LookMode.Value);
 
             if (FetchedModels == null) FetchedModels = new List<string>();

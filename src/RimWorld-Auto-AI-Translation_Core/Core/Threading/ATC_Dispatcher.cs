@@ -1,4 +1,4 @@
-using HarmonyLib;
+﻿using HarmonyLib;
 using Newtonsoft.Json;
 using RimWorld;
 using System;
@@ -37,7 +37,12 @@ namespace AutoTranslator_Core
 
             // 這個方法負責確保 Alive 已準備完成。
             // EN: This method ensures alive is ready.
-            public static void EnsureAlive()
+            public static void EnsureAlive() { EnsureUnityEngineAlive(); }
+
+            // Keep engine construction behind one boundary so offline hosts can replace
+            // scheduling without JIT-compiling Unity internal calls.
+            [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+            private static void EnsureUnityEngineAlive()
             {
                 if (!UnityData.IsInMainThread) return;
                 AutoTranslatorMod.MainThreadContext = System.Threading.SynchronizationContext.Current;
@@ -140,9 +145,9 @@ namespace AutoTranslator_Core
                 }
                 catch (Exception ex)
                 {
-                    if (_lastDispatcherWarningFrame != Time.frameCount)
+                    if (_lastDispatcherWarningFrame != TranslationFrameBudget.CurrentFrame)
                     {
-                        _lastDispatcherWarningFrame = Time.frameCount;
+                        _lastDispatcherWarningFrame = TranslationFrameBudget.CurrentFrame;
                         Verse.Log.Warning($"[AutoTranslationCore] Main-thread action failed: {ex}");
                     }
                 }
@@ -193,9 +198,9 @@ namespace AutoTranslator_Core
                 PumpPending();
                 AutoTranslatorScanner.PumpMainThreadDispatcher();
 
-                if (Time.frameCount >= _nextModelFetchMaintenanceFrame)
+                if (TranslationFrameBudget.CurrentFrame >= _nextModelFetchMaintenanceFrame)
                 {
-                    _nextModelFetchMaintenanceFrame = Time.frameCount + 120;
+                    _nextModelFetchMaintenanceFrame = TranslationFrameBudget.CurrentFrame + 120;
                     AutoTranslatorAPI.MaintainModelFetchState();
                 }
             }

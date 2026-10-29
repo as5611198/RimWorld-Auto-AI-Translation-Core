@@ -25,39 +25,7 @@ namespace AutoTranslator_Core
         // EN: This method checks is translation patch mod.
         public static bool IsTranslationPatchMod(ModMetaData mod)
         {
-            if (mod == null || string.IsNullOrEmpty(mod.PackageId)) return false;
-            string pid = mod.PackageId.ToLowerInvariant();
-            string name = (mod.Name ?? "").ToLowerInvariant();
-
-            if (pid.Contains("chinesepack") ||
-                pid.Contains("chinese-pack") ||
-                pid.StartsWith("rwzh.") ||
-                name.Contains("zh-pack") ||
-                name.Contains("chinese pack") ||
-                name.Contains("chinesepack"))
-            {
-                return true;
-            }
-
-
-            string[] patchKeywords = { "漢化", "汉化", "翻譯", "翻译", "translation", "language", "l10n", "中文", "zh-tw", "zh-cn", "簡繁", "简繁", "繁簡", "繁简" };
-            foreach (var kw in patchKeywords)
-            {
-                if (name.Contains(kw)) return true;
-            }
-
-
-            string[] pidSuffixes = { ".zh", "_zh", "-zh", "zh-pack", ".zhtc", "_zhtc", "-zhtc", ".zhcn", "_zhcn", "-zhcn", ".cn", "_cn", "-cn", ".tw", "_tw", "-tw", "l10n" };
-            foreach (var suf in pidSuffixes)
-            {
-
-                if (pid.EndsWith(suf) || pid.Contains(suf + ".") || pid.Contains(suf + "_")) return true;
-            }
-
-
-            if (pid.EndsWith("zh")) return true;
-
-            return false;
+            return mod != null && TranslationPatchIdentity.IsMatch(mod.PackageId, mod.Name);
         }
 
         // 這個方法負責取得 Local翻譯包路徑 資料。

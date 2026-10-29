@@ -86,6 +86,8 @@ namespace AutoTranslator_Core
         private static bool ShouldAutoFetchModels(ApiKeyConfig config)
         {
             if (config == null) return false;
+            // Custom services may be keyless; only an explicit refresh means editing is complete.
+            if (config.Provider == TranslatorProvider.Custom_OpenAI) return false;
             if (!config.Enabled || (config.Provider == TranslatorProvider.Custom_OpenAI && config.UsePlayer2Protocol) || config.IsFetching || AutoTranslatorSettings.IsRunning) return false;
 
             string fetchFingerprint = GetModelFetchFingerprint(config);
@@ -107,6 +109,7 @@ namespace AutoTranslator_Core
         {
             if (config == null) return;
             if (!config.Enabled) return;
+            if (config.Provider == TranslatorProvider.Custom_OpenAI && !force) return;
             if (config.Provider == TranslatorProvider.Custom_OpenAI && config.UsePlayer2Protocol)
             {
                 AutoTranslatorSettings.AddLog(TranslateText("ATC_Player2_AppModelLog"));
@@ -176,6 +179,11 @@ namespace AutoTranslator_Core
                     int maxRetries = 2;
                     for (int attempt = 0; attempt <= maxRetries; attempt++)
                     {
+#if RIMWORLD_1_7
+                        if (config.FetchGeneration != fetchGeneration || !config.IsFetching) return;
+                        var resHolder = await SendModelsRequestAsync(url, config.Provider, apiKey,
+                            () => config.FetchGeneration != fetchGeneration || !config.IsFetching);
+#else
                         var tcs = new TaskCompletionSource<ATC_WebResponse>();
                         var dispatchStarted = new TaskCompletionSource<bool>();
 
@@ -261,6 +269,7 @@ namespace AutoTranslator_Core
                         }
 
                         var resHolder = await tcs.Task;
+#endif
                         if (config.FetchGeneration != fetchGeneration) return;
 
                         if (resHolder.IsSuccess)
@@ -268,6 +277,7 @@ namespace AutoTranslator_Core
                             List<string> models = ParseModelList(resHolder.ResponseBody, isGoogleRaw);
                             if (models.Count > 0)
                             {
+                                ApiThinkingPolicy.RememberModels(config, baseUrl, resHolder.ResponseBody);
                                 config.FetchedModels = models.OrderBy(x => x).ToList();
                                 if (string.IsNullOrEmpty(config.SelectedModel)) config.SelectedModel = config.FetchedModels[0];
                                 RememberResolvedBaseUrl(config, baseUrl);
@@ -335,6 +345,7 @@ namespace AutoTranslator_Core
         // EN: This method checks can auto retry model fetch.
         public static bool CanAutoRetryModelFetch(ApiKeyConfig config, string fingerprint)
         {
+            if (config != null && config.Provider == TranslatorProvider.Custom_OpenAI) return false;
             return config != null &&
                    !config.IsFetching &&
                    !string.IsNullOrEmpty(fingerprint) &&
@@ -456,6 +467,13 @@ namespace AutoTranslator_Core
         {
             if (config == null) return;
             if (config.FetchGeneration != fetchGeneration) return;
+            if (config.Provider == TranslatorProvider.Custom_OpenAI)
+            {
+                config.PendingFetchFingerprint = "";
+                config.FetchRetryCount = 0;
+                config.NextModelFetchRetryUtcTicks = 0L;
+                return;
+            }
 
             string fingerprint = GetModelFetchFingerprint(config);
             if (string.IsNullOrEmpty(fingerprint)) return;

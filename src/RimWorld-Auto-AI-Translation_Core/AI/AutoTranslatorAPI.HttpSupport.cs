@@ -20,6 +20,7 @@ namespace AutoTranslator_Core
 
     // 這個類別負責 UnityWebRequestCompat 的主要流程與狀態。
     // EN: This class manages the main workflow and state for UnityWebRequestCompat.
+#if !RIMWORLD_1_7
     internal static class UnityWebRequestCompat
     {
         // 這個方法負責判斷 IsSuccess 條件是否成立。
@@ -30,4 +31,5 @@ namespace AutoTranslator_Core
             return !request.isNetworkError && !request.isHttpError;
         }
     }
+#endif
 }

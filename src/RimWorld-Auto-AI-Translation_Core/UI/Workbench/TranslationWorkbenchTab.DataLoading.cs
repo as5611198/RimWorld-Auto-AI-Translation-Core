@@ -1,4 +1,4 @@
-using RimWorld;
+﻿using RimWorld;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -18,6 +18,7 @@ namespace AutoTranslator_Core
         public static partial class TranslationWorkbenchTab
         {
             private static TargetLanguage? _loadedWorkbenchTargetLanguage;
+            private static int _editorGeneration;
 
             // 這個方法負責讀取 Real資料 資料。
             // EN: This method loads real data.
@@ -39,6 +40,7 @@ namespace AutoTranslator_Core
 
                 return new WorkbenchModSnapshot
                 {
+                    EditorGeneration = _editorGeneration,
                     Mod = targetMod,
                     PackageId = targetMod.PackageId,
                     ModName = targetMod.Name ?? "",
@@ -130,6 +132,7 @@ namespace AutoTranslator_Core
                 WorkbenchModSnapshot snapshot = CreateWorkbenchModSnapshot(targetMod);
                 if (snapshot == null) return;
 
+                snapshot.EditorGeneration = ++_editorGeneration;
                 _editingMod = targetMod;
                 _loadedWorkbenchTargetLanguage = null;
                 _isLoading = true;
@@ -146,7 +149,7 @@ namespace AutoTranslator_Core
                 Action<WorkbenchFocusRequest> resolveFocus;
                 var resultData = ReadWorkbenchData(targetMod, out resolveFocus);
                 ATC_Dispatcher.RunOnMainThread(() => {
-                    if (_editingMod != targetMod.Mod) return;
+                    if (_editingMod != targetMod.Mod || targetMod.EditorGeneration != _editorGeneration) return;
                     if (AutoTranslatorMod.Settings.TargetLang != targetMod.TargetLang)
                     {
                         StartLoadingModForEditing(targetMod.Mod, _itemSearchText, _pendingWorkbenchFocus);
@@ -266,6 +269,7 @@ namespace AutoTranslator_Core
                     }
                 }
 
+                IncludeWorkbenchTranslationOnlyRows(engKeyed, transKeyed, TranslationPolicyBucket.Keyed, "Keyed");
                 if (engKeyed.Count > 0)
                 {
                     var list = new List<WorkbenchItem>();
@@ -448,6 +452,13 @@ namespace AutoTranslator_Core
                     }
                 }
 
+                foreach (var translatedType in transDefs)
+                {
+                    if (!engDefs.TryGetValue(translatedType.Key, out var originals))
+                        engDefs[translatedType.Key] = originals = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    IncludeWorkbenchTranslationOnlyRows(originals, translatedType.Value, TranslationPolicyBucket.DefInjected, translatedType.Key);
+                }
+
                 foreach (var typeKv in engDefs)
                 {
                     string defType = typeKv.Key;
@@ -536,6 +547,23 @@ namespace AutoTranslator_Core
                     }
                 };
                 return resultData;
+            }
+
+            private static void IncludeWorkbenchTranslationOnlyRows(
+                Dictionary<string, string> originals,
+                Dictionary<string, string> translations,
+                TranslationPolicyBucket bucket,
+                string defType)
+            {
+                foreach (var pair in translations)
+                {
+                    if (originals.ContainsKey(pair.Key) || string.IsNullOrWhiteSpace(pair.Value)) continue;
+                    if (!TranslationPolicyNativeTargetFilter.ShouldKeep(bucket, defType, pair.Key, pair.Value)) continue;
+                    // An unavailable source must not hide existing translations.
+                    // Keep the source genuinely empty: it is not safe to pass a
+                    // translated value off as original text for AI/batch export.
+                    originals[pair.Key] = string.Empty;
+                }
             }
 
             private static void MergeOfficialDefPathAliases(

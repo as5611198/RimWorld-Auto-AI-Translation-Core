@@ -122,6 +122,9 @@ namespace AutoTranslator_Core
 
             DrawTranslationPolicyAgentSettings(l);
             l.Gap(15f);
+            if (l.ButtonText("ATC_Advanced_PromptOpen".Translate()) && !AutoTranslatorSettings.IsRunning)
+                Find.WindowStack.Add(new Window_TranslationPreferences());
+            l.Gap(15f);
 
             DrawHardcodedUiPrototypeSettings(l);
             l.Gap(15f);
@@ -306,6 +309,7 @@ namespace AutoTranslator_Core
                 GUI.color = AutoTranslatorSettings.IsRunning ? Color.grey : Color.white;
 
                 DrawConnectionTestResult(l, config);
+                DrawAdvancedApiSettings(l, config, false);
                 l.Gap(15f);
             }
 
@@ -334,6 +338,10 @@ namespace AutoTranslator_Core
             }
             l.Gap(5f);
 
+            GUI.color = Color.white;
+            if (l.ButtonText("ATC_Repair_IntroTitle".Translate())) TranslationRepairController.Open();
+            l.Gap(5f);
+
             Rect repairLegacyBtnRect = l.GetRect(35f);
             GUI.color = _settingsLegacyRepairRunning ? Color.grey : new Color(0.6f, 0.9f, 0.75f);
             string repairLegacyLabel = _settingsLegacyRepairRunning
@@ -343,6 +351,15 @@ namespace AutoTranslator_Core
             {
                 QueueLegacyRepairFromSettings();
             }
+            l.Gap(5f);
+
+            if (l.ButtonText("ATC_Repair_OpenReport".Translate()))
+            {
+                string reportRoot = System.IO.Path.Combine(AutoTranslatorScanner.GetLocalPackPath(), "SelfRepair");
+                System.IO.Directory.CreateDirectory(reportRoot);
+                Application.OpenURL(new Uri(reportRoot + System.IO.Path.DirectorySeparatorChar).AbsoluteUri);
+            }
+            l.Label("ATC_Repair_ReportHint".Translate());
             l.Gap(5f);
 
             Rect restoreBtnRect = l.GetRect(35f);
@@ -652,6 +669,7 @@ namespace AutoTranslator_Core
 
             AutoTranslatorAPI.CheckConnectionTestTimeout(config);
             DrawConnectionTestResult(l, config);
+            DrawAdvancedApiSettings(l, config, true);
 
             bool ready = AutoTranslatorAPI.IsPolicyAgentConfigReady(config);
             Text.Font = GameFont.Tiny;
@@ -669,6 +687,40 @@ namespace AutoTranslator_Core
             return provider == TranslatorProvider.MiMo ? "ATC_MiMo_Name".Translate().ToString() : provider.ToString();
         }
 
+        private static void DrawAdvancedApiSettings(Listing_Standard l, ApiKeyConfig config, bool policyReview)
+        {
+            l.Gap(5f);
+            if (l.ButtonText((config.AdvancedExpanded ? "▾ " : "▸ ") + "ATC_Advanced_Title".Translate()))
+                config.AdvancedExpanded = !config.AdvancedExpanded;
+            if (!config.AdvancedExpanded) return;
+
+            bool editable = !AutoTranslatorSettings.IsRunning && !config.IsTesting && !config.IsFetching &&
+                config.Provider != TranslatorProvider.DeepL &&
+                !(config.Provider == TranslatorProvider.Custom_OpenAI && config.UsePlayer2Protocol);
+            bool previousEnabled = GUI.enabled;
+            GUI.enabled = previousEnabled && editable;
+            if (l.ButtonText("ATC_Advanced_ThinkingLabel".Translate() + ": " +
+                ("ATC_Advanced_Mode_" + config.ThinkingMode).Translate()))
+            {
+                var options = new List<FloatMenuOption>();
+                foreach (ApiThinkingMode mode in Enum.GetValues(typeof(ApiThinkingMode)))
+                {
+                    ApiThinkingMode captured = mode;
+                    options.Add(new FloatMenuOption(("ATC_Advanced_Mode_" + mode).Translate(), () =>
+                    {
+                        if (AutoTranslatorSettings.IsRunning || config.IsTesting || config.IsFetching) return;
+                        config.ThinkingMode = captured;
+                        config.LastConnectionTest = null;
+                        LoadedModManager.GetMod<AutoTranslatorMod>()?.WriteSettings();
+                    }));
+                }
+                Find.WindowStack.Add(new FloatMenu(options));
+            }
+            GUI.enabled = previousEnabled;
+            l.Label((policyReview ? "ATC_Advanced_ThinkingReviewHelp" : "ATC_Advanced_ThinkingTranslationHelp").Translate());
+            l.Label(AutoTranslatorAPI.GetThinkingStatusKey(config, policyReview).Translate());
+        }
+
         private static void SelectApiProvider(ApiKeyConfig config, TranslatorProvider provider)
         {
             config.Provider = provider;
@@ -682,7 +734,7 @@ namespace AutoTranslator_Core
             if (config.Provider != TranslatorProvider.MiMo) return;
             GameFont font = Text.Font;
             Text.Font = GameFont.Tiny;
-            l.Label("ATC_MiMo_Notice".Translate(MiMoApi.BaseUrl));
+            l.Label("ATC_MiMo_Notice_Purpose".Translate(MiMoApi.BaseUrl));
             Text.Font = font;
         }
 

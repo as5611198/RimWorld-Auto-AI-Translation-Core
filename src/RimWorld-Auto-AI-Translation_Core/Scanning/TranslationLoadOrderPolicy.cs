@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -104,10 +104,14 @@ namespace AutoTranslator_Core
         private static Dictionary<string, string> BuildPackageLookup(IEnumerable<string> packageIds)
         {
             var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (string packageId in NormalizePackageList(packageIds))
+            foreach (string packageId in (packageIds ?? Enumerable.Empty<string>()).Where(p => !string.IsNullOrWhiteSpace(p)).Distinct(StringComparer.OrdinalIgnoreCase))
             {
                 string normalized = NormalizePackageId(packageId);
-                if (!string.IsNullOrEmpty(normalized)) result[normalized] = packageId;
+                if (!string.IsNullOrEmpty(normalized))
+                {
+                    if (result.TryGetValue(normalized, out string existing) && !string.Equals(existing, packageId, StringComparison.OrdinalIgnoreCase)) result[normalized] = null;
+                    else if (!result.ContainsKey(normalized)) result[normalized] = packageId;
+                }
             }
             return result;
         }

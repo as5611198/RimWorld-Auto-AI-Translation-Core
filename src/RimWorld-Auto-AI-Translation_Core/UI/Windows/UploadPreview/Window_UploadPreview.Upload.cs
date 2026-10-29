@@ -151,6 +151,12 @@ namespace AutoTranslator_Core
                     byte[] payloadBytes = tolerantUtf8.GetBytes(jsonPayload);
 
 
+#if RIMWORLD_1_7
+                    var uploadResponse = await NativeHttpTransport.SendAsync(
+                        $"{AutoTranslatorCloudClient.CloudApiBaseUrl}/upload", "POST", payloadBytes, null, 120);
+                    bool uploadSuccess = uploadResponse.IsSuccess;
+                    if (!uploadSuccess) Verse.Log.Error("[ATC Cloud Preview] Upload Fail: " + uploadResponse.ErrorText);
+#else
                     var tcs = new TaskCompletionSource<bool>();
                     ATC_Dispatcher.RunOnMainThread(() =>
                     {
@@ -187,6 +193,7 @@ namespace AutoTranslator_Core
                         else Verse.Log.Error("[ATC Cloud Preview] Upload Fail: upload timed out after 130s");
                     }
                     catch (Exception ex) { Verse.Log.Error($"[ATC Cloud Preview] Upload Fail: {ex.Message}"); }
+#endif
 
                     ATC_Dispatcher.RunOnMainThread(() => {
                         if (uploadSuccess)

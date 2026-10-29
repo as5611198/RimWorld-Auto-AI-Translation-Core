@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using RimWorld;
 using System;
 using System.Collections.Generic;
@@ -39,6 +39,7 @@ namespace AutoTranslator_Core
         public static Dictionary<string, string> LoadXmlFileToDict(string filePath, TargetLanguage? expectedLang = null)
         {
             var dict = LoadRawXmlFileToDictCached(filePath);
+            if (!TranslationRepairController.IsRunning && preparingXml == null) RecoverPreservedTranslations(filePath, dict);
             TargetLanguage placeholderLang = expectedLang ?? (AutoTranslatorMod.Settings != null ? AutoTranslatorMod.Settings.TargetLang : TargetLanguage.Traditional);
 
             var placeholderKeys = dict
@@ -79,22 +80,47 @@ namespace AutoTranslator_Core
 
         // 這個方法負責保存 Xml 資料。
         // EN: This method saves XML.
+        internal static int ExportSourceXml(string path, Dictionary<string, string> data)
+        {
+            var document = new XmlDocument();
+            var root = document.CreateElement("LanguageData"); document.AppendChild(root);
+            bool def = path.Replace('\\', '/').IndexOf("/DefInjected/", StringComparison.OrdinalIgnoreCase) >= 0;
+            foreach (var pair in data) root.AppendChild(TranslationXmlEntryCodec.Create(document, pair.Key, pair.Value, def));
+            SaveLanguageXmlDocumentAtomic(path, document);
+            return root.ChildNodes.Count;
+        }
+
         public static void SaveXml(string path, Dictionary<string, string> data)
         {
+            PreserveRepairInput(path);
+            data = PrepareValidatedDefOutput(path, data ?? new Dictionary<string, string>());
+            SaveValidatedXml(path, data);
+        }
+
+        // Private entry for the repair job, which already validated
+        // each entry in batches. Public writers still use SaveXml above.
+        private static void SaveValidatedXml(string path, Dictionary<string, string> data, Func<bool> canCommit = null)
+        {
+            PreserveRepairInput(path);
             XmlDocument d = new XmlDocument();
             XmlDeclaration dec = d.CreateXmlDeclaration("1.0", "utf-8", null);
             d.AppendChild(dec);
             XmlElement r = d.CreateElement("LanguageData");
+            bool defInjected = ("/" + (path ?? "").Replace('\\', '/')).IndexOf("/DefInjected/", StringComparison.OrdinalIgnoreCase) >= 0;
 
             foreach (var p in data ?? new Dictionary<string, string>())
             {
 
                 if (Regex.IsMatch(p.Value ?? "", @"^[\s\u200B\u200C\u200D\uFEFF\u00A0\x00-\x1F]*$"))
-                    continue;
-
-
-                if (string.IsNullOrWhiteSpace(p.Key) || !ValidXmlNameRegex.IsMatch(p.Key))
                 {
+                    PreserveSkippedXmlValue(path, p.Key, p.Value, "empty_translation");
+                    continue;
+                }
+
+
+                if (string.IsNullOrWhiteSpace(p.Key))
+                {
+                    PreserveSkippedXmlValue(path, p.Key, p.Value, "invalid_xml_key");
                     AddValidationStat(s => s.XmlKeySkipped++);
                     AutoTranslatorSettings.AddErrorLog("⚠️ " + AutoTranslatorAPI.TranslateText("ATC_LogError_InvalidXmlKey", p.Key ?? "<null>"));
                     continue;
@@ -102,13 +128,12 @@ namespace AutoTranslator_Core
 
                 try
                 {
-                    XmlElement n = d.CreateElement(p.Key);
-                    n.InnerText = p.Value;
+                    XmlElement n = TranslationXmlEntryCodec.Create(d, p.Key, p.Value, defInjected);
                     r.AppendChild(n);
                 }
                 catch (XmlException ex)
                 {
-
+                    PreserveSkippedXmlValue(path, p.Key, p.Value, "invalid_xml_key");
                     AddValidationStat(s => s.XmlKeySkipped++);
                     AutoTranslatorSettings.AddErrorLog("⚠️ " + AutoTranslatorAPI.TranslateText("ATC_LogError_InvalidXmlKey", $"{p.Key} ({ex.Message})"));
                     continue;
@@ -116,7 +141,9 @@ namespace AutoTranslator_Core
             }
 
             d.AppendChild(r);
-            SaveLanguageXmlDocumentAtomic(path, d);
+            FlushSelfRepair();
+            if (canCommit != null && !canCommit()) throw new OperationCanceledException("Repair cancelled before XML commit; original retained.");
+            TranslationXmlAtomicFileStore.SaveIfCurrent(path, stream => d.Save(stream), canCommit);
             NotifyTranslationFileChanged(path);
         }
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -20,6 +20,17 @@ namespace AutoTranslator_Core
         private static readonly Dictionary<string, string> _staticTranslationSourceLookup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private static readonly Dictionary<string, string> _staticTranslationSourceHints = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private static int _staticTranslationRefreshGeneration = 0;
+
+        internal static bool StaticTranslationRefreshBusy
+        {
+            get
+            {
+                lock (_pendingInjectLock) if (_pendingStaticCachedTranslationRefresh) return true;
+                lock (_staticTranslationRefreshLock)
+                    return staticMetadataTask != null || (_staticTranslationAssemblyScanQueue?.Count ?? 0) != 0 ||
+                        (_staticTranslationRefreshQueue?.Count ?? 0) != 0;
+            }
+        }
 
         private struct StaticTranslationRefreshCandidate
         {
@@ -120,42 +131,35 @@ namespace AutoTranslator_Core
             }
         }
 
+        private static System.Threading.Tasks.Task<Queue<StaticTranslationRefreshCandidate>> staticMetadataTask;
+        private static int staticMetadataGeneration;
         private static void ProcessStaticCachedTranslationAssemblyScanQueue(int maxAssemblies)
         {
-            int processed = 0;
-            while (processed < maxAssemblies)
+            if (staticMetadataTask != null)
             {
-                Assembly assembly;
-                Dictionary<string, string> targetLookup;
-                lock (_staticTranslationRefreshLock)
+                if (!staticMetadataTask.IsCompleted) return;
+                var task = staticMetadataTask; staticMetadataTask = null;
+                if (task.IsFaulted) { Log.Warning("[ATC] Static metadata scan: " + task.Exception.GetBaseException().Message); return; }
+                if (staticMetadataGeneration == _staticTranslationRefreshGeneration)
                 {
-                    if (_staticTranslationAssemblyScanQueue == null || _staticTranslationAssemblyScanQueue.Count == 0)
+                    lock (_staticTranslationRefreshLock)
                     {
-                        _staticTranslationAssemblyScanQueue = null;
-                        return;
-                    }
-
-                    assembly = _staticTranslationAssemblyScanQueue.Dequeue();
-                    targetLookup = new Dictionary<string, string>(_staticTranslationTargetLookup, StringComparer.OrdinalIgnoreCase);
-                }
-
-                processed++;
-                Queue<StaticTranslationRefreshCandidate> candidates = BuildStaticRefreshCandidatesForAssembly(assembly, targetLookup);
-                if (candidates.Count == 0) continue;
-
-                lock (_staticTranslationRefreshLock)
-                {
-                    if (_staticTranslationRefreshQueue == null)
-                    {
-                        _staticTranslationRefreshQueue = new Queue<StaticTranslationRefreshCandidate>();
-                    }
-
-                    while (candidates.Count > 0)
-                    {
-                        _staticTranslationRefreshQueue.Enqueue(candidates.Dequeue());
+                        if (_staticTranslationRefreshQueue == null) _staticTranslationRefreshQueue = task.Result;
+                        else foreach (var item in task.Result) _staticTranslationRefreshQueue.Enqueue(item);
                     }
                 }
             }
+            Assembly assembly;
+            Dictionary<string, string> lookup;
+            lock (_staticTranslationRefreshLock)
+            {
+                if (_staticTranslationAssemblyScanQueue == null || _staticTranslationAssemblyScanQueue.Count == 0) return;
+                assembly = _staticTranslationAssemblyScanQueue.Dequeue();
+                lookup = new Dictionary<string, string>(_staticTranslationTargetLookup, StringComparer.OrdinalIgnoreCase);
+                staticMetadataGeneration = _staticTranslationRefreshGeneration;
+            }
+            // Reflection metadata only. Actual static field reads/writes remain on the game thread.
+            staticMetadataTask = System.Threading.Tasks.Task.Run(() => BuildStaticRefreshCandidatesForAssembly(assembly, lookup));
         }
 
         private static Queue<StaticTranslationRefreshCandidate> BuildStaticRefreshCandidatesForAssembly(
@@ -224,7 +228,7 @@ namespace AutoTranslator_Core
 
             int processed = 0;
             int refreshed = 0;
-            while (processed < maxFields)
+            while (processed < maxFields && TranslationFrameBudget.HasTime)
             {
                 StaticTranslationRefreshCandidate candidate;
                 lock (_staticTranslationRefreshLock)

@@ -1,10 +1,13 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Threading;
+using System.Text;
+using System.Xml;
 using UnityEngine.Networking;
 using Verse;
 using static AutoTranslator_Core.DeleteTranslationWindow;
@@ -37,7 +40,14 @@ namespace AutoTranslator_Core
                 return false;
             }
 
-            Verse.ModMetaData targetMod = null;
+            if (AutoTranslatorSettings.IsCancellationRequested) return false;
+            var operationToken = AutoTranslatorSettings.PipelineCancellationToken;
+            int cancellationGeneration = AutoTranslatorSettings.PipelineCancellationGeneration;
+            var startingTarget = AutoTranslatorMod.Settings?.TargetLang;
+            Func<bool> canCommit = () => !AutoTranslatorSettings.IsCancellationRequested &&
+                cancellationGeneration == AutoTranslatorSettings.PipelineCancellationGeneration &&
+                AutoTranslatorMod.Settings?.TargetLang == startingTarget;
+
             int maxRetries = 4;
             string downloadedZipPath = null;
             CloudModRecord resolvedRecord = targetRecord;
@@ -45,6 +55,8 @@ namespace AutoTranslator_Core
 
             for (int attempt = 0; attempt <= maxRetries; attempt++)
             {
+                if (!canCommit()) return false;
+                string attemptZipPath = null;
                 try
                 {
                     string baseUrl = attempt >= 3 ? BackupApiBaseUrl : PrimaryApiBaseUrl;
@@ -55,13 +67,13 @@ namespace AutoTranslator_Core
                         url += $"?recordId={Uri.EscapeDataString(resolvedRecord.RecordId)}";
                     }
 
-                    string attemptZipPath = Path.Combine(
+                    attemptZipPath = Path.Combine(
                         Path.GetTempPath(),
                         "ATC_Cloud_" + Guid.NewGuid().ToString("N") + ".zip");
                     CloudDownloadAttemptResult response = await DownloadCloudArchiveAttemptAsync(
                         url,
                         attemptZipPath,
-                        120 + attempt * 60);
+                        120 + attempt * 60, operationToken);
                     if (response.Success)
                     {
                         downloadedZipPath = response.FilePath;
@@ -120,6 +132,7 @@ namespace AutoTranslator_Core
                         return false;
                     }
                 }
+                catch (OperationCanceledException) { return false; }
                 catch (Exception ex)
                 {
                     if (attempt == maxRetries)
@@ -128,9 +141,18 @@ namespace AutoTranslator_Core
                         return false;
                     }
                 }
+                finally
+                {
+                    if (!string.Equals(attemptZipPath, downloadedZipPath, StringComparison.Ordinal))
+                        TryDeleteCloudTempFile(attemptZipPath);
+                }
 
                 int delayMs = (int)Math.Pow(2, attempt + 1) * 1000 + new System.Random().Next(100, 500);
-                await Task.Delay(delayMs);
+                for (int remaining = delayMs; remaining > 0; remaining -= 100)
+                {
+                    if (!canCommit()) return false;
+                    await Task.Delay(Math.Min(100, remaining)).ConfigureAwait(false);
+                }
             }
 
             if (string.IsNullOrEmpty(downloadedZipPath) || !File.Exists(downloadedZipPath) || new FileInfo(downloadedZipPath).Length == 0)
@@ -141,135 +163,312 @@ namespace AutoTranslator_Core
 
             try
             {
-                if (clearTarget == null)
-                {
-                    foreach (var m in Verse.ModLister.AllInstalledMods)
-                    {
-                        if (m.PackageId.ToLower() == packageId.ToLower()) { targetMod = m; break; }
-                    }
-                }
-                if (clearExistingTranslations)
-                {
-                    ClearOldTranslationFilesForDownload(targetMod, clearTarget, requestRuntimeRefreshAfterClear);
-                }
-
-                string packPath = AutoTranslatorScanner.GetLocalPackPath();
-                string extractRoot = System.IO.Path.Combine(packPath, "Languages", targetLangFolder);
-                System.IO.Directory.CreateDirectory(extractRoot);
-
-                string workspaceDir = System.IO.Path.Combine(packPath, "Upload_Workspace", packageId, targetLangFolder);
-                if (System.IO.Directory.Exists(workspaceDir))
-                {
-                    System.IO.Directory.Delete(workspaceDir, true);
-                    AutoTranslatorScanner.NotifyTranslationFilesChanged(workspaceDir);
-                }
-                System.IO.Directory.CreateDirectory(workspaceDir);
-
-                using (var archive = System.IO.Compression.ZipFile.OpenRead(downloadedZipPath))
-                {
-                    foreach (var entry in archive.Entries)
-                    {
-                        if (string.IsNullOrEmpty(entry.Name)) continue;
-
-                        string destPath = GetSafeCloudExtractPath(extractRoot, entry.FullName);
-                        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(destPath));
-                        entry.ExtractToFile(destPath, true);
-                        AutoTranslatorScanner.NotifyTranslationFileChanged(destPath);
-
-                        string wsDestPath = GetSafeCloudExtractPath(workspaceDir, entry.FullName);
-                        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(wsDestPath));
-                        entry.ExtractToFile(wsDestPath, true);
-                        AutoTranslatorScanner.NotifyTranslationFileChanged(wsDestPath);
-                    }
-                }
-                TryDeleteCloudTempFile(downloadedZipPath);
-
-                if (resolvedRecord != null)
-                {
-                    var meta = new LocalModMeta
-                    {
-                        OriginalRecordId = resolvedRecord.RecordId,
-                        TargetModVersion = resolvedRecord.TargetModVersion ?? "Unknown",
-                        TranslationDate = resolvedRecord.TranslationDate,
-                        IsSmartMerged = resolvedRecord.IsSmartMerged,
-                        MergedAiCount = resolvedRecord.MergedAiCount
-                    };
-                    string cleanPackageId = packageId.Replace(".", "_").ToLower();
-                    string metaPath = System.IO.Path.Combine(extractRoot, $"{cleanPackageId}_ATC_Meta.json");
-                    System.IO.File.WriteAllText(metaPath, JsonConvert.SerializeObject(meta, Newtonsoft.Json.Formatting.Indented));
-                }
-
-                AutoTranslatorScanner.NotifyTranslationFilesChanged(extractRoot);
-                AutoTranslatorScanner.NotifyTranslationFilesChanged(workspaceDir);
-
+                if (!canCommit()) return false;
+                // Parsing, hashing, backup and commit stay off the game thread on every version.
+                await Task.Run(() => CommitCloudArchive(downloadedZipPath, packageId, targetLangFolder,
+                    resolvedRecord, clearExistingTranslations, canCommit)).ConfigureAwait(false);
                 if (requestMemoryDrop)
-                {
-                    AutoTranslatorLegacyRepairer.RepairPackage(packageId, targetLangFolder, requestMemoryDrop: false);
-                    AutoTranslatorScanner.RequestMemoryDrop();
-                }
-                return true;
+                    ATC_Dispatcher.RunOnMainThread(() => {
+                        if (canCommit()) AutoTranslatorScanner.RequestMemoryDropForPackage(packageId);
+                    });
+                return true; // commit completed; a later cancel does not pretend it was undone
             }
             catch (Exception ex)
             {
-                RollbackFailedCloudDownload(targetMod, clearTarget, requestRuntimeRefreshAfterClear, restoreBackupOnFailure);
-                TryDeleteCloudTempFile(downloadedZipPath);
-
                 ATC_Dispatcher.RunOnMainThread(() => AutoTranslatorSettings.AddErrorLog(
                     AutoTranslatorAPI.TranslateText("ATC_LogError_DownloadCorrupted", packageId, ex.Message)));
                 return false;
             }
+            finally { TryDeleteCloudTempFile(downloadedZipPath); }
+        }
+
+        private sealed class CloudArchiveManifest
+        {
+            public int Schema = 1;
+            public string PackageId, Language;
+            public Dictionary<string, string> Files = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static void CanonicalizeCloudArchive(string staging, string packageId)
+        {
+            foreach (var group in Directory.GetFiles(staging, "*.xml", SearchOption.AllDirectories).GroupBy(Path.GetDirectoryName))
+            {
+                var merged = new XmlDocument { XmlResolver = null };
+                merged.AppendChild(merged.CreateElement("LanguageData"));
+                var keys = new HashSet<string>(StringComparer.Ordinal);
+                foreach (string file in group.OrderBy(f => f, StringComparer.Ordinal))
+                {
+                    var document = new XmlDocument { XmlResolver = null };
+                    using (var reader = XmlReader.Create(file, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null })) document.Load(reader);
+                    foreach (XmlElement element in document.DocumentElement.ChildNodes.OfType<XmlElement>())
+                    {
+                        string key = TranslationXmlEntryCodec.TryReadReplacement(element, out string replacement, out string _) ? replacement : element.Name;
+                        if (!keys.Add(key)) throw new InvalidDataException("Conflicting cloud source keys require workbench consolidation: " + key);
+                        merged.DocumentElement.AppendChild(merged.ImportNode(element, true));
+                    }
+                }
+                // Only the private temporary upload tree is consolidated.
+                foreach (string file in group) File.Delete(file);
+                merged.Save(Path.Combine(group.Key, TranslationGeneratedOutputOwnership.GetCanonicalFileName(packageId)));
+            }
+        }
+
+        private static void WriteCloudArchiveManifest(string staging, string packageId, string language)
+        {
+            var manifest = new CloudArchiveManifest { PackageId = packageId, Language = language };
+            foreach (string file in Directory.GetFiles(staging, "*.xml", SearchOption.AllDirectories))
+                manifest.Files[file.Substring(staging.Length).TrimStart('\\', '/').Replace('\\', '/')] = TranslationFileTransaction.FileHash(file);
+            File.WriteAllText(Path.Combine(staging, "ATC_Manifest.json"), JsonConvert.SerializeObject(manifest));
+        }
+
+        private static void CommitCloudArchive(string archivePath, string packageId, string language,
+            CloudModRecord record, bool clearExisting, Func<bool> canCommit)
+        {
+            if (string.IsNullOrWhiteSpace(packageId) || packageId.IndexOfAny(new[] { '/', '\\', ':' }) >= 0 || packageId == ".." ||
+                string.IsNullOrWhiteSpace(language) || language.IndexOfAny(new[] { '/', '\\', ':' }) >= 0 || language == "..")
+                throw new InvalidDataException("Invalid package/language scope.");
+            string pack = AutoTranslatorScanner.GetLocalPackPath();
+            string target = Path.Combine(pack, "Languages", language);
+            string workspace = Path.Combine(pack, "Upload_Workspace", packageId, language);
+            if (record != null &&
+                ((!string.IsNullOrWhiteSpace(record.PackageId) && !string.Equals(record.PackageId, packageId, StringComparison.OrdinalIgnoreCase)) ||
+                 (!string.IsNullOrWhiteSpace(record.Language) && !string.Equals(record.Language, language, StringComparison.OrdinalIgnoreCase))))
+                throw new InvalidDataException("Cloud record package/language mismatch.");
+            var files = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+            using (var archive = ZipFile.OpenRead(archivePath))
+            {
+                if (archive.Entries.Count > 10000) throw new InvalidDataException("Archive entry limit exceeded.");
+                var manifests = archive.Entries.Where(e => string.Equals(e.FullName, "ATC_Manifest.json", StringComparison.OrdinalIgnoreCase)).ToArray();
+                if (manifests.Length > 1 || (manifests.Length == 1 && manifests[0].Length > 4 * 1024 * 1024))
+                    throw new InvalidDataException("Invalid or duplicate archive manifest.");
+                CloudArchiveManifest manifest = null;
+                bool legacy = manifests.Length == 0;
+                if (!legacy)
+                {
+                    using (var reader = new StreamReader(manifests[0].Open())) manifest = JsonConvert.DeserializeObject<CloudArchiveManifest>(reader.ReadToEnd());
+                    if (manifest == null || manifest.Schema != 1 || manifest.PackageId != packageId || manifest.Language != language || manifest.Files == null)
+                        throw new InvalidDataException("Archive package/language mismatch.");
+                }
+                // Old uploads predate manifests and contain per-source XML names.
+                // Bind them to the requested scope by consolidating into our own
+                // canonical destinations, never by trusting their filenames.
+                var legacyDocuments = new Dictionary<string, XmlDocument>(StringComparer.OrdinalIgnoreCase);
+                var legacyKeys = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+                var incomingPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                long total = 0;
+                foreach (var entry in archive.Entries)
+                {
+                    if (!legacy && entry == manifests[0]) continue;
+                    if (!canCommit()) throw new OperationCanceledException();
+                    string name = entry.FullName.Replace('\\', '/');
+                    GetSafeCloudExtractPath(target, name);
+                    string pathToValidate = string.IsNullOrEmpty(entry.Name) ? name.TrimEnd('/') : name;
+                    if (pathToValidate.Split('/').Any(p => string.IsNullOrWhiteSpace(p) || p == "." || p == ".." ||
+                        p.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0))
+                        throw new InvalidDataException("Invalid archive path: " + name);
+                    if (string.IsNullOrEmpty(entry.Name)) continue;
+                    string[] parts = name.Split('/');
+                    bool keyed = string.Equals(parts[0], "Keyed", StringComparison.OrdinalIgnoreCase);
+                    bool defInjected = string.Equals(parts[0], "DefInjected", StringComparison.OrdinalIgnoreCase);
+                    bool scope = legacy
+                        ? (parts.Length >= 2 && keyed) || (parts.Length >= 3 && defInjected)
+                        : (parts.Length == 2 && keyed) || (parts.Length == 3 && defInjected);
+                    // Incoming names must be canonical. Prefixes alone can claim another
+                    // package (foo can claim foo_bar_AutoTranslated.xml). Legacy
+                    // inputs are renamed instead of writing to that claimed path.
+                    string expected = null;
+                    if (!scope || !string.Equals(Path.GetExtension(name), ".xml", StringComparison.OrdinalIgnoreCase) ||
+                        !incomingPaths.Add(name) || (!legacy && (!IsExactCloudPackageFile(entry.Name, packageId) ||
+                        !manifest.Files.TryGetValue(name, out expected))))
+                        throw new InvalidDataException("Unowned or duplicate archive entry: " + name);
+                    if (entry.Length > 32 * 1024 * 1024 || (total += entry.Length) > 256 * 1024 * 1024)
+                        throw new InvalidDataException("Archive size limit exceeded.");
+                    byte[] bytes;
+                    using (var input = entry.Open())
+                    using (var output = new MemoryStream())
+                    {
+                        byte[] buffer = new byte[81920]; int n;
+                        while ((n = input.Read(buffer, 0, buffer.Length)) != 0)
+                        {
+                            if (!canCommit()) throw new OperationCanceledException();
+                            if (output.Length + n > entry.Length) throw new InvalidDataException("Archive length mismatch.");
+                            output.Write(buffer, 0, n);
+                        }
+                        bytes = output.ToArray();
+                    }
+                    if (bytes.LongLength != entry.Length) throw new InvalidDataException("Archive length mismatch.");
+                    if (!legacy && TranslationFileTransaction.Hash(bytes) != expected) throw new InvalidDataException("Archive checksum mismatch.");
+                    var document = new XmlDocument { XmlResolver = null };
+                    using (var input = new MemoryStream(bytes))
+                    using (var reader = XmlReader.Create(input, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null }))
+                        document.Load(reader);
+                    if (document.DocumentElement?.Name != "LanguageData") throw new InvalidDataException("Invalid translation XML.");
+                    var keys = new HashSet<string>(StringComparer.Ordinal);
+                    foreach (XmlNode node in document.DocumentElement.ChildNodes)
+                    {
+                        if (!(node is XmlElement element)) continue;
+                        string key = element.Name;
+                        if (defInjected && TranslationXmlEntryCodec.TryReadReplacement(element, out string replacementKey, out string replacementValue))
+                            key = replacementKey;
+                        if (!keys.Add(key)) throw new InvalidDataException("Duplicate translation key.");
+                    }
+                    if (!legacy) files.Add(name, bytes);
+                    else
+                    {
+                        string outputName = (keyed ? "Keyed/" : "DefInjected/" + parts[1] + "/") +
+                            TranslationGeneratedOutputOwnership.GetCanonicalFileName(packageId);
+                        if (!legacyDocuments.TryGetValue(outputName, out var merged))
+                        {
+                            merged = new XmlDocument { XmlResolver = null };
+                            merged.AppendChild(merged.CreateElement("LanguageData"));
+                            legacyDocuments[outputName] = merged;
+                            legacyKeys[outputName] = new Dictionary<string, string>(StringComparer.Ordinal);
+                        }
+                        foreach (XmlElement element in document.DocumentElement.ChildNodes.OfType<XmlElement>())
+                        {
+                            string key = defInjected && TranslationXmlEntryCodec.TryReadReplacement(element, out string replacement, out string _)
+                                ? replacement : element.Name;
+                            if (legacyKeys[outputName].TryGetValue(key, out string previous))
+                            {
+                                if (previous != element.OuterXml) throw new InvalidDataException("Conflicting legacy translation key: " + key);
+                                continue;
+                            }
+                            legacyKeys[outputName][key] = element.OuterXml;
+                            merged.DocumentElement.AppendChild(merged.ImportNode(element, true));
+                        }
+                    }
+                }
+                foreach (var pair in legacyDocuments)
+                {
+                    byte[] bytes = Encoding.UTF8.GetBytes(pair.Value.OuterXml);
+                    if (bytes.Length > 32 * 1024 * 1024) throw new InvalidDataException("Consolidated archive file size limit exceeded.");
+                    files.Add(pair.Key, bytes);
+                }
+                if (files.Count == 0 || (!legacy && files.Count != manifest.Files.Count)) throw new InvalidDataException("Incomplete translation archive.");
+            }
+            // Stage includes the previous workspace, not merely the installed language files.
+            var transaction = new TranslationFileTransaction(Path.Combine(pack, "Backups", packageId, "Cloud"));
+            string ownerPath = Path.Combine(target, "ATC_Ownership", packageId.Replace('.', '_').ToLowerInvariant() + ".json");
+            transaction.Observe(ownerPath);
+            if (File.Exists(ownerPath) && JsonConvert.DeserializeObject<string>(File.ReadAllText(ownerPath)) != packageId)
+                throw new InvalidDataException("Normalized package identity collision; existing translations retained.");
+            // Provenance from local/manual producers is independent ownership evidence.
+            foreach (string path in Directory.Exists(target) ? Directory.GetFiles(target, "*.json", SearchOption.AllDirectories) : new string[0])
+            {
+                if (path.IndexOf("Provenance", StringComparison.OrdinalIgnoreCase) < 0) continue;
+                var provenance = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(path));
+                string owner = (string)provenance["PackageId"];
+                if (owner != null && owner != packageId && owner.Replace('.', '_').Equals(packageId.Replace('.', '_'), StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidDataException("Local provenance belongs to a different package.");
+            }
+            transaction.Stage(ownerPath, Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(packageId)));
+            foreach (var pair in files)
+            {
+                transaction.Stage(GetSafeCloudExtractPath(target, pair.Key), pair.Value);
+                transaction.Stage(GetSafeCloudExtractPath(workspace, pair.Key), pair.Value);
+            }
+            // Only exact generated filenames are eligible for legacy cleanup. Unknown files stay intact.
+            if (clearExisting && Directory.Exists(target))
+                foreach (string path in Directory.GetFiles(target, "*.xml", SearchOption.AllDirectories))
+                {
+                    string relative = path.Substring(target.Length).TrimStart('\\', '/').Replace('\\', '/');
+                    if (!files.ContainsKey(relative) && IsExactCloudPackageFile(path, packageId)) transaction.Stage(path, null);
+                }
+            if (record != null)
+            {
+                var meta = new LocalModMeta { OriginalRecordId = record.RecordId, TargetModVersion = record.TargetModVersion ?? "Unknown",
+                    TranslationDate = record.TranslationDate, IsSmartMerged = record.IsSmartMerged, MergedAiCount = record.MergedAiCount };
+                transaction.Stage(Path.Combine(target, packageId.Replace('.', '_').ToLowerInvariant() + "_ATC_Meta.json"),
+                    Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(meta)));
+            }
+            transaction.Commit(canCommit);
+            foreach (var pair in files)
+            {
+                AutoTranslatorScanner.NotifyTranslationFileChanged(GetSafeCloudExtractPath(target, pair.Key));
+                AutoTranslatorScanner.NotifyTranslationFileChanged(GetSafeCloudExtractPath(workspace, pair.Key));
+            }
+            AutoTranslatorScanner.NotifyTranslationFilesChanged(target);
+        }
+
+        private static bool IsExactCloudPackageFile(string path, string packageId)
+        {
+            string prefix = packageId.Replace('.', '_').ToLowerInvariant();
+            string name = Path.GetFileName(path);
+            return string.Equals(name, prefix + "_AutoTranslated.xml", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, prefix + "_CloudCorrections.xml", StringComparison.OrdinalIgnoreCase);
         }
 
         private static async Task<CloudDownloadAttemptResult> DownloadCloudArchiveAttemptAsync(
             string url,
             string tempFilePath,
-            int timeoutSeconds)
+            int timeoutSeconds, CancellationToken cancellationToken)
         {
 #if RIMWORLD_1_7
-            return await WaylithArchiveDownloader.DownloadAsync(url, tempFilePath, timeoutSeconds);
+            return await WaylithArchiveDownloader.DownloadAsync(url, tempFilePath, timeoutSeconds, cancellationToken);
 #else
-            var tcs = new TaskCompletionSource<CloudDownloadAttemptResult>();
-            ATC_Dispatcher.RunOnMainThread(() =>
+            using (var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
             {
-                try
+                deadline.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds + 10));
+                var tcs = new TaskCompletionSource<CloudDownloadAttemptResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+                UnityWebRequest request = null;
+                // The waiter can cancel even when the main-thread dispatcher is stalled.
+                // Creation and all request cleanup remain on the Unity thread.
+                using (deadline.Token.Register(() =>
                 {
-                    TryDeleteCloudTempFile(tempFilePath);
-                    var request = new UnityWebRequest(url, "GET")
+                    if (!tcs.TrySetCanceled()) return;
+                    ATC_Dispatcher.RunOnMainThread(() =>
                     {
-                        timeout = timeoutSeconds,
-                        downloadHandler = new DownloadHandlerFile(tempFilePath) { removeFileOnAbort = true }
-                    };
-                    UnityWebRequestAsyncOperation operation = request.SendWebRequest();
-                    operation.completed += _ =>
+                        var cancelled = request; request = null;
+                        if (cancelled != null) { try { cancelled.Abort(); } finally { cancelled.Dispose(); } }
+                        TryDeleteCloudTempFile(tempFilePath);
+                    });
+                }))
+                {
+                    ATC_Dispatcher.RunOnMainThread(() =>
                     {
+                        if (tcs.Task.IsCompleted) return;
                         try
                         {
-                            tcs.TrySetResult(new CloudDownloadAttemptResult
+                            TryDeleteCloudTempFile(tempFilePath);
+                            request = new UnityWebRequest(url, "GET")
                             {
-                                Success = UnityWebRequestCompat.IsSuccess(request),
-                                StatusCode = request.responseCode,
-                                Error = request.error,
-                                FilePath = tempFilePath,
-                                ServedRecordId = request.GetResponseHeader("X-ATC-Record-Id"),
-                                FallbackReason = request.GetResponseHeader("X-ATC-Record-Fallback")
-                            });
+                                timeout = timeoutSeconds,
+                                downloadHandler = new DownloadHandlerFile(tempFilePath) { removeFileOnAbort = true }
+                            };
+                            request.SendWebRequest().completed += _ =>
+                            {
+                                var completed = request; request = null;
+                                if (completed == null) return;
+                                bool delivered = false;
+                                try
+                                {
+                                    if (!tcs.Task.IsCompleted)
+                                    {
+                                        var result = new CloudDownloadAttemptResult
+                                        {
+                                            Success = UnityWebRequestCompat.IsSuccess(completed),
+                                            StatusCode = completed.responseCode, Error = completed.error, FilePath = tempFilePath,
+                                            ServedRecordId = completed.GetResponseHeader("X-ATC-Record-Id"),
+                                            FallbackReason = completed.GetResponseHeader("X-ATC-Record-Fallback")
+                                        };
+                                        completed.Dispose(); completed = null;
+                                        delivered = tcs.TrySetResult(result);
+                                    }
+                                }
+                                catch (Exception ex) { tcs.TrySetException(ex); }
+                                finally { completed?.Dispose(); if (!delivered) TryDeleteCloudTempFile(tempFilePath); }
+                            };
                         }
-                        catch (Exception innerEx)
+                        catch (Exception ex)
                         {
-                            tcs.TrySetException(innerEx);
+                            request?.Dispose(); request = null;
+                            TryDeleteCloudTempFile(tempFilePath);
+                            tcs.TrySetException(ex);
                         }
-                        finally
-                        {
-                            request.Dispose();
-                        }
-                    };
+                    });
+                    return await tcs.Task.ConfigureAwait(false);
                 }
-                catch (Exception dispatchEx)
-                {
-                    tcs.TrySetException(dispatchEx);
-                }
-            });
-            return await WaitForCloudTask(tcs.Task, timeoutSeconds + 10, "cloud download");
+            }
 #endif
         }
 

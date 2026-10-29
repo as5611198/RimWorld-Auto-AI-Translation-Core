@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -76,54 +76,34 @@ namespace AutoTranslator_Core
             raw = System.Text.RegularExpressions.Regex.Replace(raw, @"\s*```\s*$", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
             raw = ExtractCleanJson(raw).Trim();
 
-            JToken token = JToken.Parse(raw);
-            if (token is JArray directArray)
-            {
-                return directArray.Select(x => x?.ToString() ?? "").ToList();
-            }
-
+            JToken token = JToken.Parse(raw, new JsonLoadSettings { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
+            if (token is JArray directArray) return ReadStringArray(directArray, count);
             if (token is JObject obj)
             {
                 string[] commonKeys = { "translations", "translation", "result", "results", "data", "items", "output" };
                 foreach (string key in commonKeys)
+                    if (obj[key] is JArray childArray) return ReadStringArray(childArray, count);
+                // Numeric-object protocol is exactly 0..count-1, without aliases or unknown keys.
+                if (obj.Count != count) return null;
+                var values = new List<string>(count);
+                for (int i = 0; i < count; i++)
                 {
-                    JToken child = obj[key];
-                    if (child is JArray childArray)
-                    {
-                        return childArray.Select(x => x?.ToString() ?? "").ToList();
-                    }
+                    JToken value = obj[i.ToString(System.Globalization.CultureInfo.InvariantCulture)];
+                    if (value == null || value.Type != JTokenType.String) return null;
+                    values.Add((string)value);
                 }
-
-                var numericValues = obj.Properties()
-                    .Select(p =>
-                    {
-                        bool ok = int.TryParse(p.Name, out int n);
-                        return new { Prop = p, IsNumber = ok, Number = ok ? n : int.MaxValue };
-                    })
-                    .Where(x => x.IsNumber)
-                    .OrderBy(x => x.Number)
-                    .Select(x => x.Prop.Value?.ToString() ?? "")
-                    .ToList();
-
-                if (numericValues.Count == count)
-                {
-                    return numericValues;
-                }
-
-                JArray firstArray = obj.Properties()
-                    .Select(p => p.Value)
-                    .OfType<JArray>()
-                    .FirstOrDefault();
-
-                if (firstArray != null)
-                {
-                    return firstArray.Select(x => x?.ToString() ?? "").ToList();
-                }
+                return values;
             }
 
             return null;
         }
 
+
+        private static List<string> ReadStringArray(JArray array, int count)
+        {
+            if (array.Count != count || array.Any(x => x.Type != JTokenType.String)) return null;
+            return array.Select(x => (string)x).ToList();
+        }
 
         // 這個方法負責解析 回應 內容。
         // EN: This method parses response.
@@ -148,7 +128,7 @@ namespace AutoTranslator_Core
                 }
 
                 string raw = expectsGoogleFormat
-                                    ? obj["candidates"]?[0]?["content"]?["parts"]?[0]?["text"]?.ToString()
+                                    ? ExtractGoogleAssistantContent(obj)
                                     : obj["choices"]?[0]?["message"]?["content"]?.ToString();
 
 
@@ -167,7 +147,7 @@ namespace AutoTranslator_Core
                     {
                         if (!string.IsNullOrEmpty(list[i]))
                         {
-                            list[i] = list[i].Replace("\\n", "\n").Replace("\\r", "\r").Replace("/n", "\n");
+                            list[i] = list[i].Replace("\\n", "\n").Replace("\\r", "\r");
                         }
                     }
                     return list;

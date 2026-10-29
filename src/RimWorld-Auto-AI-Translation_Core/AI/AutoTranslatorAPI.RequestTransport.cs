@@ -18,6 +18,25 @@ namespace AutoTranslator_Core
             string player2GameClientId = null,
             bool usePlayer2Protocol = false)
         {
+#if RIMWORLD_1_7
+            if (IsRequestCancellationRequested(additionalCancellation))
+                return new ATC_WebResponse { ErrorText = "Request cancelled", ResponseBody = string.Empty };
+            Stopwatch timer = Stopwatch.StartNew();
+            ATC_WebResponse nativeResponse = null;
+            AutoTranslatorPerf.BeginApiRequest();
+            try
+            {
+                nativeResponse = await NativeHttpTransport.SendAsync(url, "POST",
+                    System.Text.Encoding.UTF8.GetBytes(jsonPayload),
+                    ApiRequestHeaders.Build(provider, apiKey, player2GameClientId, usePlayer2Protocol),
+                    timeoutSeconds, () => IsRequestCancellationRequested(additionalCancellation), true).ConfigureAwait(false);
+                return nativeResponse;
+            }
+            finally
+            {
+                AutoTranslatorPerf.EndApiRequest(timer.ElapsedMilliseconds, nativeResponse != null && nativeResponse.IsSuccess);
+            }
+#else
             int safeTimeoutSeconds = Math.Max(1, timeoutSeconds);
             if (IsRequestCancellationRequested(additionalCancellation))
                 return CreateRequestTimeoutResponse(provider, 0);
@@ -145,8 +164,10 @@ namespace AutoTranslator_Core
                         response != null && response.IsSuccess);
                 }
             }
+#endif
         }
 
+#if !RIMWORLD_1_7
         private static async Task<bool> WaitForRequestDispatchAsync(
             Task dispatchStarted,
             Func<bool> additionalCancellation,
@@ -180,6 +201,7 @@ namespace AutoTranslator_Core
 
             return true;
         }
+#endif
 
         private static bool IsRequestCancellationRequested(Func<bool> additionalCancellation)
         {

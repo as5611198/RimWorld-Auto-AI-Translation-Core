@@ -380,6 +380,7 @@ namespace AutoTranslator_Core
                 _updatedListRefreshError = null;
             }
             AutoTranslatorScanner.ClearExternalTargetLanguagePatchCache();
+            AutoTranslatorScanner.NotifyRawDefSourcesChanged();
         }
 
         // 這個方法負責判斷 HasLocal翻譯Files 條件是否成立。

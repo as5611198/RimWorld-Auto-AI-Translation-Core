@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LanguageData>
+  <ATC_SelectUntranslated>เลือกม็อดที่ยังไม่แปล</ATC_SelectUntranslated>
+  <ATC_SelectUntranslated_Checking>กำลังตรวจสอบ…</ATC_SelectUntranslated_Checking>
+  <ATC_SelectUntranslated_Tip>เพิ่มม็อดที่ยังไม่แปลจากผลการค้นหาปัจจุบันไปยังรายการที่เลือก โดยไม่รวมเกมหลัก DLC ม็อดในบัญชีดำ และแพ็กภาษา</ATC_SelectUntranslated_Tip>
+</LanguageData>

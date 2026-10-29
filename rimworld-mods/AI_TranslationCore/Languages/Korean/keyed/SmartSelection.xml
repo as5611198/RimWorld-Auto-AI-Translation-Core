@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LanguageData>
+  <ATC_SelectUntranslated>미번역 모드 선택</ATC_SelectUntranslated>
+  <ATC_SelectUntranslated_Checking>확인 중…</ATC_SelectUntranslated_Checking>
+  <ATC_SelectUntranslated_Tip>현재 검색 결과에서 미번역 모드를 추가로 선택합니다. 기존 선택은 유지하며 기본 게임, DLC, 차단된 모드와 언어 팩은 제외합니다.</ATC_SelectUntranslated_Tip>
+</LanguageData>

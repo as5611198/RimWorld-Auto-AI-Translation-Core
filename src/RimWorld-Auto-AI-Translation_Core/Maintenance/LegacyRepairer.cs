@@ -130,8 +130,10 @@ namespace AutoTranslator_Core
                 string packLangDir = Path.Combine(AutoTranslatorScanner.GetLocalPackPath(), "Languages", targetFolder);
                 if (!Directory.Exists(packLangDir)) return summary;
 
+                lock (TranslationRepairController.OperationGate)
                 lock (RepairLock)
                 {
+                    if (TranslationRepairController.IsRunning) return summary;
                     try
                     {
                         SourceCache.Clear();
@@ -259,7 +261,9 @@ namespace AutoTranslator_Core
 
             if (fileChanged)
             {
-                doc.Save(file);
+                AutoTranslatorScanner.PreserveRepairInput(file);
+                TranslationXmlAtomicFileStore.Save(file, stream => doc.Save(stream));
+                AutoTranslatorScanner.NotifyTranslationFileChanged(file);
                 summary.FilesTouched++;
             }
         }

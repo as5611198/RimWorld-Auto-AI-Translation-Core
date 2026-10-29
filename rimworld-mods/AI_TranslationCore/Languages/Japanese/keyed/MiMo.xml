@@ -5,4 +5,5 @@
   <ATC_MiMo_OpenAiRequired>MiMo の OpenAI 互換 URL（/v1）を使用してください。Anthropic /messages は使用できません。</ATC_MiMo_OpenAiRequired>
   <ATC_MiMo_ModelSuggestions>この MiMo 接続先にモデル一覧 API がないため内蔵候補を表示します。キーやモデル利用権限は未確認です。</ATC_MiMo_ModelSuggestions>
   <ATC_Profile_MiMo>MiMo：OpenAI 互換、深度思考は無効。</ATC_Profile_MiMo>
+  <ATC_MiMo_Notice_Purpose>既定の URL：{0}。Token Plan ではコンソールの OpenAI 互換 URL と対応するキーを使用してください。モデル ID は手入力できます。自動モードでは、対応モデルの翻訳時の思考を無効にし、審査 Agent の思考は維持します。</ATC_MiMo_Notice_Purpose>
 </LanguageData>

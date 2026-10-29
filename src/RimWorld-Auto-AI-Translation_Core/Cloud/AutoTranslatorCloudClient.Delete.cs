@@ -33,7 +33,12 @@ namespace AutoTranslator_Core
                 try
                 {
                     string url = $"{CloudApiBaseUrl}/delete/{packageId}/{language}?recordId={recordId}";
-
+#if RIMWORLD_1_7
+                    var response = await NativeHttpTransport.SendAsync(url, "DELETE", null,
+                        new Dictionary<string, string> { { "X-Admin-Token", adminToken } }, 30);
+                    if (!response.IsSuccess) throw new Exception(response.ErrorText);
+                    bool success = true;
+#else
                     var tcs = new TaskCompletionSource<bool>();
                     ATC_Dispatcher.RunOnMainThread(() =>
                     {
@@ -61,6 +66,7 @@ namespace AutoTranslator_Core
                     });
 
                     bool success = await WaitForCloudTask(tcs.Task, 40, "cloud delete");
+#endif
                     if (success) return true;
                 }
                 catch (Exception ex)

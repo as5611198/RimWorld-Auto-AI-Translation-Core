@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using RimWorld;
 using System;
 using System.Collections.Generic;
@@ -7,7 +7,6 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Xml;
 using Verse;
 using static AutoTranslator_Core.DeleteTranslationWindow;
@@ -21,9 +20,6 @@ namespace AutoTranslator_Core
     public static partial class AutoTranslatorScanner
     {
         private static readonly object PackMaintenanceLock = new object();
-        // 這個欄位保存 packMaintenanceQueued 的執行狀態或快取資料。
-        // EN: This field stores pack maintenance queued runtime state or cached data.
-        private static int _packMaintenanceQueued;
         // 這個欄位保存 packMaintenanceRunning 的執行狀態或快取資料。
         // EN: This field stores pack maintenance running runtime state or cached data.
         private static int _packMaintenanceRunning;
@@ -64,6 +60,8 @@ namespace AutoTranslator_Core
 
                                 if (File.Exists(newFile))
                                 {
+                                    PreserveRepairInput(oldFile);
+                                    PreserveRepairInput(newFile);
                                     var oldDict = LoadXmlFileToDict(oldFile);
                                     var newDict = LoadXmlFileToDict(newFile);
                                     foreach (var kv in oldDict) newDict[kv.Key] = kv.Value;
@@ -73,6 +71,7 @@ namespace AutoTranslator_Core
                                 }
                                 else
                                 {
+                                    PreserveRepairInput(oldFile);
                                     File.Move(oldFile, newFile);
                                     NotifyTranslationFileChanged(oldFile);
                                     NotifyTranslationFileChanged(newFile);
@@ -147,10 +146,8 @@ namespace AutoTranslator_Core
             {
                 RunPackMaintenance(waitForExisting: true, repairPlaceholders: true);
             }
-            else
-            {
-                QueueBackgroundPackMaintenanceOnce();
-            }
+            // Ordinary scans only need the pack layout. Existing translations
+            // are repaired by the player's explicit repair action, never here.
         }
 
         // 這個方法負責確保 翻譯包Skeleton 已準備完成。
@@ -194,30 +191,11 @@ namespace AutoTranslator_Core
             }
         }
 
-        // 這個方法負責排入 Background翻譯包MaintenanceOnce 佇列。
-        // EN: This method queues background pack maintenance once.
-        private static void QueueBackgroundPackMaintenanceOnce(int delayMs = 750)
-        {
-            if (Interlocked.Exchange(ref _packMaintenanceQueued, 1) == 1) return;
-
-            Task.Run(async () =>
-            {
-                try
-                {
-                    await Task.Delay(Math.Max(0, delayMs));
-                    RunPackMaintenance();
-                }
-                catch (Exception ex)
-                {
-                    Log.Warning($"[AutoTranslationCore] Background pack maintenance failed: {ex.Message}");
-                }
-            });
-        }
-
         // 這個方法負責處理 Run翻譯包Maintenance 相關流程。
         // EN: This method handles run pack maintenance.
         private static void RunPackMaintenance(bool waitForExisting = false, bool repairPlaceholders = false)
         {
+            if (TranslationRepairController.IsRunning) return;
             if (Interlocked.CompareExchange(ref _packMaintenanceRunning, 1, 0) != 0)
             {
                 if (!waitForExisting) return;
@@ -231,9 +209,11 @@ namespace AutoTranslator_Core
 
             try
             {
+                lock (TranslationRepairController.OperationGate)
                 lock (PackMaintenanceLock)
                 {
-                    CleanupSelfTranslations();
+                    if (TranslationRepairController.IsRunning) return;
+                    // Preserve existing self-translation files; structural validation owns quarantine.
                     MigrateOldTranslations();
                     ApplyEmergencyHotfix();
                     ApplyOfficialDlcKeyedHotfix();

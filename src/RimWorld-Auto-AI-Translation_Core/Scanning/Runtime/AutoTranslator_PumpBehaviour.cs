@@ -38,6 +38,10 @@ namespace AutoTranslator_Core
                     AutoTranslator_StartupHook.PollForLoadedPlayData();
                     ATC_Dispatcher.PumpPending();
                     AutoTranslatorScanner.PumpMainThreadDispatcher();
+                    // Menu notices/progress use the native UIRoot_Entry update.
+                    // Keep detecting an unexpected exit during a repair run.
+                    if ((TranslationRepairController.IsRunning || TranslationRepairController.IsWaiting) && Current.ProgramState != ProgramState.Entry)
+                        TranslationRepairController.Tick();
                 }
             }
         }

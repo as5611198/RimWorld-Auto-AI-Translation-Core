@@ -77,6 +77,30 @@ internal static class Program
             try { GUI.Label(Rect, "Source label", null); } catch (InvalidOperationException) { }
             UIInterceptor.Throw = false;
             Check(!UIInterceptorPatchGuard.IsNestedLabelCall, "guard is restored after translation exception");
+
+            // Other UI prefixes may redraw an original source string while an
+            // outer translated label scope is still active (for example an
+            // object[]-based restyling prefix). This is a fresh untranslated
+            // label, not the already-translated nested delegation above.
+            UIInterceptor.Calls = 0;
+            string outer = "Source label";
+            Patch_Widgets_Label_String.Prefix(Rect, ref outer, out bool outerState);
+            try { GUI.Label(Rect, "Source label", null); }
+            finally { Patch_Widgets_Label_String.Finalizer(null, outerState); }
+            Check(drawn == "翻譯文字", "foreign UI redraw of source text inside a translated scope still translates");
+            Check(UIInterceptor.Calls == 2, "fresh source redraw performs its own lookup while already-translated delegation stays deduplicated");
+            Check(!UIInterceptorPatchGuard.IsNestedLabelCall, "foreign redraw balances both label scopes");
+            outer = "Source label";
+            Patch_Widgets_Label_String.Prefix(Rect, ref outer, out outerState);
+            try
+            {
+                throwDraw = true;
+                try { GUI.Label(Rect, "Source label", null); } catch (InvalidOperationException) { }
+                finally { throwDraw = false; }
+                Check(UIInterceptorPatchGuard.IsNestedLabelCall && UIInterceptorPatchGuard.ShouldBypassNestedLabel(outer),
+                    "exception in a foreign child redraw retains the valid outer scope");
+            }
+            finally { Patch_Widgets_Label_String.Finalizer(null, outerState); }
             harmony.UnpatchAll(harmony.Id);
 
             string identityPath = Path.Combine(temporary, "identity.txt");

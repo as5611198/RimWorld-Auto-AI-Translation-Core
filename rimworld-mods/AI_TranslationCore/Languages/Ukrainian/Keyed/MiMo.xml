@@ -5,4 +5,5 @@
   <ATC_MiMo_OpenAiRequired>Використовуйте OpenAI URL MiMo (/v1), а не Anthropic /messages.</ATC_MiMo_OpenAiRequired>
   <ATC_MiMo_ModelSuggestions>Ця адреса MiMo не надає списку моделей. Показано вбудовані варіанти; ключ і доступ до моделей ще не перевірено.</ATC_MiMo_ModelSuggestions>
   <ATC_Profile_MiMo>MiMo: OpenAI-запити з вимкненим міркуванням.</ATC_Profile_MiMo>
+  <ATC_MiMo_Notice_Purpose>Типова адреса: {0}. Для Token Plan використовуйте сумісну з OpenAI URL-адресу та відповідний ключ із консолі. Модель можна ввести вручну. В автоматичному режимі у підтримуваних моделях міркування вимкнено для перекладу та збережено для Agent перевірки.</ATC_MiMo_Notice_Purpose>
 </LanguageData>

@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LanguageData>
+  <ATC_SelectUntranslated>Select Untranslated</ATC_SelectUntranslated>
+  <ATC_SelectUntranslated_Checking>Checking…</ATC_SelectUntranslated_Checking>
+  <ATC_SelectUntranslated_Tip>Add untranslated mods from the current search results to your selection. Excludes base game, DLC, blacklisted mods, and language packs.</ATC_SelectUntranslated_Tip>
+</LanguageData>

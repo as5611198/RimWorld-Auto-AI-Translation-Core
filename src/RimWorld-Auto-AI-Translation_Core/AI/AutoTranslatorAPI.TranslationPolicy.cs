@@ -11,7 +11,7 @@ namespace AutoTranslator_Core
     public static partial class AutoTranslatorAPI
     {
         internal const string TranslationPolicyAgentPolicyVersion = "1";
-        internal const string TranslationPolicyAgentPromptVersion = "3";
+        internal const string TranslationPolicyAgentPromptVersion = "4";
 
         private const string TranslationPolicyAgentSystemPrompt =
             "You are a constrained policy classifier for RimWorld XML localization. " +
@@ -113,6 +113,7 @@ namespace AutoTranslator_Core
             string canonical = TranslationPolicyIdentity.JoinCanonical(
                 config.Provider.ToString(),
                 CleanInput(config.SelectedModel),
+                config.ThinkingMode.ToString(),
                 (GetBaseUrl(config) ?? string.Empty).Trim().TrimEnd('/'));
             return "tpe_" + TranslationPolicyIdentity.ComputeSha256(canonical);
         }
@@ -177,6 +178,7 @@ namespace AutoTranslator_Core
                 }
 
                 int maximumOutputTokens = GetPolicyAgentOutputTokenLimit(safeGroups.Count, attempt);
+                maximumOutputTokens += ApiThinkingPolicy.PolicyReasoningReserve(config, GetBaseUrl(config));
                 long estimatedTokens = TranslationPolicyAgentTokenEstimator.EstimateAttemptTokens(
                     TranslationPolicyAgentSystemPrompt,
                     userJson,
@@ -228,10 +230,12 @@ namespace AutoTranslator_Core
                         return result;
                     }
 
-                    result.ErrorCode = string.Equals(
+                    result.ErrorCode = (string.Equals(
                         attemptResult.FinishReason,
                         "MAX_TOKENS",
                         StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(attemptResult.FinishReason, "length", StringComparison.OrdinalIgnoreCase)
+                        )
                         ? "truncated_response"
                         : "malformed_response";
                 }
@@ -277,7 +281,6 @@ namespace AutoTranslator_Core
                     { "responseMimeType", "application/json" },
                     { "responseSchema", TranslationPolicyGoogleResponseSchema }
                 };
-                AddGeminiPolicyThinkingConfig(generationConfig, model);
                 payload = new
                 {
                     contents = new[]
@@ -300,8 +303,8 @@ namespace AutoTranslator_Core
                     },
                     max_tokens = maximumOutputTokens
                 };
-                payload = PrepareProviderChatPayload(payload, config.Provider, isPlayer2);
             }
+            payload = PrepareApiRequestPayload(payload, config, true);
 
             int configuredTimeout = AutoTranslatorMod.Settings != null
                 ? AutoTranslatorMod.Settings.TimeoutSeconds
@@ -409,28 +412,6 @@ namespace AutoTranslator_Core
             return Math.Min(4096, limit);
         }
 
-        private static void AddGeminiPolicyThinkingConfig(
-            Dictionary<string, object> generationConfig,
-            string model)
-        {
-            if (generationConfig == null || string.IsNullOrWhiteSpace(model)) return;
-
-            string lower = model.Trim().ToLowerInvariant();
-            if (lower.Contains("gemini-3"))
-            {
-                generationConfig["thinkingConfig"] = new Dictionary<string, object>
-                {
-                    { "thinkingLevel", "MINIMAL" }
-                };
-            }
-            else if (lower.Contains("gemini-2.5"))
-            {
-                generationConfig["thinkingConfig"] = new Dictionary<string, object>
-                {
-                    { "thinkingBudget", 0 }
-                };
-            }
-        }
 
         private static string ExtractGoogleAssistantContent(JObject envelope)
         {

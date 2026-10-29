@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_Guide_Title>使用教程</ATC_Guide_Title>
+  <ATC_Guide_Introduction>按功能选择教程；下方按钮可直接前往对应页面。首次打开自动显示一次，之后可从各页的“使用教程”重新打开。</ATC_Guide_Introduction>
+  <ATC_Guide_Area_GettingStarted>第一次使用</ATC_Guide_Area_GettingStarted>
+  <ATC_Guide_Area_Settings>翻译设置</ATC_Guide_Area_Settings>
+  <ATC_Guide_Area_Workbench>全局工作台</ATC_Guide_Area_Workbench>
+  <ATC_Guide_Area_Cloud>云端共享</ATC_Guide_Area_Cloud>
+  <ATC_Guide_Area_Tasks>翻译任务</ATC_Guide_Area_Tasks>
+  <ATC_Guide_OpenSettings>前往翻译设置</ATC_Guide_OpenSettings>
+  <ATC_Guide_OpenWorkbench>前往全局工作台</ATC_Guide_OpenWorkbench>
+  <ATC_Guide_OpenCloud>前往云端共享</ATC_Guide_OpenCloud>
+  <ATC_Guide_OpenTasks>前往翻译任务</ATC_Guide_OpenTasks>
+  <ATC_Guide_Close>关闭教程</ATC_Guide_Close>
+  <ATC_Guide_Content_GettingStarted>【先选择使用方式】\n直接用现成译文：到“云端共享”选择语言、搜索模组并下载，不需要自己的 AI 密钥。\n自己翻译：先到“翻译设置”配置供应商、密钥、模型和目标语言。\n\n【第一次自己翻译】\n1. 确认目标语言；供应商、API 地址和密钥必须对应同一服务或方案。\n2. 自定义 OpenAI：填好地址和密钥后手动点“重新获取模型”，或直接填写模型 ID。\n3. 点“测试连接”。成功后到“翻译任务”，先选一个小模组试译。\n4. 查看进度、流水线日志与结果，再决定是否翻译更多模组。自行翻译可能消耗服务额度。\n5. 检查游戏内文字；部分画面可能需要重新打开窗口或进入游戏才会刷新。\n\n调整已有译文请用“全局工作台”。一次交给外部工具翻译多个模组，请用工作台的“批量 XML 导出／导入”。</ATC_Guide_Content_GettingStarted>
+  <ATC_Guide_Content_Settings>【基本设置】\n在“翻译设置”选择目标语言，添加并启用翻译 API：选供应商、填写对应密钥和模型，按需填自定义地址，再测试连接。\nCustom_OpenAI 用于 OpenAI 兼容服务。不要求密钥的服务可留空；需要验证的服务仍须有效密钥。填写后手动获取模型，不支持列表时可手填模型 ID。\nMiMo Token Plan 和按量方案须使用各自控制台提供的地址与密钥。Player2 使用本地协议和 Game Client ID，模型由 Player2 应用管理。\n\n【思考模式：每组 API 的高级设置】\n自动（推荐）：普通翻译能关就关，审查 Agent 保留思考。\n尽量关闭：能关闭的模型关闭；强制思考模型保留最低可用程度或服务默认。\n启用思考：支持时开启，可能增加时间与用量。未知模型或中转站保留服务默认，请看设置下方说明。翻译与审查 API 分别保存选项。\n\n【额外翻译要求】\n点“高级：自定义翻译要求…”，例如“使用简体中文，人名保留原文”。最多 4000 字符，可预览完整提示词、清空恢复；保存后生效。\n只影响后续普通 AI 翻译，不影响审查 Agent 或 DeepL，也不自动重译已有内容。内置格式、顺序、变量与标签保护规则仍保留。\n\n【审查与连接问题】\n审查 Agent 判断模糊字段是否适合翻译，本身不生成译文。首次使用可先关闭；需要时配置独立 API 和调用／用量限制。\n连接失败看左上角摘要，可手动查看或复制诊断，无需开发者模式。先核对地址、方案、密钥和模型；模型列表失败不一定表示不能翻译。</ATC_Guide_Content_Settings>
+  <ATC_Guide_Content_Workbench>【搜索和修改译文】\n在“全局工作台”搜索模组或文字，选模组、分类和条目，修改后点“保存并应用”。编辑框中的草稿还不算保存。\n全局搜索可定位不同模组的文字，批量替换可统一用语。保留变量、格式参数和标签。\n\n【一次处理多个模组】\n“批量 XML 导出／导入”支持多选模组、导出原文、外部编辑后导回；完整步骤见下方。\n“一键打包导出”用于输出已完成的翻译包。\n批量编辑前等待翻译任务完成或停止，避免同时修改相同内容。</ATC_Guide_Content_Workbench>
+  <ATC_Guide_Content_Cloud>【下载现成翻译】\n1. 到“云端共享”选择云端列表的目标语言。\n2. 搜索模组名称或 ID，查看译文类型和版本。\n3. 下载适合当前模组与语言的翻译，按画面应用并检查游戏内文字。无需自己的 AI 密钥。\n\n【分享翻译】\n翻译完成并检查后，选择要上传的模组或项目，填写显示名称、实际翻译类型和更新说明，按预览及确认画面上传。\nAI 机翻、玩家精翻、汉化组精翻请按实际制作方式选择。批量上传前确认语言和选取范围。\n\n【内容或版本不符】\n先核对云端语言、模组和版本。可到“全局工作台”修改本地译文，再检查后分享，避免上传未完成的草稿。</ATC_Guide_Content_Cloud>
+</LanguageData>

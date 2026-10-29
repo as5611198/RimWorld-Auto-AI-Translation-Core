@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LanguageData>
+  <ATC_SelectUntranslated>勾选未翻译</ATC_SelectUntranslated>
+  <ATC_SelectUntranslated_Checking>勾选中…</ATC_SelectUntranslated_Checking>
+  <ATC_SelectUntranslated_Tip>勾选当前搜索结果中状态为“未翻译”的模组，保留已有勾选。排除原版、DLC、黑名单与汉化包。</ATC_SelectUntranslated_Tip>
+</LanguageData>

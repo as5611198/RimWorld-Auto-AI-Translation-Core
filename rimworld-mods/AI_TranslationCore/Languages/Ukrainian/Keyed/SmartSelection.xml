@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LanguageData>
+  <ATC_SelectUntranslated>Вибрати неперекладені</ATC_SelectUntranslated>
+  <ATC_SelectUntranslated_Checking>Перевірка…</ATC_SelectUntranslated_Checking>
+  <ATC_SelectUntranslated_Tip>Додає неперекладені моди з поточних результатів пошуку до вибраних. Виключає базову гру, DLC, заблоковані моди та мовні пакети.</ATC_SelectUntranslated_Tip>
+</LanguageData>

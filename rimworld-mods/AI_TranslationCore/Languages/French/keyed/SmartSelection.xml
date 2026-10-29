@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LanguageData>
+  <ATC_SelectUntranslated>Cocher les non traduits</ATC_SelectUntranslated>
+  <ATC_SelectUntranslated_Checking>Vérification…</ATC_SelectUntranslated_Checking>
+  <ATC_SelectUntranslated_Tip>Ajoute les mods non traduits des résultats actuels à la sélection. Exclut le jeu de base, les DLC, les mods bloqués et les packs de langue.</ATC_SelectUntranslated_Tip>
+</LanguageData>

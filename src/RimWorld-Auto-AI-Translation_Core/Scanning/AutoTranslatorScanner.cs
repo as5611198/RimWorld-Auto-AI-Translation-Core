@@ -204,11 +204,6 @@ namespace AutoTranslator_Core
         private static readonly Regex TranslatableTitleTagRegex = new Regex(@"\[title:[^\[\]\r\n]*\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex FormatArgumentRegex = new Regex(@"\{(\d+)(?:,[^{}:]+)?(?::[^{}]+)?\}", RegexOptions.Compiled);
 
-        private static readonly Regex ValidXmlNameRegex = new Regex(
-            @"^[A-Za-z_][A-Za-z0-9_\-\.]*$",
-            RegexOptions.Compiled
-        );
-
     }
 
 }

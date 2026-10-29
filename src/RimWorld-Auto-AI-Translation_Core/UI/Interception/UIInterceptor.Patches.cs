@@ -22,16 +22,31 @@ namespace AutoTranslator_Core
         [ThreadStatic]
         private static int _nestedLabelDepth;
 
+        [ThreadStatic]
+        private static Stack<string> _nestedLabelTexts;
+
         internal static bool IsNestedLabelCall => _nestedLabelDepth > 0;
 
-        internal static void EnterNestedLabelCall()
+        internal static bool ShouldBypassNestedLabel(string text)
         {
+            return _nestedLabelDepth > 0 && _nestedLabelTexts != null && _nestedLabelTexts.Count > 0 &&
+                string.Equals(_nestedLabelTexts.Peek(), text, StringComparison.Ordinal);
+        }
+
+        internal static void EnterNestedLabelCall(string text)
+        {
+            if (_nestedLabelTexts == null) _nestedLabelTexts = new Stack<string>();
+            _nestedLabelTexts.Push(text);
             _nestedLabelDepth++;
         }
 
         internal static void ExitNestedLabelCall()
         {
-            if (_nestedLabelDepth > 0) _nestedLabelDepth--;
+            if (_nestedLabelDepth > 0)
+            {
+                _nestedLabelDepth--;
+                if (_nestedLabelTexts != null && _nestedLabelTexts.Count > 0) _nestedLabelTexts.Pop();
+            }
         }
     }
 
@@ -80,7 +95,7 @@ namespace AutoTranslator_Core
         {
             __state = false;
             if (!AutoTranslatorMod.Settings.EnableUIInterceptor || BypassInterceptor) return;
-            if (UIInterceptorPatchGuard.IsNestedLabelCall) return;
+            if (UIInterceptorPatchGuard.ShouldBypassNestedLabel(content?.text)) return;
 
             if (content != null && !string.IsNullOrEmpty(content.text))
             {
@@ -124,7 +139,7 @@ namespace AutoTranslator_Core
                 }
             }
 #if RIMWORLD_1_7
-            UIInterceptorPatchGuard.EnterNestedLabelCall();
+            UIInterceptorPatchGuard.EnterNestedLabelCall(content?.text);
             __state = true;
 #endif
         }
@@ -349,7 +364,7 @@ namespace AutoTranslator_Core
         {
             __state = false;
             if (!AutoTranslatorMod.Settings.EnableUIInterceptor || Patch_GUI_Label_GUIContent.BypassInterceptor) return;
-            if (UIInterceptorPatchGuard.IsNestedLabelCall) return;
+            if (UIInterceptorPatchGuard.ShouldBypassNestedLabel(label)) return;
 
             if (!string.IsNullOrEmpty(label)
                 && UIInterceptor.TryResolveRenderText(label, out string translated))
@@ -358,7 +373,7 @@ namespace AutoTranslator_Core
                 label = translated;
             }
 
-            UIInterceptorPatchGuard.EnterNestedLabelCall();
+            UIInterceptorPatchGuard.EnterNestedLabelCall(label);
             __state = true;
         }
 
@@ -379,7 +394,7 @@ namespace AutoTranslator_Core
         {
             __state = false;
             if (!AutoTranslatorMod.Settings.EnableUIInterceptor || Patch_GUI_Label_GUIContent.BypassInterceptor) return;
-            if (UIInterceptorPatchGuard.IsNestedLabelCall) return;
+            if (UIInterceptorPatchGuard.ShouldBypassNestedLabel(label)) return;
             if (string.IsNullOrEmpty(label)) return;
 
             if (UIInterceptor.TryResolveRenderText(label, out string translated))
@@ -388,7 +403,7 @@ namespace AutoTranslator_Core
                 label = translated;
             }
 
-            UIInterceptorPatchGuard.EnterNestedLabelCall();
+            UIInterceptorPatchGuard.EnterNestedLabelCall(label);
             __state = true;
         }
 

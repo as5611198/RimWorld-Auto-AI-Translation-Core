@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using RimWorld;
 using System;
 using System.Collections.Generic;
@@ -127,6 +127,7 @@ namespace AutoTranslator_Core
         {
             if (filesToBackup == null || filesToBackup.Count == 0) return false;
             if (string.IsNullOrWhiteSpace(packageId)) return false;
+            string stagingDir = null, pendingZip = null;
             try
             {
                 string packPath = GetLocalPackPath();
@@ -134,8 +135,7 @@ namespace AutoTranslator_Core
                 Directory.CreateDirectory(backupRoot);
 
 
-                string stagingDir = Path.Combine(Path.GetTempPath(), "ATC_Backup_" + packageId);
-                if (Directory.Exists(stagingDir)) Directory.Delete(stagingDir, true);
+                stagingDir = Path.Combine(Path.GetTempPath(), "ATC_Backup_" + Guid.NewGuid().ToString("N"));
                 Directory.CreateDirectory(stagingDir);
 
                 string langsPath = Path.Combine(packPath, "Languages");
@@ -143,28 +143,41 @@ namespace AutoTranslator_Core
 
                 foreach (string file in filesToBackup)
                 {
-                    string relPath = file.Substring(langsPath.Length).TrimStart('\\', '/');
+                    string root = Path.GetFullPath(langsPath).TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
+                    string absolute = Path.GetFullPath(file);
+                    if (!absolute.StartsWith(root, StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Unowned backup input.");
+                    TranslationFileTransaction.RejectReparsePoints(absolute);
+                    string relPath = absolute.Substring(root.Length);
                     string destPath = Path.Combine(stagingDir, relPath);
                     Directory.CreateDirectory(Path.GetDirectoryName(destPath));
                     File.Copy(file, destPath, true);
                 }
 
 
-                string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                string timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss_fffffff") + "_" + Guid.NewGuid().ToString("N");
                 string zipPath = Path.Combine(backupRoot, $"{packageId}_{timestamp}.zip");
+                pendingZip = zipPath + ".pending";
 
-                if (File.Exists(zipPath)) File.Delete(zipPath);
-                System.IO.Compression.ZipFile.CreateFromDirectory(stagingDir, zipPath);
-                Directory.Delete(stagingDir, true);
+                var manifest = Directory.GetFiles(stagingDir, "*", SearchOption.AllDirectories).ToDictionary(
+                    path => path.Substring(stagingDir.Length).TrimStart('\\', '/').Replace('\\', '/'), TranslationFileTransaction.FileHash, StringComparer.OrdinalIgnoreCase);
+                File.WriteAllText(Path.Combine(stagingDir, "ATC_BackupManifest.json"), JsonConvert.SerializeObject(new { PackageId = packageId, Files = manifest }));
+                System.IO.Compression.ZipFile.CreateFromDirectory(stagingDir, pendingZip);
+                using (var verify = ZipFile.OpenRead(pendingZip))
+                    foreach (var entry in verify.Entries.Where(e => e.FullName != "ATC_BackupManifest.json"))
+                    {
+                        using (var input = entry.Open())
+                        using (var bytes = new MemoryStream())
+                        {
+                            input.CopyTo(bytes);
+                            if (!manifest.TryGetValue(entry.FullName.Replace('\\', '/'), out string expected) || TranslationFileTransaction.Hash(bytes.ToArray()) != expected)
+                                throw new IOException("Backup verification failed.");
+                        }
+                    }
+                File.Move(pendingZip, zipPath);
 
 
-                var zipFiles = new DirectoryInfo(backupRoot).GetFiles("*.zip")
-                                .OrderByDescending(f => f.CreationTimeUtc).ToList();
-
-                for (int i = 3; i < zipFiles.Count; i++)
-                {
-                    zipFiles[i].Delete();
-                }
+                // Transaction backups are immutable. Retention is an explicit maintenance
+                // operation, never part of a concurrent destructive update.
 
                 if (logSuccess)
                 {
@@ -176,6 +189,11 @@ namespace AutoTranslator_Core
             {
                 Log.Warning($"[ATC Backup] Failed to backup {packageId}: {ex.Message}");
                 return false;
+            }
+            finally
+            {
+                try { if (stagingDir != null && Directory.Exists(stagingDir)) Directory.Delete(stagingDir, true); } catch (IOException) { }
+                try { if (pendingZip != null && File.Exists(pendingZip)) File.Delete(pendingZip); } catch (IOException) { }
             }
         }
 
@@ -267,8 +285,9 @@ namespace AutoTranslator_Core
                     string packageId = target.PackageId;
                     string modName = string.IsNullOrWhiteSpace(target.ModName) ? packageId : target.ModName;
                     List<string> filesToDelete = filesByPackage.TryGetValue(packageId, out List<string> indexedFiles)
-                        ? indexedFiles.Distinct(StringComparer.OrdinalIgnoreCase).ToList()
+                        ? indexedFiles.Where(file => IsConfirmedPackageOutput(file, packageId, langsPath)).Distinct(StringComparer.OrdinalIgnoreCase).ToList()
                         : new List<string>();
+                    var expectedFiles = filesToDelete.Where(File.Exists).ToDictionary(f => f, TranslationFileTransaction.FileHash, StringComparer.OrdinalIgnoreCase);
 
                     if (filesToDelete.Count > 0 && createBackup)
                     {
@@ -279,6 +298,11 @@ namespace AutoTranslator_Core
                             logSuccess: !useCondensedBackupLog))
                         {
                             backupCount++;
+                        }
+                        else
+                        {
+                            result.Errors.Add(modName + ": required backup failed; originals retained.");
+                            continue;
                         }
                     }
 
@@ -300,8 +324,8 @@ namespace AutoTranslator_Core
                             Dictionary<string, HashSet<string>> fileClearKeys = requestRuntimeRefresh
                                 ? CollectRuntimeClearKeysForTranslationFile(langsPath, file, targetFolder)
                                 : null;
-                            File.SetAttributes(file, FileAttributes.Normal);
-                            File.Delete(file);
+                            TranslationXmlAtomicFileStore.DeleteIfCurrent(file, () =>
+                                expectedFiles.TryGetValue(file, out string expected) && TranslationFileTransaction.FileHash(file) == expected);
                             deletedPathSet.Add(file);
                             NotifyTranslationFileChanged(file);
                             if (fileClearKeys != null) MergeClearKeys(clearKeysByDefType, fileClearKeys);
@@ -371,6 +395,24 @@ namespace AutoTranslator_Core
             }
 
             return result;
+        }
+
+        private static bool IsConfirmedPackageOutput(string file, string packageId, string languagesRoot)
+        {
+            string name = Path.GetFileName(file), clean = TranslationGeneratedOutputOwnership.GetCleanPackageId(packageId);
+            string relative = Path.GetFullPath(file).Substring(Path.GetFullPath(languagesRoot).TrimEnd('\\', '/').Length).TrimStart('\\', '/');
+            string folder = relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)[0];
+            string languageRoot = Path.Combine(languagesRoot, folder);
+            string claim = Path.Combine(languageRoot, "ATC_Ownership", clean + ".json");
+            if (File.Exists(claim) && !string.Equals(JsonConvert.DeserializeObject<string>(File.ReadAllText(claim)), packageId, StringComparison.OrdinalIgnoreCase)) return false;
+            if (name.Equals(clean + "_AutoTranslated.xml", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals(clean + "_CloudCorrections.xml", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals(clean + "_ManualTranslation.xml", StringComparison.OrdinalIgnoreCase)) return true;
+            string provenancePath = GetProvenancePath(languageRoot, packageId);
+            if (!File.Exists(provenancePath)) return false;
+            var index = LoadProvenanceIndex(languageRoot, packageId);
+            string sourceRelative = GetRelativeTranslationPath(languageRoot, file);
+            return index.Keys.Any(k => k.StartsWith(sourceRelative + "|", StringComparison.OrdinalIgnoreCase));
         }
 
         private static bool IsLocalTranslationFileForPackage(string file, string id1, string id2)
@@ -525,6 +567,7 @@ namespace AutoTranslator_Core
         public static int RestoreLatestBackups(List<LocalTranslationRestoreTarget> targetsToRestore)
         {
             if (targetsToRestore == null || targetsToRestore.Count == 0) return 0;
+            int cancellation = AutoTranslatorSettings.PipelineCancellationGeneration;
 
             string packPath = GetLocalPackPath();
             string backupRoot = Path.Combine(packPath, "Backups");
@@ -548,26 +591,52 @@ namespace AutoTranslator_Core
 
                     if (latest == null) continue;
 
-                    Directory.CreateDirectory(langsPath);
+                    var transaction = new TranslationFileTransaction(Path.Combine(modBackupDir, "Restore"));
+                    var restoredPaths = new List<string>();
                     using (var archive = System.IO.Compression.ZipFile.OpenRead(latest.FullName))
                     {
+                        if (archive.Entries.Count > 10000) throw new InvalidDataException("Backup entry limit exceeded.");
+                        var metadata = archive.GetEntry("ATC_BackupManifest.json");
+                        if (archive.Entries.Count(e => e.FullName == "ATC_BackupManifest.json") > 1 || metadata?.Length > 4 * 1024 * 1024)
+                            throw new InvalidDataException("Invalid backup manifest.");
+                        var destinations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        long totalBytes = 0;
+                        Newtonsoft.Json.Linq.JObject manifest = null;
+                        if (metadata != null)
+                            using (var reader = new StreamReader(metadata.Open())) manifest = Newtonsoft.Json.Linq.JObject.Parse(reader.ReadToEnd());
+                        if (manifest != null && (string)manifest["PackageId"] != target.PackageId) throw new InvalidDataException("Backup package mismatch.");
                         foreach (var entry in archive.Entries)
                         {
-                            if (string.IsNullOrEmpty(entry.Name)) continue;
+                            if (string.IsNullOrEmpty(entry.Name) || entry == metadata) continue;
+                            if (entry.Length > 32 * 1024 * 1024 || (totalBytes += entry.Length) > 256 * 1024 * 1024) throw new InvalidDataException("Backup size limit exceeded.");
 
                             string destPath = Path.GetFullPath(Path.Combine(langsPath, entry.FullName));
-                            string safeRoot = Path.GetFullPath(langsPath);
+                            string safeRoot = Path.GetFullPath(langsPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+                            if (Path.IsPathRooted(entry.FullName)) throw new InvalidDataException("Absolute backup path.");
                             if (!destPath.StartsWith(safeRoot, StringComparison.OrdinalIgnoreCase))
                             {
-                                continue;
+                                throw new InvalidDataException("Backup path escapes Languages.");
                             }
-
-                            Directory.CreateDirectory(Path.GetDirectoryName(destPath));
-                            entry.ExtractToFile(destPath, true);
-                            NotifyTranslationFileChanged(destPath);
+                            if (!destinations.Add(destPath)) throw new InvalidDataException("Duplicate backup destination.");
+                            byte[] bytes;
+                            using (var input = entry.Open())
+                            using (var buffer = new MemoryStream()) { input.CopyTo(buffer); bytes = buffer.ToArray(); }
+                            string relative = entry.FullName.Replace('\\', '/');
+                            if (manifest != null)
+                            {
+                                if ((string)manifest["Files"]?[relative] != TranslationFileTransaction.Hash(bytes)) throw new InvalidDataException("Backup checksum mismatch.");
+                            }
+                            else if (!entry.Name.Equals(TranslationGeneratedOutputOwnership.GetCanonicalFileName(target.PackageId), StringComparison.OrdinalIgnoreCase))
+                                throw new InvalidDataException("Legacy backup ownership cannot be established.");
+                            transaction.Stage(destPath, bytes);
+                            restoredPaths.Add(destPath);
                         }
+                        if (manifest != null && manifest["Files"]?.Count() != restoredPaths.Count) throw new InvalidDataException("Incomplete backup manifest.");
                     }
 
+                    transaction.Commit(() => !AutoTranslatorSettings.IsCancellationRequested &&
+                        cancellation == AutoTranslatorSettings.PipelineCancellationGeneration);
+                    foreach (string path in restoredPaths) NotifyTranslationFileChanged(path);
                     restored++;
                 }
                 catch (Exception ex)

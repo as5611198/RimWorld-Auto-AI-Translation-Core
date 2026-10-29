@@ -75,10 +75,9 @@ namespace AutoTranslator_Core
                     foreach (Entry entry in category.Value)
                     {
                         if (string.IsNullOrWhiteSpace(entry.OriginalText)) continue;
-                        XmlConvert.VerifyNCName(entry.Key);
                         if (hashes.ContainsKey(entry.Key)) throw new InvalidDataException("Duplicate XML key: " + entry.Key);
-                        XmlElement node = document.CreateElement(entry.Key);
-                        node.InnerText = entry.OriginalText;
+                        XmlElement node = TranslationXmlEntryCodec.Create(document, entry.Key, entry.OriginalText,
+                            !string.Equals(category.Key, "Keyed", StringComparison.OrdinalIgnoreCase));
                         data.AppendChild(node);
                         hashes.Add(entry.Key, Hash(entry.OriginalText));
                         count++;
@@ -197,10 +196,16 @@ namespace AutoTranslator_Core
             foreach (XmlNode node in document.DocumentElement.ChildNodes)
             {
                 if (node.NodeType != XmlNodeType.Element) continue;
-                if (node.ChildNodes.Cast<XmlNode>().Any(n => n.NodeType == XmlNodeType.Element))
-                    throw new InvalidDataException("Translation text must escape XML tags: " + node.Name);
-                if (data.ContainsKey(node.Name)) throw new InvalidDataException("Duplicate XML key: " + node.Name);
-                data.Add(node.Name, node.InnerText);
+                string key, value;
+                if (!TranslationXmlEntryCodec.TryReadReplacement(node, out key, out value))
+                {
+                    if (node.ChildNodes.Cast<XmlNode>().Any(n => n.NodeType == XmlNodeType.Element))
+                        throw new InvalidDataException("Translation text must escape XML tags: " + node.Name);
+                    key = node.Name;
+                    value = node.InnerText;
+                }
+                if (data.ContainsKey(key)) throw new InvalidDataException("Duplicate XML key: " + key);
+                data.Add(key, value);
             }
             return data;
         }

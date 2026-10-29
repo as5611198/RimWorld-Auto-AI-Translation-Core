@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using RimWorld;
 using System;
 using System.Collections.Generic;
@@ -268,11 +268,11 @@ namespace AutoTranslator_Core
                         .ToArray());
                     bool keyedFileLooksLikeTarget = LanguageDetector.LooksLikeTargetLanguage(keyedLanguageSample, settings.TargetLang);
 
-                    foreach (XmlNode node in doc.DocumentElement.ChildNodes)
+                    foreach (KeyValuePair<string, string> pair in TranslationXmlDictionaryParser.Parse(doc.DocumentElement))
                     {
-                        if (node.NodeType != XmlNodeType.Element || string.IsNullOrEmpty(node.InnerText)) continue;
-                        string key = node.Name;
-                        string value = node.InnerText;
+                        if (string.IsNullOrEmpty(pair.Value)) continue;
+                        string key = pair.Key;
+                        string value = pair.Value;
                         if (LanguageDetector.LooksLikePlaceholderTranslation(value, settings.TargetLang)) continue;
 
                         if (!sourceEntries.TryGetValue(key, out List<KeyedSourceEntry> entries))
@@ -726,6 +726,13 @@ namespace AutoTranslator_Core
                         sourceDict[defType] = new Dictionary<string, TranslationProvenanceEntry>(StringComparer.OrdinalIgnoreCase);
                     foreach (var file in GetXmlFilesCached(typeDir, SearchOption.AllDirectories))
                     {
+                        if (object.ReferenceEquals(targetDict, englishKeys))
+                        {
+                            if (!englishSourceFiles.TryGetValue(defType, out Dictionary<string, string> paths))
+                                englishSourceFiles[defType] = paths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                            LoadDefLanguageSource(targetDict[defType], paths, file);
+                            continue;
+                        }
                         var d = LoadXmlFileToDict(file, lang);
                         foreach (var kv in d)
                         {
@@ -743,6 +750,13 @@ namespace AutoTranslator_Core
                         targetDict["General"] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                     if (sourceDict != null && !sourceDict.ContainsKey("General"))
                         sourceDict["General"] = new Dictionary<string, TranslationProvenanceEntry>(StringComparer.OrdinalIgnoreCase);
+                    if (object.ReferenceEquals(targetDict, englishKeys))
+                    {
+                        if (!englishSourceFiles.TryGetValue("General", out Dictionary<string, string> paths))
+                            englishSourceFiles["General"] = paths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                        LoadDefLanguageSource(targetDict["General"], paths, file);
+                        continue;
+                    }
                     var d = LoadXmlFileToDict(file, lang);
                     foreach (var kv in d)
                     {
@@ -777,7 +791,7 @@ namespace AutoTranslator_Core
                             "DefInjected",
                             string.Empty,
                             failedFile,
-                            "The source Def XML could not be parsed or traversed.");
+                            "The source Def XML or its inheritance context could not be completely resolved.");
                     }
                 }
                 foreach (var kv in extracted)
@@ -938,8 +952,21 @@ namespace AutoTranslator_Core
                 }
                 List<TranslationWorkItem> workItems = new List<TranslationWorkItem>();
 
+                // Only key-specific immutable results cross back to the worker. No live Def/list escapes.
+                var structuralSnapshot = await TranslationValidationQueue.CaptureAsync(defType, keysForThisType);
                 foreach (var key in keysForThisType)
                 {
+                    // Run before source selection, policy agents or paid work queues.
+                    // A structural failure is preserved locally, never a retranslation request.
+                    var structural = structuralSnapshot[key];
+                    if (!structural.Allowed)
+                    {
+                        string preserved;
+                        if (packDict.TryGetValue(key, out preserved))
+                            RecordDefRepair(defType, key, preserved, targetFile, structural, "existing");
+                        continue;
+                    }
+                    if (!packDict.ContainsKey(key) && HasPreservedTranslation(targetFile, key)) continue;
                     string globalKey = $"{defType}/{key}";
                     string globalKeyGen = $"General/{key}";
                     string sourceFile = string.Empty;
@@ -1700,32 +1727,35 @@ namespace AutoTranslator_Core
             Dictionary<string, string> finalData,
             Dictionary<string, TranslationProvenanceEntry> provenanceByKey)
         {
-            string modName = mod != null ? mod.Name : "<unknown mod>";
-            string shortPath = GetShortPath(targetFile);
-            if (!TranslationXmlAtomicFileStore.TrySave(
-                    () => SaveXml(targetFile, finalData),
-                    ex =>
-                    {
-                        AutoTranslatorSettings.AddErrorLog(
-                            $"[AutoTranslationCore] Could not save translation file for {modName}: {shortPath}");
-                        Log.Warning($"[AutoTranslationCore] Translation file save failed for {modName} ({shortPath}): {ex.Message}");
-                    }))
+            Dictionary<string, string> before = null, committed = null;
+            int epoch = GameDataEpoch, cancellation = AutoTranslatorSettings.PipelineCancellationGeneration;
+            try
             {
+                using (var transaction = new TranslationFileTransaction(Path.Combine(GetLocalPackPath(), "Backups", "Generated")).CaptureWrites())
+                {
+                    transaction.Observe(targetFile);
+                    before = LoadRawXmlFileToDictCached(targetFile);
+                    SaveXml(targetFile, finalData);
+                    transaction.TryRead(targetFile, out var written);
+                    var document = new XmlDocument();
+                    using (var stream = new MemoryStream(written)) document.Load(stream);
+                    committed = TranslationXmlDictionaryParser.Parse(document.DocumentElement);
+                    if (!SaveProvenanceForFile(packLangRoot, mod?.PackageId ?? "", targetFile, finalData, provenanceByKey))
+                        throw new IOException("Could not save translation provenance.");
+                    transaction.Commit(() => epoch == GameDataEpoch && cancellation == AutoTranslatorSettings.PipelineCancellationGeneration &&
+                        !AutoTranslatorSettings.IsCancellationRequested);
+                }
+                NotifyTranslationFileChanged(targetFile);
+                RecordCommittedOutput(mod?.PackageId, Path.GetFileName(packLangRoot), targetFile, before, committed);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                NotifyTranslationFileChanged(targetFile);
+                AutoTranslatorSettings.AddErrorLog("Could not commit translation and provenance: " + GetShortPath(targetFile));
+                Log.Warning("[AutoTranslationCore] Translation transaction failed: " + ex.Message);
                 return false;
             }
-
-            if (!SaveProvenanceForFile(
-                    packLangRoot,
-                    mod != null ? mod.PackageId : string.Empty,
-                    targetFile,
-                    finalData,
-                    provenanceByKey))
-            {
-                AutoTranslatorSettings.AddErrorLog(
-                    $"[AutoTranslationCore] Could not save translation provenance for {modName}: {shortPath}");
-                return false;
-            }
-            return true;
         }
 
 
@@ -1751,9 +1781,12 @@ namespace AutoTranslator_Core
                     List<string> chunk = SafeSlice(uniqueTexts, chunkIndex, currentChunkSize);
                     if (chunk.Count == 0) continue;
 
+                    if (AutoTranslatorSettings.IsCancellationRequested || AutoTranslatorSettings.IsSkipCurrentRequested) break;
+                    await semaphore.WaitAsync();
+                    foreach (var finished in tasks.Where(task => task.IsCompleted).ToArray()) await finished;
+                    tasks.RemoveAll(task => task.IsCompleted);
                     tasks.Add(Task.Run(async () =>
                     {
-                        await semaphore.WaitAsync();
                         try
                         {
                             await TranslationBatchFaultGuard.RunChunkAsync(
@@ -1871,6 +1904,19 @@ namespace AutoTranslator_Core
                 translatedDict,
                 TranslationUnresolvedReasons.ApiFailure,
                 "No translation result was produced for this entry.");
+        }
+
+        private static void LoadDefLanguageSource(
+            Dictionary<string, string> texts,
+            Dictionary<string, string> sourceFiles,
+            string sourceFile)
+        {
+            Dictionary<string, string> overlay = LoadXmlFileToDict(sourceFile);
+            foreach (KeyValuePair<string, string> pair in overlay)
+            {
+                texts[pair.Key] = pair.Value;
+                sourceFiles[pair.Key] = sourceFile;
+            }
         }
 
         private static TranslationWorkItem CreateTranslationWorkItem(

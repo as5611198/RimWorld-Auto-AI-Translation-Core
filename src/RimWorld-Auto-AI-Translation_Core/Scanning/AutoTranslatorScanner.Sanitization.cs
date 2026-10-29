@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using RimWorld;
 using System;
 using System.Collections.Generic;
@@ -226,6 +226,7 @@ namespace AutoTranslator_Core
             if (string.IsNullOrEmpty(original)) return false;
             if (string.IsNullOrEmpty(translated)) return FormatArgumentRegex.IsMatch(original);
 
+            if (FormatArgumentRegex.IsMatch(original) && HasValidCompositeFormat(original) && !HasValidCompositeFormat(translated)) return true;
             var originalArgs = FormatArgumentRegex.Matches(original)
                 .Cast<Match>()
                 .GroupBy(m => m.Groups[1].Value)
@@ -247,6 +248,39 @@ namespace AutoTranslator_Core
             }
 
             return false;
+        }
+
+        private static bool HasValidCompositeFormat(string text)
+        {
+            // A parser, not string.Format: no allocation indexed by an untrusted argument number.
+            for (int i = 0; i < text.Length; i++)
+            {
+                char c = text[i];
+                if (c != '{' && c != '}') continue;
+                if (i + 1 < text.Length && text[i + 1] == c) { i++; continue; }
+                if (c == '}') return false;
+                int start = ++i;
+                while (i < text.Length && text[i] >= '0' && text[i] <= '9') i++;
+                if (i == start) return false;
+                while (i < text.Length && text[i] == ' ') i++;
+                if (i < text.Length && text[i] == ',')
+                {
+                    i++;
+                    while (i < text.Length && text[i] == ' ') i++;
+                    if (i < text.Length && text[i] == '-') i++;
+                    start = i;
+                    while (i < text.Length && char.IsDigit(text[i])) i++;
+                    if (i == start) return false;
+                    while (i < text.Length && text[i] == ' ') i++;
+                }
+                if (i < text.Length && text[i] == ':')
+                {
+                    i++;
+                    while (i < text.Length && text[i] != '}') { if (text[i] == '{') return false; i++; }
+                }
+                if (i >= text.Length || text[i] != '}') return false;
+            }
+            return true;
         }
 
         private static bool HasTranslatableTitleTagMismatch(string translated, string original)

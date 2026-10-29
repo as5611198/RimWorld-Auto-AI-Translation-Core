@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_Repair_OpenReport>Ouvrir les rapports de réparation</ATC_Repair_OpenReport>
+  <ATC_Repair_ReportHint>Les traductions existantes et les sources sont conservées localement. Aucune nouvelle requête de traduction n’est envoyée.</ATC_Repair_ReportHint>
+  <ATC_Repair_IntroTitle>Vérification complète les traductions</ATC_Repair_IntroTitle>
+  <ATC_Repair_Intro>Vérifie le paquet de traduction IA et les traductions échouées des mods chargés, puis applique les corrections confirmées au jeu.</ATC_Repair_Intro>
+  <ATC_Repair_Explanation>Cliquez une fois sur « Vérification complète ». Si une opération est en cours, la réparation attendra puis démarrera automatiquement.</ATC_Repair_Explanation>
+  <ATC_Repair_Start>Vérification complète</ATC_Repair_Start>
+  <ATC_Repair_Later>Plus tard</ATC_Repair_Later>
+  <ATC_Repair_Close>Terminer et fermer</ATC_Repair_Close>
+  <ATC_Repair_CheckAgain>Vérification complète</ATC_Repair_CheckAgain>
+  <ATC_Repair_Minimize>Réduire et continuer</ATC_Repair_Minimize>
+  <ATC_Repair_Expand>Afficher la progression</ATC_Repair_Expand>
+  <ATC_Repair_Checking>1 / 3　Vérification et conservation</ATC_Repair_Checking>
+  <ATC_Repair_Applying>2 / 3　Application au jeu</ATC_Repair_Applying>
+  <ATC_Repair_Verifying>3 / 3　Vérification du résultat</ATC_Repair_Verifying>
+  <ATC_Repair_Saving>Vérification terminée, enregistrement en arrière-plan</ATC_Repair_Saving>
+  <ATC_Repair_Completed>Vérification terminée</ATC_Repair_Completed>
+  <ATC_Repair_Stopped>Vérification incomplète</ATC_Repair_Stopped>
+  <ATC_Repair_Progress>Traité : {0} / {1}</ATC_Repair_Progress>
+  <ATC_Repair_ApplyingHint>Application des traductions, puis vérification automatique.</ATC_Repair_ApplyingHint>
+  <ATC_Repair_VerifiedCount>Réparées et vérifiées : {0}</ATC_Repair_VerifiedCount>
+  <ATC_Repair_InapplicableCount>Actuellement sans objet (conservées) : {0}</ATC_Repair_InapplicableCount>
+  <ATC_Repair_UnresolvedCount>Non réparées automatiquement, à vérifier : {0}</ATC_Repair_UnresolvedCount>
+  <ATC_Repair_WaitingCount>En cours de vérification : {0}</ATC_Repair_WaitingCount>
+  <ATC_Repair_StayAtMenu>Le travail continue réduit. Restez au menu principal jusqu’à la fin.</ATC_Repair_StayAtMenu>
+  <ATC_Repair_ResultHint>Les éléments incompatibles ou ambigus sont conservés et ne seront pas réparés automatiquement. Consultez le rapport pour les détails.</ATC_Repair_ResultHint>
+  <ATC_Repair_Clean>Aucun problème de traduction nécessitant une action n’a été trouvé.</ATC_Repair_Clean>
+  <ATC_Repair_FailureHint>Certaines étapes n’ont pas terminé. Les éléments non vérifiés restent conservés dans le rapport.</ATC_Repair_FailureHint>
+  <ATC_Repair_Busy>Une traduction ou une application est encore en cours. Réessayez plus tard.</ATC_Repair_Busy>
+  <ATC_Repair_MainMenuOnly>Revenez au menu principal pour vérifier et réparer les traductions.</ATC_Repair_MainMenuOnly>
+  <ATC_Repair_ShortResult>Réparées {0} / Sans objet {1} / À vérifier {2}</ATC_Repair_ShortResult>
+  <ATC_Repair_Waiting>Réparation programmée ; attente de l’opération en cours</ATC_Repair_Waiting>
+  <ATC_Repair_WaitTranslation>Attente de la fin de la traduction ou de l’analyse.</ATC_Repair_WaitTranslation>
+  <ATC_Repair_WaitApplying>Attente de l’application des traductions au jeu.</ATC_Repair_WaitApplying>
+  <ATC_Repair_WaitMaintenance>Attente de la maintenance du paquet.</ATC_Repair_WaitMaintenance>
+  <ATC_Repair_WaitSaving>Attente de l’enregistrement du rapport précédent.</ATC_Repair_WaitSaving>
+  <ATC_Repair_WaitLoading>Attente de la fin du chargement du jeu.</ATC_Repair_WaitLoading>
+  <ATC_Repair_WaitReady>Préparation de la réparation.</ATC_Repair_WaitReady>
+  <ATC_Repair_WaitHint>La demande est en attente et démarrera automatiquement dès que possible.</ATC_Repair_WaitHint>
+  <ATC_Repair_CancelWaiting>Annuler l’attente</ATC_Repair_CancelWaiting>
+  <ATC_Repair_NativeErrorCounts>Diagnostics du jeu : avant {0} → après {1}</ATC_Repair_NativeErrorCounts>
+  <ATC_Repair_AutomaticTitle>Progression de la réparation automatique</ATC_Repair_AutomaticTitle>
+  <ATC_Repair_AutomaticHint>La réparation est en cours. Le résultat apparaîtra à la fin.</ATC_Repair_AutomaticHint>
+  <ATC_Repair_ModeFull>Réparation complète</ATC_Repair_ModeFull>
+  <ATC_Repair_ModeIncremental>Réparation incrémentielle</ATC_Repair_ModeIncremental>
+</LanguageData>

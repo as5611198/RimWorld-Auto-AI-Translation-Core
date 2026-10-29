@@ -20,7 +20,16 @@ namespace AutoTranslator_Core
     {
         private AutoTranslatorMod mod;
 
-        public override Vector2 RequestedTabSize => new Vector2(1010f, 684f);
+        public override Vector2 RequestedTabSize => GetTabSize(UI.screenWidth, UI.screenHeight);
+
+        internal static Vector2 GetTabSize(float screenWidth, float screenHeight)
+        {
+            // UI.screen* already accounts for the player's UI scale. Grow the
+            // editor on large logical screens; MainTabWindow still anchors it.
+            return new Vector2(
+                Mathf.Min(screenWidth, Mathf.Max(1010f, screenWidth * 0.85f)),
+                Mathf.Min(screenHeight - 35f, Mathf.Max(684f, (screenHeight - 35f) * 0.9f)));
+        }
 
         public override void DoWindowContents(Rect inRect)
         {

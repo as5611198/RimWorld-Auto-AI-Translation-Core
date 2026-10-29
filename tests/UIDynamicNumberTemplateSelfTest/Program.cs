@@ -7,6 +7,12 @@ namespace UIDynamicNumberTemplateSelfTest
     {
         private static int Main()
         {
+            string[] readouts = { "0", "3", "7", "12", "-1", "+7", "−5", "1,234.50", "-12.5%", "3/7", "07:30", "x3", "3×4", "(7)", "3 kg", "25 °C", "12.5 ms", "<color=#00ff00><b>7</b></color>" };
+            foreach (string value in readouts)
+                AssertTrue(UIDynamicNumberTemplate.IsNumericDisplayText(value), "numeric readout stays verbatim: " + value);
+            string[] captions = { null, "", "三", "七", "Model 3D", "3rd day", "第3天", "Harvest fully grown: 12 plants", "Mass: 3 kg", "<b>7</i>" };
+            foreach (string value in captions)
+                AssertFalse(UIDynamicNumberTemplate.IsNumericDisplayText(value), "ordinary caption remains eligible: " + value);
             AssertEqual(
                 "Vanilla Mod ({num1}) {num2}",
                 UIDynamicNumberTemplate.Normalize("Vanilla Mod (123.87MB) 4"),
@@ -63,7 +69,7 @@ namespace UIDynamicNumberTemplateSelfTest
                 UIDynamicNumberTemplate.Normalize(noNumber),
                 "no-number fast path");
 
-            Console.WriteLine("PASS: 13 UI dynamic-number template self-tests");
+            Console.WriteLine("PASS: 41 UI dynamic-number template self-tests");
             return 0;
         }
 

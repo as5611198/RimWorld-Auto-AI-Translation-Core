@@ -21,6 +21,39 @@ namespace AutoTranslator_Core
             @"(?<placeholder>\{num\d+\})(?:[\.,]\d+)+\s*(?:(?:°\s*)?[CF]|" + UnitPattern + @")(?![A-Za-z0-9_])",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+        internal static bool IsNumericDisplayText(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return false;
+            string value = text.Trim();
+            // Formatting does not turn a stat value into translatable text.
+            for (int depth = 0; depth < 4 && value.StartsWith("<", StringComparison.Ordinal); depth++)
+            {
+                int end = value.IndexOf('>');
+                if (end < 0) break;
+                string opening = value.Substring(0, end + 1), closing;
+                if (opening.Equals("<b>", StringComparison.OrdinalIgnoreCase)) closing = "</b>";
+                else if (opening.Equals("<i>", StringComparison.OrdinalIgnoreCase)) closing = "</i>";
+                else if (opening.StartsWith("<color=", StringComparison.OrdinalIgnoreCase)) closing = "</color>";
+                else if (opening.StartsWith("<size=", StringComparison.OrdinalIgnoreCase)) closing = "</size>";
+                else break;
+                if (value.Length < opening.Length + closing.Length || !value.EndsWith(closing, StringComparison.OrdinalIgnoreCase)) break;
+                value = value.Substring(opening.Length, value.Length - opening.Length - closing.Length).Trim();
+            }
+            bool hasDigit = false;
+            for (int i = 0; i < value.Length; i++)
+            {
+                char c = value[i];
+                if (char.IsDigit(c)) { hasDigit = true; continue; }
+                if (char.IsWhiteSpace(c) || "+-−.,:/\\%()[]×÷*=xX~～＋－．，％".IndexOf(c) >= 0) continue;
+                // A bare number plus a recognized unit is still a readout.
+                // Labels such as "Model 3D" or "3rd day" remain ordinary text.
+                if (!hasDigit) return false;
+                Match match = NumberRegex.Match(value);
+                return match.Success && match.Index == 0 && match.Length == value.Length;
+            }
+            return hasDigit;
+        }
+
         internal static string Normalize(string text)
         {
             if (string.IsNullOrWhiteSpace(text)) return text;

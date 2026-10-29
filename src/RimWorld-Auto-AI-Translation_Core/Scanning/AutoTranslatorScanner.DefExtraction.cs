@@ -361,40 +361,31 @@ namespace AutoTranslator_Core
             failedFiles = new List<string>();
             if (!Directory.Exists(defsRoot)) return result;
 
-            var sourceDocuments = new List<DefXmlSourceDocument>();
-            foreach (var file in GetXmlFilesCached(defsRoot, SearchOption.AllDirectories))
+            List<ResolvedDefXmlNode> resolvedNodes;
+            try
             {
-                if (AutoTranslatorSettings.IsCancellationRequested) return result;
-
-                try
-                {
-                    XmlReaderSettings readerSettings = new XmlReaderSettings
-                    {
-                        DtdProcessing = DtdProcessing.Prohibit,
-                        IgnoreComments = true,
-                        IgnoreProcessingInstructions = true,
-                        XmlResolver = null
-                    };
-                    XmlDocument doc = new XmlDocument { XmlResolver = null };
-                    using (XmlReader reader = XmlReader.Create(file, readerSettings))
-                    {
-                        doc.Load(reader);
-                    }
-                    if (doc.DocumentElement == null || !doc.DocumentElement.Name.Equals("Defs", StringComparison.OrdinalIgnoreCase)) continue;
-                    sourceDocuments.Add(new DefXmlSourceDocument { Document = doc, SourceFile = file });
-                }
-                catch (Exception ex)
-                {
-                    failedFiles.Add(file);
-                    Log.Warning("[AutoTranslationCore] Could not process source Def XML " + file + ": " + ex.Message);
-                }
+                resolvedNodes = ResolveRawDefTargets(defsRoot, out failedFiles);
+            }
+            catch (OperationCanceledException)
+            {
+                failedFiles.Add(defsRoot);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                failedFiles.Add(defsRoot);
+                Log.Warning("[AutoTranslationCore] Could not build source Def inheritance context for " + defsRoot + ": " + ex.Message);
+                return result;
             }
 
-            foreach (ResolvedDefXmlNode resolved in DefXmlInheritanceResolver.Resolve(
-                sourceDocuments,
-                message => Log.Warning("[AutoTranslationCore] " + message)))
+            foreach (ResolvedDefXmlNode resolved in resolvedNodes)
             {
-                if (AutoTranslatorSettings.IsCancellationRequested) return result;
+                if (AutoTranslatorSettings.IsCancellationRequested)
+                {
+                    result.Clear();
+                    failedFiles.Add(defsRoot);
+                    return result;
+                }
                 string defName = DefXmlInheritanceResolver.GetDirectChildText(resolved.OriginalNode, "defName").Trim();
                 if (string.IsNullOrEmpty(defName) || resolved.ResolvedNode == null) continue;
 
@@ -406,6 +397,17 @@ namespace AutoTranslator_Core
                     includePolicyCandidates,
                     resolved.SourceFile,
                     sourceFilesByType);
+            }
+            // XML extraction runs on scan workers, including after play data is
+            // loaded. Live Def validation is game-thread-only: calling it here
+            // returns not_ready and used to erase every extracted candidate.
+            // ProcessModDefInjected already awaits TranslationValidationQueue's
+            // immutable per-key results before policy/API work; apply validates
+            // again immediately before mutation. Keep source extraction pure.
+            if (AutoTranslatorSettings.IsCancellationRequested)
+            {
+                result.Clear();
+                failedFiles.Add(defsRoot);
             }
             return result;
         }
@@ -436,7 +438,7 @@ namespace AutoTranslator_Core
                         if (string.IsNullOrWhiteSpace(defName)) continue;
 
                         string defType = defNode.Name;
-                        Type runtimeType = GenTypes.GetTypeInAnyAssembly(defType);
+                        Type runtimeType = TranslationRuntimeResolver.DefType(defType);
                         TraverseRawDefPathAliases(defNode, defName, defName, defType, runtimeType, result);
                     }
                 }

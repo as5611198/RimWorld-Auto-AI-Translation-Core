@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LanguageData>
+  <ATC_Repair_OpenReport>Open translation repair records</ATC_Repair_OpenReport>
+  <ATC_Repair_ReportHint>Repaired using existing text / Needs attention / Currently unavailable / Conflicts. Original translations and sources are kept locally. No translation requests are made.</ATC_Repair_ReportHint>
+  <ATC_Repair_IntroTitle>Full check translations</ATC_Repair_IntroTitle>
+  <ATC_Repair_Intro>Check the AI translation pack and failed translations from loaded mods, repair confirmed problems, and apply the results to the game. Original translations and mod files are preserved. This does not call translation services or use API credits.</ATC_Repair_Intro>
+  <ATC_Repair_Explanation>Click "Full check" once. If translation, scanning or application is busy, the repair waits and starts automatically when ready. It then verifies the actual results.\n\nYou can minimize this window while waiting or repairing. Stay at the main menu until finished. You can cancel before the repair starts.</ATC_Repair_Explanation>
+  <ATC_Repair_Start>Full check</ATC_Repair_Start>
+  <ATC_Repair_Later>Later</ATC_Repair_Later>
+  <ATC_Repair_Close>Done and close</ATC_Repair_Close>
+  <ATC_Repair_CheckAgain>Full check</ATC_Repair_CheckAgain>
+  <ATC_Repair_Minimize>Minimize and continue</ATC_Repair_Minimize>
+  <ATC_Repair_Expand>Expand repair progress</ATC_Repair_Expand>
+  <ATC_Repair_Checking>1 / 3　Check and preserve translations</ATC_Repair_Checking>
+  <ATC_Repair_Applying>2 / 3　Apply translations to the game</ATC_Repair_Applying>
+  <ATC_Repair_Verifying>3 / 3　Verify the actual results</ATC_Repair_Verifying>
+  <ATC_Repair_Saving>Verification complete. Saving repair results in the background.</ATC_Repair_Saving>
+  <ATC_Repair_Completed>Check complete</ATC_Repair_Completed>
+  <ATC_Repair_Stopped>Check incomplete</ATC_Repair_Stopped>
+  <ATC_Repair_Progress>Processed {0} / {1}</ATC_Repair_Progress>
+  <ATC_Repair_ApplyingHint>Applying translations. Results will be verified automatically.</ATC_Repair_ApplyingHint>
+  <ATC_Repair_VerifiedCount>Repaired and verified: {0}</ATC_Repair_VerifiedCount>
+  <ATC_Repair_InapplicableCount>Not applicable now (translations kept): {0}</ATC_Repair_InapplicableCount>
+  <ATC_Repair_UnresolvedCount>Could not repair automatically; needs review: {0}</ATC_Repair_UnresolvedCount>
+  <ATC_Repair_WaitingCount>Being checked: {0}</ATC_Repair_WaitingCount>
+  <ATC_Repair_StayAtMenu>Work continues when minimized. Stay at the main menu until it finishes; changing mods or language would affect the results.</ATC_Repair_StayAtMenu>
+  <ATC_Repair_ResultHint>Not applicable: no matching content in the current mod setup; translations are kept.\nNeeds review: conflicts, changed fields or failed application could not be repaired safely.\nThe check is finished; no more repairs are queued. Counts cover source/value candidates, so they differ from the game log. See the report for details.</ATC_Repair_ResultHint>
+  <ATC_Repair_Clean>No translation issues requiring action were found in this check.</ATC_Repair_Clean>
+  <ATC_Repair_FailureHint>Some steps did not finish. Unverified items are not counted as repaired. Original translations and failure details are preserved in the report.</ATC_Repair_FailureHint>
+  <ATC_Repair_Busy>Translation or application work is still running. Please try again when it finishes.</ATC_Repair_Busy>
+  <ATC_Repair_MainMenuOnly>Return to the main menu to check and repair translations.</ATC_Repair_MainMenuOnly>
+  <ATC_Repair_ShortResult>Repaired {0} / Not applicable {1} / Needs review {2}</ATC_Repair_ShortResult>
+  <ATC_Repair_Waiting>Repair queued; waiting for the current work</ATC_Repair_Waiting>
+  <ATC_Repair_WaitTranslation>Waiting for translation or scanning to finish.</ATC_Repair_WaitTranslation>
+  <ATC_Repair_WaitApplying>Waiting for translations to be applied to the game.</ATC_Repair_WaitApplying>
+  <ATC_Repair_WaitMaintenance>Waiting for translation pack maintenance to finish.</ATC_Repair_WaitMaintenance>
+  <ATC_Repair_WaitSaving>Waiting for the previous repair results to be saved.</ATC_Repair_WaitSaving>
+  <ATC_Repair_WaitLoading>Waiting for the game to finish loading.</ATC_Repair_WaitLoading>
+  <ATC_Repair_WaitReady>Preparing to start the repair.</ATC_Repair_WaitReady>
+  <ATC_Repair_WaitHint>Your request is queued; you do not need to click again.\n\nThe check and repair will start automatically when the current work finishes. You can minimize this window or cancel the wait.</ATC_Repair_WaitHint>
+  <ATC_Repair_CancelWaiting>Cancel wait</ATC_Repair_CancelWaiting>
+  <ATC_Repair_NativeErrorCounts>Game diagnostics: before {0} → after {1}</ATC_Repair_NativeErrorCounts>
+  <ATC_Repair_AutomaticTitle>Automatic repair progress</ATC_Repair_AutomaticTitle>
+  <ATC_Repair_AutomaticHint>Repair is running. The result will appear when it is finished.</ATC_Repair_AutomaticHint>
+  <ATC_Repair_ModeFull>Full repair</ATC_Repair_ModeFull>
+  <ATC_Repair_ModeIncremental>Incremental repair</ATC_Repair_ModeIncremental>
+</LanguageData>

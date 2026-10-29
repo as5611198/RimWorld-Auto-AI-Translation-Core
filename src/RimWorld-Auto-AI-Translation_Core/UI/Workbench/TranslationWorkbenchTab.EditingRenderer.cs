@@ -1,4 +1,4 @@
-using RimWorld;
+﻿using RimWorld;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -318,7 +318,9 @@ namespace AutoTranslator_Core
                                 UnityEngine.Rect originalRect = new UnityEngine.Rect(itemRect.x, itemRect.y + 24f, halfWidth - 5f, itemRect.height - 24f);
 
 
-                                try { Verse.Widgets.Label(originalRect, item.OriginalText ?? ""); }
+                                try { Verse.Widgets.Label(originalRect, string.IsNullOrWhiteSpace(item.OriginalText)
+                                    ? "ATC_Workbench_SourceUnavailable".Translate().ToString()
+                                    : item.OriginalText); }
                                 catch { Verse.Widgets.Label(originalRect, "[Error: Invalid Rich Text]"); }
 
                                 UnityEngine.GUI.color = UnityEngine.Color.white;
@@ -480,6 +482,10 @@ namespace AutoTranslator_Core
                     return;
                 }
 
+                var editorData = _categorizedData;
+                int editorGeneration = _editorGeneration;
+                string beforeText = item.TranslatedText;
+                int cancellation = AutoTranslatorSettings.PipelineCancellationGeneration;
                 item.IsTranslatingOriginal = true;
                 SetWorkbenchStatus("ATC_Workbench_TranslateOriginalStarted".Translate().ToString());
                 TargetLanguage targetLanguage = AutoTranslatorMod.Settings.TargetLang;
@@ -513,13 +519,15 @@ namespace AutoTranslator_Core
                     {
                         item.IsTranslatingOriginal = false;
 
-                        if (AutoTranslatorMod.Settings.TargetLang != targetLanguage)
+                        if (_isLoading || editorGeneration != _editorGeneration || !ReferenceEquals(editorData, _categorizedData) || item.TranslatedText != beforeText ||
+                            cancellation != AutoTranslatorSettings.PipelineCancellationGeneration || AutoTranslatorSettings.IsCancellationRequested ||
+                            AutoTranslatorMod.Settings.TargetLang != targetLanguage)
                         {
                             SetWorkbenchStatus("ATC_Workbench_TranslateOriginalFailed".Translate().ToString());
                             return;
                         }
 
-                        if (string.IsNullOrWhiteSpace(translated))
+                        if (string.IsNullOrWhiteSpace(translated) || !AutoTranslatorScanner.IsManualXmlTranslationFormatValid(translated, sourceText))
                         {
                             if (!string.IsNullOrWhiteSpace(error))
                             {

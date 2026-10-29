@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_Guide_Title>使い方ガイド</ATC_Guide_Title>
+  <ATC_Guide_Introduction>項目を選び、下のボタンで操作画面へ移動できます。自動表示は初回のみです。各画面の「使い方ガイド」から再表示できます。</ATC_Guide_Introduction>
+  <ATC_Guide_Area_GettingStarted>はじめに</ATC_Guide_Area_GettingStarted>
+  <ATC_Guide_Area_Settings>翻訳設定</ATC_Guide_Area_Settings>
+  <ATC_Guide_Area_Workbench>全体ワークベンチ</ATC_Guide_Area_Workbench>
+  <ATC_Guide_Area_Cloud>クラウド共有</ATC_Guide_Area_Cloud>
+  <ATC_Guide_Area_Tasks>翻訳タスク</ATC_Guide_Area_Tasks>
+  <ATC_Guide_OpenSettings>翻訳設定を開く</ATC_Guide_OpenSettings>
+  <ATC_Guide_OpenWorkbench>ワークベンチを開く</ATC_Guide_OpenWorkbench>
+  <ATC_Guide_OpenCloud>クラウド共有を開く</ATC_Guide_OpenCloud>
+  <ATC_Guide_OpenTasks>翻訳タスクを開く</ATC_Guide_OpenTasks>
+  <ATC_Guide_Close>ガイドを閉じる</ATC_Guide_Close>
+  <ATC_Guide_Content_GettingStarted>使い方を選ぶ\n既存の翻訳を使う場合は「クラウド共有」で言語と MOD を選び、適切な翻訳パックをダウンロードします。自分の AI キーは不要です。\n自分で翻訳する場合は「翻訳設定」から始めます。\n\n初めての翻訳\n1. 対象言語を確認し、同じサービス・プランのプロバイダー、URL、キーを使用します。\n2. Custom_OpenAI は入力後にモデル一覧を手動取得するか、モデル ID を直接入力します。\n3. 接続テスト後、「翻訳タスク」で小さい MOD を一つ試します。\n4. 進行状況、ログ、結果を見てから対象を増やします。AI 翻訳はサービスの利用枠を消費する場合があります。\n5. ゲーム内の文章を確認します。一部の画面は開き直しやゲーム再起動が必要です。\n\n修正には「全体ワークベンチ」、複数 MOD の外部編集にはその一括 XML エクスポート／インポートを使います。</ATC_Guide_Content_GettingStarted>
+  <ATC_Guide_Content_Settings>基本設定\n対象言語を選び、有効な翻訳 API を追加します。プロバイダー、対応するキー、モデル、必要なら独自 URL を指定し、接続をテストします。\nCustom_OpenAI は OpenAI 互換サービス用です。キー不要のサービスのみ空欄にできます。モデル一覧は入力完了後に手動取得し、一覧がない場合は ID を直接入力します。\nMiMo Token Plan はプラン専用の URL とキーを使用します。Player2 はローカルプロトコルと Game Client ID を使用し、モデルはアプリで管理します。\n\n思考モード：各 API の詳細設定\n自動：通常翻訳の任意の思考を無効にし、審査では維持します。\n可能なら無効：必須のモデルでは最低対応レベルまたはサービスの既定値を維持します。\n有効：待ち時間と使用量が増える場合があります。未確認のモデルや中継サービスには既定値を適用します。表示される状態を確認してください。\n翻訳 API と審査 API の設定は独立しています。\n\n翻訳の追加指定\n詳細の追加指定で用語、文体、人名の扱いなどを指定できます。上限 4000 文字。全体プレビュー、消去、保存が可能です。\n保存後の通常 AI 翻訳だけに適用し、審査 Agent、DeepL、既存の翻訳は自動変更しません。形式、順序、変数、タグの保護は維持されます。\n\n審査とエラー\n任意の審査 Agent は曖昧な項目を分類し、翻訳自体は行いません。最初は無効のままで構いません。必要になったら独立 API と呼び出し・トークン制限を設定します。\n失敗時は左上の概要を確認し、診断を手動表示・コピーできます。開発者モードは不要です。URL、プラン、キー、モデルを確認してください。一覧取得の失敗だけで翻訳不可とは限りません。</ATC_Guide_Content_Settings>
+  <ATC_Guide_Content_Workbench>翻訳を探して修正\nワークベンチで MOD や文字列を検索し、分類と項目を選び、訳文を修正して保存・適用します。入力欄の未保存の内容は下書きです。\n全体検索と一括置換で用語を整理できます。変数、書式引数、タグは保ってください。\n\n複数 MOD の編集\n一括 XML エクスポート／インポートで原文を外部編集し、再取り込みできます。詳しい手順は下にあります。\nパックのエクスポートは完成した翻訳の出力に使います。\n同じ内容を編集する前に翻訳タスクを完了させるか停止してください。</ATC_Guide_Content_Workbench>
+  <ATC_Guide_Content_Cloud>既存の翻訳を入手\nクラウド共有の対象言語を選び、MOD 名や ID で検索して種類・バージョンを確認します。適切なパックをダウンロードして適用し、ゲーム内で確認します。自分の AI キーは不要です。\n\n翻訳を共有\n翻訳と確認を終えてから対象を選び、表示名、実際の翻訳方法、更新内容を入力し、プレビューと確認を進めます。\nAI 翻訳、プレイヤーによる推敲、翻訳チームの区分は実態に合わせて選びます。一括アップロード前に言語と選択範囲を確認してください。\n内容が合わない場合は言語・MOD・バージョンを確認し、ワークベンチで手元の訳文を修正します。共有前に読み直し、未完成の下書きを完成品として公開しないでください。</ATC_Guide_Content_Cloud>
+</LanguageData>

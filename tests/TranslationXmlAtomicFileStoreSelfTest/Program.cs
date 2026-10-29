@@ -1,4 +1,4 @@
-using AutoTranslator_Core;
+﻿using AutoTranslator_Core;
 using System;
 using System.IO;
 using System.Linq;
@@ -14,8 +14,10 @@ namespace TranslationXmlAtomicFileStoreSelfTest
         {
             try
             {
+                RunTest("multi-file rollback and concurrent writer", TestTransaction);
                 RunTest("short temporary path and atomic replacement", TestShortTemporaryPathAndAtomicReplacement);
                 RunTest("failed save is isolated", TestFailedSaveIsIsolated);
+                RunTest("near MAX_PATH destination and failed write preserve committed data", TestNearMaxPath);
                 Console.WriteLine("PASS: " + _passed + " translation XML atomic file-store self-tests");
                 return 0;
             }
@@ -24,6 +26,69 @@ namespace TranslationXmlAtomicFileStoreSelfTest
                 Console.Error.WriteLine("FAIL: " + ex);
                 return 1;
             }
+        }
+
+        private static void TestTransaction()
+        {
+            string root = CreateTestRoot();
+            try
+            {
+                string first = Path.Combine(root, "first.xml"), second = Path.Combine(root, "second.xml");
+                File.WriteAllText(first, "original"); File.WriteAllText(second, "second");
+                using (var tx = new TranslationFileTransaction(Path.Combine(root, "backup")).CaptureWrites())
+                {
+                    TranslationXmlAtomicFileStore.Save(first, s => WriteText(s, "new"));
+                    TranslationXmlAtomicFileStore.SaveIfCurrent(second, s => WriteText(s, "new2"), () => false);
+                    AssertEqual("original", File.ReadAllText(first), "Staging cannot publish XML before provenance");
+                    bool failed = false;
+                    try { tx.Commit(() => true); } catch (OperationCanceledException) { failed = true; }
+                    AssertTrue(failed, "Second file commit failure must propagate");
+                    AssertEqual("original", File.ReadAllText(first), "First file rolls back on second file failure");
+                }
+                using (var tx = new TranslationFileTransaction(Path.Combine(root, "backup")).CaptureWrites())
+                {
+                    TranslationXmlAtomicFileStore.Save(first, s => WriteText(s, "new"));
+                    TranslationXmlAtomicFileStore.SaveIfCurrent(second, s => WriteText(s, "new2"), () => {
+                        File.WriteAllText(first, "external edit"); return false;
+                    });
+                    bool recovery = false;
+                    try { tx.Commit(() => true); } catch (IOException) { recovery = true; }
+                    AssertTrue(recovery, "Conflicting rollback reports retained recovery material");
+                    AssertEqual("external edit", File.ReadAllText(first), "Rollback cannot overwrite newer writer");
+                }
+                using (var tx = new TranslationFileTransaction(Path.Combine(root, "backup")).CaptureWrites())
+                {
+                    TranslationXmlAtomicFileStore.SaveIfCurrent(second, s => WriteText(s, "one"), () => true);
+                    TranslationXmlAtomicFileStore.SaveIfCurrent(second, s => WriteText(s, "two"), () => false);
+                    bool rejected = false;
+                    try { tx.Commit(() => true); } catch (OperationCanceledException) { rejected = true; }
+                    AssertTrue(rejected, "Repeated staging must preserve the later cancellation guard");
+                    AssertEqual("second", File.ReadAllText(second), "Rejected staged update retains original");
+                }
+                AssertTrue(TranslationFileTransaction.Current == null, "Ambient transaction is released after failures");
+                using (var tx = new TranslationFileTransaction(Path.Combine(root, "backup")).CaptureWrites())
+                {
+                    tx.Observe(first);
+                    File.WriteAllText(first, "changed after read");
+                    bool rejected = false;
+                    try { TranslationXmlAtomicFileStore.Save(first, s => WriteText(s, "stale merge")); }
+                    catch (IOException) { rejected = true; }
+                    AssertTrue(rejected, "Staging rejects a source changed after observation");
+                    AssertEqual("changed after read", File.ReadAllText(first), "Source race retains the newer version");
+                }
+                using (var tx = new TranslationFileTransaction(Path.Combine(root, "backup")).CaptureWrites())
+                {
+                    string created = Path.Combine(root, "created.xml");
+                    tx.Observe(created);
+                    File.WriteAllText(created, "concurrent create");
+                    bool rejected = false;
+                    try { TranslationXmlAtomicFileStore.Save(created, s => WriteText(s, "stale create")); }
+                    catch (IOException) { rejected = true; }
+                    AssertTrue(rejected, "Observed missing destination cannot replace a concurrent creation");
+                    AssertEqual("concurrent create", File.ReadAllText(created), "Concurrent creation remains intact");
+                }
+            }
+            finally { Directory.Delete(root, true); }
         }
 
         private static void TestShortTemporaryPathAndAtomicReplacement()
@@ -82,6 +147,29 @@ namespace TranslationXmlAtomicFileStoreSelfTest
             string root = Path.Combine(Path.GetTempPath(), "atc-atomic-test-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
             return root;
+        }
+
+        private static void TestNearMaxPath()
+        {
+            string root = CreateTestRoot();
+            try
+            {
+                string destination = CreateLongDestinationPath(root, "ManualTranslation.xml", 252);
+                string temporary = TranslationXmlAtomicFileStore.CreateTemporaryPath(destination);
+                AssertTrue(temporary.Length <= destination.Length, "Temporary path must not exceed the valid destination length; temp=" + temporary.Length + ", destination=" + destination.Length);
+                TranslationXmlAtomicFileStore.Save(destination, stream => WriteText(stream, "original"));
+                bool saved = TranslationXmlAtomicFileStore.TrySave(() => TranslationXmlAtomicFileStore.Save(destination, stream =>
+                {
+                    WriteText(stream, "partial");
+                    throw new IOException("simulated interrupted writer");
+                }), null);
+                AssertTrue(!saved, "Interrupted writer must fail");
+                AssertEqual("original", File.ReadAllText(destination), "Interrupted writer must preserve committed file");
+                TranslationXmlAtomicFileStore.Save(destination, stream => WriteText(stream, "replacement"));
+                AssertEqual("replacement", File.ReadAllText(destination), "Near-limit replacement must commit");
+                AssertTrue(Directory.GetFiles(Path.GetDirectoryName(destination)).Length == 1, "No temporary or backup files remain");
+            }
+            finally { Directory.Delete(root, true); }
         }
 
         private static string CreateLongDestinationPath(string root, string fileName, int minimumLength)

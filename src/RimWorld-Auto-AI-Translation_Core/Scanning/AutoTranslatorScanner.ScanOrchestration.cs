@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using RimWorld;
 using System;
 using System.Collections.Generic;
@@ -168,7 +168,7 @@ namespace AutoTranslator_Core
                         LogValidationSummary();
 
 
-                        RequestMemoryDrop();
+                        TranslationRepairController.RequestPipelineRepair(targetMod.PackageId, HasCommittedOutput(targetMod.PackageId));
 
 
                         AutoTranslatorSettings.ShowFinishPopup = true;
@@ -452,6 +452,7 @@ namespace AutoTranslator_Core
             {
                 long policyAgentRunId = 0L;
                 bool runHadPackageFailures = false;
+                var producedPackages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 try
                 {
                     policyAgentRunId = BeginTranslationPolicyAgentRun();
@@ -561,6 +562,7 @@ namespace AutoTranslator_Core
                             settings.SubTaskName = "ATC_SubTask_TranslatingDef".Translate();
                             aiTranslatedCount += await ProcessModDefInjected(mod, langRoots, defsRoots);
                         }
+                        if (HasCommittedOutput(mod.PackageId)) producedPackages.Add(mod.PackageId);
 
 
                         if (!AutoTranslatorSettings.IsSkipCurrentRequested && !AutoTranslatorSettings.IsCancellationRequested)
@@ -612,7 +614,7 @@ namespace AutoTranslator_Core
                         AutoTranslatorSettings.AddLog("🎉 " + "ATC_Log_TaskDone".Translate());
                         AutoTranslatorSettings.AddLog("🎉 " + "ATC_Log_AllTranslationWritten".Translate());
                         LogValidationSummary();
-                        RequestMemoryDrop();
+
 
                         AutoTranslatorSettings.ShowFinishPopup = true;
                         ModUpdateDetector.ClearStatusCache();
@@ -650,6 +652,7 @@ namespace AutoTranslator_Core
                         });
                     }
                     AutoTranslatorSettings.IsRunning = false;
+                    TryRunPipelineCleanup("queue incremental repair", () => TranslationRepairController.RequestPipelineRepairs(producedPackages));
                 }
             });
         }
@@ -688,6 +691,7 @@ namespace AutoTranslator_Core
             {
                 long policyAgentRunId = 0L;
                 bool runHadPackageFailures = false;
+                var producedPackages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 try
                 {
                     policyAgentRunId = BeginTranslationPolicyAgentRun();
@@ -789,6 +793,7 @@ namespace AutoTranslator_Core
                             settings.SubTaskName = "ATC_SubTask_TranslatingDef".Translate();
                             aiTranslatedCount += await ProcessModDefInjected(mod, langRoots, defsRoots);
                         }
+                        if (HasCommittedOutput(mod.PackageId)) producedPackages.Add(mod.PackageId);
 
 
                         if (!AutoTranslatorSettings.IsSkipCurrentRequested && !AutoTranslatorSettings.IsCancellationRequested)
@@ -834,7 +839,7 @@ namespace AutoTranslator_Core
                         settings.SubProgress = 1f;
                         AutoTranslatorSettings.AddLog("🎉 " + "ATC_Log_MultiScanDone".Translate());
                         LogValidationSummary();
-                        RequestMemoryDrop();
+
 
                         AutoTranslatorSettings.ShowFinishPopup = true;
                         ModUpdateDetector.ClearStatusCache();
@@ -872,6 +877,7 @@ namespace AutoTranslator_Core
                         });
                     }
                     AutoTranslatorSettings.IsRunning = false;
+                    TryRunPipelineCleanup("queue incremental repair", () => TranslationRepairController.RequestPipelineRepairs(producedPackages));
                 }
             });
         }

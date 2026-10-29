@@ -80,6 +80,7 @@ namespace AutoTranslator_Core
         internal static bool ShouldBypassUIPatchText(string text)
         {
             if (string.IsNullOrEmpty(text)) return true;
+            if (UIDynamicNumberTemplate.IsNumericDisplayText(text)) return true;
             if (text[0] == '\u200B') return true;
             if (AutoTranslatorMod.Settings.EnableUIErrorLogInterception) return false;
 

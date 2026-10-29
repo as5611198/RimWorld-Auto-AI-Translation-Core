@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_Repair_OpenReport>翻訳修復記録を開く</ATC_Repair_OpenReport>
+  <ATC_Repair_ReportHint>既存の翻訳と元データはローカルに保存されます。新しい翻訳リクエストは送信しません。</ATC_Repair_ReportHint>
+  <ATC_Repair_IntroTitle>翻訳を確認・修復</ATC_Repair_IntroTitle>
+  <ATC_Repair_Intro>AI 翻訳パックと読み込まれた MOD の失敗した翻訳を確認し、確認できる問題をゲームへ再適用します。</ATC_Repair_Intro>
+  <ATC_Repair_Explanation>「全件チェック」を一度押してください。処理中の場合は完了後に自動で開始します。</ATC_Repair_Explanation>
+  <ATC_Repair_Start>全件チェック</ATC_Repair_Start>
+  <ATC_Repair_Later>後で行う</ATC_Repair_Later>
+  <ATC_Repair_Close>完了して閉じる</ATC_Repair_Close>
+  <ATC_Repair_CheckAgain>全件チェック</ATC_Repair_CheckAgain>
+  <ATC_Repair_Minimize>縮小して続行</ATC_Repair_Minimize>
+  <ATC_Repair_Expand>修復の進行状況を開く</ATC_Repair_Expand>
+  <ATC_Repair_Checking>1 / 3　翻訳を確認して保持</ATC_Repair_Checking>
+  <ATC_Repair_Applying>2 / 3　ゲームへ適用</ATC_Repair_Applying>
+  <ATC_Repair_Verifying>3 / 3　適用結果を確認</ATC_Repair_Verifying>
+  <ATC_Repair_Saving>確認完了、結果をバックグラウンドで保存中</ATC_Repair_Saving>
+  <ATC_Repair_Completed>確認完了</ATC_Repair_Completed>
+  <ATC_Repair_Stopped>確認未完了</ATC_Repair_Stopped>
+  <ATC_Repair_Progress>処理済み {0} / {1}</ATC_Repair_Progress>
+  <ATC_Repair_ApplyingHint>翻訳を適用しています。完了後に自動確認します。</ATC_Repair_ApplyingHint>
+  <ATC_Repair_VerifiedCount>修復・確認済み：{0}</ATC_Repair_VerifiedCount>
+  <ATC_Repair_InapplicableCount>現在は対象外（保持）：{0}</ATC_Repair_InapplicableCount>
+  <ATC_Repair_UnresolvedCount>自動修復不可、要確認：{0}</ATC_Repair_UnresolvedCount>
+  <ATC_Repair_WaitingCount>確認中：{0}</ATC_Repair_WaitingCount>
+  <ATC_Repair_StayAtMenu>縮小中も処理は続きます。完了するまでメインメニューに留まってください。</ATC_Repair_StayAtMenu>
+  <ATC_Repair_ResultHint>対象外や競合する項目は保持され、自動修復されません。詳細は記録を確認してください。</ATC_Repair_ResultHint>
+  <ATC_Repair_Clean>対応が必要な翻訳問題は見つかりませんでした。</ATC_Repair_Clean>
+  <ATC_Repair_FailureHint>一部の手順が完了しませんでした。未確認の項目は記録に保持されています。</ATC_Repair_FailureHint>
+  <ATC_Repair_Busy>翻訳または適用処理が実行中です。完了後に再試行してください。</ATC_Repair_Busy>
+  <ATC_Repair_MainMenuOnly>メインメニューに戻って翻訳を確認・修復してください。</ATC_Repair_MainMenuOnly>
+  <ATC_Repair_ShortResult>修復済み {0} / 対象外 {1} / 要確認 {2}</ATC_Repair_ShortResult>
+  <ATC_Repair_Waiting>修復を予約しました。現在の処理を待っています</ATC_Repair_Waiting>
+  <ATC_Repair_WaitTranslation>翻訳またはスキャンの完了を待っています。</ATC_Repair_WaitTranslation>
+  <ATC_Repair_WaitApplying>翻訳のゲームへの適用を待っています。</ATC_Repair_WaitApplying>
+  <ATC_Repair_WaitMaintenance>翻訳パックの整理を待っています。</ATC_Repair_WaitMaintenance>
+  <ATC_Repair_WaitSaving>前回の修復結果の保存を待っています。</ATC_Repair_WaitSaving>
+  <ATC_Repair_WaitLoading>ゲームの読み込み完了を待っています。</ATC_Repair_WaitLoading>
+  <ATC_Repair_WaitReady>修復の開始を準備中です。</ATC_Repair_WaitReady>
+  <ATC_Repair_WaitHint>依頼は予約済みです。準備ができると自動で開始します。</ATC_Repair_WaitHint>
+  <ATC_Repair_CancelWaiting>待機をキャンセル</ATC_Repair_CancelWaiting>
+  <ATC_Repair_NativeErrorCounts>ゲーム診断：前 {0} → 後 {1}</ATC_Repair_NativeErrorCounts>
+  <ATC_Repair_AutomaticTitle>自動修復の進行状況</ATC_Repair_AutomaticTitle>
+  <ATC_Repair_AutomaticHint>修復中です。完了すると結果を表示します。</ATC_Repair_AutomaticHint>
+  <ATC_Repair_ModeFull>全件修復</ATC_Repair_ModeFull>
+  <ATC_Repair_ModeIncremental>差分修復</ATC_Repair_ModeIncremental>
+</LanguageData>

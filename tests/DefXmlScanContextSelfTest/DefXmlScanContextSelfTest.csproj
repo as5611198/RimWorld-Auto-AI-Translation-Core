@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <GameVersion Condition="'$(GameVersion)' == ''">1.7</GameVersion>
+    <OutputType>Exe</OutputType>
+    <TargetFramework Condition="'$(GameVersion)' == '1.7'">net10.0</TargetFramework>
+    <TargetFramework Condition="'$(GameVersion)' != '1.7'">net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <DefineConstants Condition="'$(GameVersion)' != '1.7'">$(DefineConstants);LEGACY_GAME</DefineConstants>
+    <OutputPath>bin/$(Configuration)/$(GameVersion)/</OutputPath>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <RimWorld17Dir>E:\SteamLibrary\steamapps\common\RimWorld</RimWorld17Dir>
+    <RimWorld15ManagedDir>$(UserProfile)/Documents/rimworld 1.5 data/RimWorldWin64_Data/Managed</RimWorld15ManagedDir>
+    <RimWorld15ManagedDir Condition="'$(GameVersion)' == '1.6'">$(MSBuildProjectDirectory)/../../app_294100/depot_294104/RimWorldWin64_Data/Managed</RimWorld15ManagedDir>
+    <ProductDll Condition="'$(ProductDll)' == '' and '$(GameVersion)' == '1.5'">../../RimWorld-Auto-AI-Translation_Core/bin/Release-RW15/RimWorld_Auto_AI_Translation_Core.dll</ProductDll>
+    <ProductDll Condition="'$(ProductDll)' == '' and '$(GameVersion)' == '1.6'">../../RimWorld-Auto-AI-Translation_Core/bin/Release/RimWorld_Auto_AI_Translation_Core.dll</ProductDll>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Condition="'$(GameVersion)' == '1.7' and '$(ProductDll)' == ''" Include="../../RimWorld-Auto-AI-Translation_Core/RimWorld-Auto-AI-Translation_Core.RW17.csproj" />
+    <Reference Condition="'$(ProductDll)' != ''" Include="RimWorld_Auto_AI_Translation_Core"><HintPath>$(ProductDll)</HintPath></Reference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(GameVersion)' == '1.7'">
+    <Reference Include="Assembly-CSharp"><HintPath>$(RimWorld17Dir)/Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityStubs"><HintPath>$(RimWorld17Dir)/UnityStubs.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(GameVersion)' != '1.7'">
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="Assembly-CSharp"><HintPath>$(RimWorld15ManagedDir)/Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(RimWorld15ManagedDir)/UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.IMGUIModule"><HintPath>$(RimWorld15ManagedDir)/UnityEngine.IMGUIModule.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json"><HintPath>../../packages/Newtonsoft.Json.13.0.4/lib/net45/Newtonsoft.Json.dll</HintPath></Reference>
+    <Reference Include="0Harmony">
+      <HintPath Condition="'$(GameVersion)' != '1.7'">../../packages/Lib.Harmony.2.4.2/lib/net48/0Harmony.dll</HintPath>
+      <HintPath Condition="'$(GameVersion)' == '1.7'">E:/SteamLibrary/steamapps/workshop/content/294100/2009463077/1.7/Assemblies/0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

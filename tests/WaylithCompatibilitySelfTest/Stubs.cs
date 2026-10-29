@@ -1,4 +1,4 @@
-// Only the application services are substituted. Patch implementation, Unity GUI,
+﻿// Only the application services are substituted. Patch implementation, Unity GUI,
 // Harmony, the downloader, and persistent identity code are the production code.
 namespace AutoTranslator_Core
 {
@@ -36,7 +36,7 @@ namespace AutoTranslator_Core
         private static void TryDeleteCloudTempFile(string path) { if (File.Exists(path)) File.Delete(path); }
         public static async Task<(bool success, long status, string id, string reason)> Download(string url, string path, int timeout = 3)
         {
-            var result = await WaylithArchiveDownloader.DownloadAsync(url, path, timeout);
+            var result = await WaylithArchiveDownloader.DownloadAsync(url, path, timeout, System.Threading.CancellationToken.None);
             return (result.Success, result.StatusCode, result.ServedRecordId, result.FallbackReason);
         }
     }

@@ -5,4 +5,5 @@
   <ATC_MiMo_OpenAiRequired>ใช้ URL ของ MiMo ที่รองรับ OpenAI (/v1) ไม่ใช่ Anthropic /messages</ATC_MiMo_OpenAiRequired>
   <ATC_MiMo_ModelSuggestions>ปลายทาง MiMo นี้ไม่มี API รายการรุ่น จึงแสดงรุ่นแนะนำในตัว ยังไม่ได้ยืนยันคีย์หรือสิทธิ์ใช้รุ่น</ATC_MiMo_ModelSuggestions>
   <ATC_Profile_MiMo>MiMo: ใช้รูปแบบ OpenAI และปิดการคิดเชิงลึก</ATC_Profile_MiMo>
+  <ATC_MiMo_Notice_Purpose>ค่าเริ่มต้น: {0} สำหรับ Token Plan ให้ใช้ URL ที่รองรับ OpenAI และคีย์ที่ตรงกันจากคอนโซล ป้อนรหัสรุ่นเองได้ ในโหมดอัตโนมัติ รุ่นที่รองรับจะปิดการคิดขณะแปล แต่ยังเปิดการคิดให้ Agent ตรวจสอบ</ATC_MiMo_Notice_Purpose>
 </LanguageData>

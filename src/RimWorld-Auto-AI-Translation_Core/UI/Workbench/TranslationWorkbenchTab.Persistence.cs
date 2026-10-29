@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using RimWorld;
 using System;
 using System.Collections.Generic;
@@ -62,6 +62,8 @@ namespace AutoTranslator_Core
                 string cleanPackageId = mod.PackageId.Replace(".", "_").ToLowerInvariant();
                 WorkbenchSaveSnapshot snapshot = new WorkbenchSaveSnapshot
                 {
+                    EditorData = data,
+                    EditorGeneration = _editorGeneration,
                     Mod = mod.Mod,
                     PackageId = mod.PackageId,
                     RootDir = mod.RootDir,
@@ -120,8 +122,18 @@ namespace AutoTranslator_Core
                 string targetLanguageRoot = Path.Combine(snapshot.PackPath, "Languages", snapshot.TargetLangFolder);
                 string workspaceLanguageRoot = Path.Combine(workspaceBaseDir, snapshot.PackageId, snapshot.TargetLangFolder);
 
+                TranslationFileTransaction transaction = null;
+                int epoch = AutoTranslatorScanner.GameDataEpoch;
+                int cancellation = AutoTranslatorSettings.PipelineCancellationGeneration;
                 try
                 {
+                    transaction = new TranslationFileTransaction(Path.Combine(snapshot.PackPath, "Backups", snapshot.PackageId, "Workbench")).CaptureWrites();
+                    foreach (var category in snapshot.Categories)
+                        foreach (var item in category.Items)
+                            if (ShouldSaveWorkbenchSnapshotItem(item) &&
+                                !AutoTranslatorScanner.IsManualXmlTranslationFormatValid(item.TranslatedText,
+                                    string.IsNullOrWhiteSpace(item.OriginalText) ? item.SavedTranslatedText : item.OriginalText))
+                                throw new InvalidDataException("Invalid translation format: " + item.Key);
                     Dictionary<string, AutoTranslatorScanner.TranslationProvenanceEntry> targetProvenanceIndex =
                         LoadWorkbenchProvenanceIndex(targetLanguageRoot, snapshot.PackageId);
                     Dictionary<string, AutoTranslatorScanner.TranslationProvenanceEntry> workspaceProvenanceIndex =
@@ -149,6 +161,8 @@ namespace AutoTranslator_Core
 
                         string targetFile = Path.Combine(targetDir, $"{snapshot.CleanPackageId}_AutoTranslated.xml");
                         string workspaceFile = Path.Combine(workspaceDir, $"{snapshot.CleanPackageId}_AutoTranslated.xml");
+                        transaction.Observe(targetFile);
+                        transaction.Observe(workspaceFile);
                         List<string> targetSourceFiles = AutoTranslatorScanner
                             .GetXmlFilesForTranslationCache(targetDir, SearchOption.TopDirectoryOnly)
                             .Where(file => IsWorkbenchGeneratedOutputFile(
@@ -245,6 +259,10 @@ namespace AutoTranslator_Core
                     }
 
                     UpdateWorkbenchRestoreBaselines(snapshot);
+                    transaction.Commit(() => epoch == AutoTranslatorScanner.GameDataEpoch &&
+                        cancellation == AutoTranslatorSettings.PipelineCancellationGeneration && !AutoTranslatorSettings.IsCancellationRequested);
+                    AutoTranslatorScanner.NotifyTranslationFilesChanged(targetLanguageRoot);
+                    AutoTranslatorScanner.NotifyTranslationFilesChanged(workspaceLanguageRoot);
                     result.HasSavedTranslation = HasAnySavedTranslationForCurrentMod(
                         snapshot.TargetLangFolder,
                         snapshot.PackageId,
@@ -261,6 +279,7 @@ namespace AutoTranslator_Core
                     Verse.Log.Warning($"[AutoTranslationCore] Workbench background save failed: {ex}");
                 }
 
+                finally { transaction?.Dispose(); }
                 return result;
             }
 
@@ -276,6 +295,7 @@ namespace AutoTranslator_Core
 
                 foreach (string file in files)
                 {
+                    TranslationFileTransaction.Current?.Observe(file);
                     if (!AutoTranslatorScanner.TryLoadRawXmlFileToDict(
                             file,
                             out Dictionary<string, string> data))
@@ -435,7 +455,7 @@ namespace AutoTranslator_Core
             private static void EnsureWorkbenchFileWritable(string file)
             {
                 if (string.IsNullOrWhiteSpace(file) || !File.Exists(file)) return;
-                File.SetAttributes(file, FileAttributes.Normal);
+                // Respect file permissions; do not mutate attributes outside the transaction.
             }
 
             private static void DeleteSupersededWorkbenchFiles(
@@ -448,8 +468,7 @@ namespace AutoTranslator_Core
                 {
                     if (PathsEqual(oldFile, canonicalFile) || !File.Exists(oldFile)) continue;
 
-                    File.SetAttributes(oldFile, FileAttributes.Normal);
-                    File.Delete(oldFile);
+                    TranslationXmlAtomicFileStore.DeleteIfCurrent(oldFile, () => true);
                     AutoTranslatorScanner.NotifyTranslationFileChanged(oldFile);
                 }
             }
@@ -533,6 +552,7 @@ namespace AutoTranslator_Core
                 }
 
                 FinalizeWorkbenchSave(snapshot, result);
+                if (snapshot.EditorGeneration != _editorGeneration || !ReferenceEquals(snapshot.EditorData, _categorizedData)) return;
                 SetWorkbenchStatus("ATC_Workbench_SavedInline".Translate().ToString());
                 AutoTranslatorSettings.AddLog("? " + "ATC_Log_WorkbenchSaved".Translate(result.SavedCount));
                 Verse.Messages.Message("ATC_Workbench_SaveSuccess".Translate(), MessageTypeDefOf.PositiveEvent, false);
@@ -542,7 +562,8 @@ namespace AutoTranslator_Core
             private static void FinalizeWorkbenchSave(WorkbenchSaveSnapshot snapshot, WorkbenchSaveResult result)
             {
                 TranslationUnresolvedManager.ResolveMatching(BuildResolvedWorkbenchEntries(snapshot));
-                if (_editingMod == snapshot.Mod && _loadedWorkbenchTargetLanguage == snapshot.TargetLang)
+                if (_editingMod == snapshot.Mod && _loadedWorkbenchTargetLanguage == snapshot.TargetLang &&
+                    snapshot.EditorGeneration == _editorGeneration && ReferenceEquals(snapshot.EditorData, _categorizedData))
                     MarkSavedSnapshotItems(snapshot);
                 if (result.TouchedTranslationFiles && AutoTranslatorMod.Settings.TargetLang == snapshot.TargetLang)
                 {
@@ -614,8 +635,8 @@ namespace AutoTranslator_Core
                     foreach (WorkbenchItem item in currentItems)
                     {
                         if (item == null || !snapshotItems.TryGetValue(item.Key ?? "", out WorkbenchSaveItemSnapshot savedItem)) continue;
-                        item.IsModified = false;
-                        item.SavedTranslatedText = item.TranslatedText;
+                        item.SavedTranslatedText = savedItem.TranslatedText;
+                        item.IsModified = !SameWorkbenchText(item.TranslatedText, savedItem.TranslatedText);
                         item.SavedTranslatedTextIsReadOnlyReference =
                             savedItem.OriginalTranslatedTextIsReadOnlyReference &&
                             SameWorkbenchText(savedItem.TranslatedText, savedItem.OriginalTranslatedText);

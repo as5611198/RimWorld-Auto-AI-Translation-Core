@@ -158,6 +158,13 @@ namespace AutoTranslator_Core
             {
                 await Task.Delay(10000);
 
+                // Startup self-repair must get the first pass over the owned
+                // translation pack. Do not let the delayed update scan claim
+                // IsRunning while the repair is still waiting for the menu or
+                // applying its memory drop; retry after the repair releases it.
+                while (TranslationRepairController.StartupRepairActive)
+                    await Task.Delay(1000);
+
                 if (AutoTranslatorMod.Settings.AutoTranslateOnUpdate)
                 {
                     var updates = ModUpdateDetector.GetUpdatedOrNewModsBlocking();
@@ -171,6 +178,7 @@ namespace AutoTranslator_Core
 
             var harmony = new Harmony("MingYang.AutoTranslation.UIInterceptor");
             harmony.PatchAll(typeof(UIInterceptor).Assembly);
+            CachedModTranslationCompatibility.Install(harmony);
 
             Log.Message("[AutoTranslationCore] " + "ATC_Log_UIInterceptorStarted".Translate());
         }

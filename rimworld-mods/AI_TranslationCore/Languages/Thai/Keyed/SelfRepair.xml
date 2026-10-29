@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_Repair_OpenReport>เปิดบันทึกการซ่อมแซมคำแปล</ATC_Repair_OpenReport>
+  <ATC_Repair_ReportHint>เก็บคำแปลและแหล่งข้อมูลเดิมไว้ในเครื่อง จะไม่มีการส่งคำขอแปลใหม่</ATC_Repair_ReportHint>
+  <ATC_Repair_IntroTitle>ตรวจสอบทั้งหมดคำแปล</ATC_Repair_IntroTitle>
+  <ATC_Repair_Intro>ตรวจสอบแพ็กคำแปล AI และคำแปลที่ใช้กับม็อดแล้วล้มเหลว จากนั้นใช้การแก้ไขที่ยืนยันแล้วในเกม</ATC_Repair_Intro>
+  <ATC_Repair_Explanation>กด “ตรวจสอบทั้งหมด” หนึ่งครั้ง หากมีงานอื่นกำลังทำอยู่ ระบบจะเริ่มโดยอัตโนมัติเมื่อพร้อม</ATC_Repair_Explanation>
+  <ATC_Repair_Start>ตรวจสอบทั้งหมด</ATC_Repair_Start>
+  <ATC_Repair_Later>ภายหลัง</ATC_Repair_Later>
+  <ATC_Repair_Close>เสร็จสิ้นและปิด</ATC_Repair_Close>
+  <ATC_Repair_CheckAgain>ตรวจสอบทั้งหมด</ATC_Repair_CheckAgain>
+  <ATC_Repair_Minimize>ย่อและทำต่อ</ATC_Repair_Minimize>
+  <ATC_Repair_Expand>ขยายความคืบหน้าการซ่อม</ATC_Repair_Expand>
+  <ATC_Repair_Checking>1 / 3　ตรวจสอบและเก็บคำแปล</ATC_Repair_Checking>
+  <ATC_Repair_Applying>2 / 3　ใช้กับเกม</ATC_Repair_Applying>
+  <ATC_Repair_Verifying>3 / 3　ตรวจสอบผลลัพธ์</ATC_Repair_Verifying>
+  <ATC_Repair_Saving>ตรวจสอบเสร็จ กำลังบันทึกผลเบื้องหลัง</ATC_Repair_Saving>
+  <ATC_Repair_Completed>ตรวจสอบเสร็จสิ้น</ATC_Repair_Completed>
+  <ATC_Repair_Stopped>ตรวจสอบไม่เสร็จสิ้น</ATC_Repair_Stopped>
+  <ATC_Repair_Progress>ดำเนินการแล้ว {0} / {1}</ATC_Repair_Progress>
+  <ATC_Repair_ApplyingHint>กำลังใช้คำแปล ระบบจะตรวจสอบผลโดยอัตโนมัติเมื่อเสร็จ</ATC_Repair_ApplyingHint>
+  <ATC_Repair_VerifiedCount>ซ่อมและตรวจสอบแล้ว: {0}</ATC_Repair_VerifiedCount>
+  <ATC_Repair_InapplicableCount>ใช้ไม่ได้ในตอนนี้ (เก็บไว้): {0}</ATC_Repair_InapplicableCount>
+  <ATC_Repair_UnresolvedCount>ซ่อมอัตโนมัติไม่ได้ ต้องตรวจสอบ: {0}</ATC_Repair_UnresolvedCount>
+  <ATC_Repair_WaitingCount>กำลังตรวจสอบ: {0}</ATC_Repair_WaitingCount>
+  <ATC_Repair_StayAtMenu>งานจะทำต่อแม้ย่อหน้าต่าง โปรดอยู่ที่เมนูหลักจนกว่าจะเสร็จ</ATC_Repair_StayAtMenu>
+  <ATC_Repair_ResultHint>รายการที่ใช้ไม่ได้หรือขัดแย้งจะถูกเก็บไว้และไม่ซ่อมอัตโนมัติ ดูรายละเอียดในรายงาน</ATC_Repair_ResultHint>
+  <ATC_Repair_Clean>ไม่พบปัญหาคำแปลที่ต้องดำเนินการ</ATC_Repair_Clean>
+  <ATC_Repair_FailureHint>บางขั้นตอนไม่เสร็จ รายการที่ยังไม่ตรวจสอบจะถูกเก็บไว้ในรายงาน</ATC_Repair_FailureHint>
+  <ATC_Repair_Busy>กำลังแปลหรือใช้คำแปลอยู่ โปรดลองอีกครั้งเมื่อเสร็จ</ATC_Repair_Busy>
+  <ATC_Repair_MainMenuOnly>กลับไปเมนูหลักเพื่อดำเนินการตรวจสอบทั้งหมดคำแปล</ATC_Repair_MainMenuOnly>
+  <ATC_Repair_ShortResult>ซ่อมแล้ว {0} / ใช้ไม่ได้ {1} / ต้องตรวจสอบ {2}</ATC_Repair_ShortResult>
+  <ATC_Repair_Waiting>จัดคิวการซ่อมแล้ว กำลังรอการทำงานปัจจุบัน</ATC_Repair_Waiting>
+  <ATC_Repair_WaitTranslation>กำลังรอการแปลหรือการสแกนเสร็จ</ATC_Repair_WaitTranslation>
+  <ATC_Repair_WaitApplying>กำลังรอใช้คำแปลกับเกม</ATC_Repair_WaitApplying>
+  <ATC_Repair_WaitMaintenance>กำลังรอจัดการแพ็กคำแปลเสร็จ</ATC_Repair_WaitMaintenance>
+  <ATC_Repair_WaitSaving>กำลังรอบันทึกผลการซ่อมครั้งก่อน</ATC_Repair_WaitSaving>
+  <ATC_Repair_WaitLoading>กำลังรอเกมโหลดเสร็จ</ATC_Repair_WaitLoading>
+  <ATC_Repair_WaitReady>กำลังเตรียมเริ่มการซ่อม</ATC_Repair_WaitReady>
+  <ATC_Repair_WaitHint>คำขอถูกจัดคิวแล้ว ระบบจะเริ่มอัตโนมัติเมื่อพร้อม</ATC_Repair_WaitHint>
+  <ATC_Repair_CancelWaiting>ยกเลิกการรอ</ATC_Repair_CancelWaiting>
+  <ATC_Repair_NativeErrorCounts>การวินิจฉัยเกม: ก่อน {0} → หลัง {1}</ATC_Repair_NativeErrorCounts>
+  <ATC_Repair_AutomaticTitle>ความคืบหน้าการซ่อมอัตโนมัติ</ATC_Repair_AutomaticTitle>
+  <ATC_Repair_AutomaticHint>กำลังซ่อมแซม ผลลัพธ์จะแสดงเมื่อเสร็จ</ATC_Repair_AutomaticHint>
+  <ATC_Repair_ModeFull>ซ่อมแซมทั้งหมด</ATC_Repair_ModeFull>
+  <ATC_Repair_ModeIncremental>ซ่อมแซมเฉพาะส่วนที่เปลี่ยน</ATC_Repair_ModeIncremental>
+</LanguageData>

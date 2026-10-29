@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_Advanced_Title>การตั้งค่าขั้นสูง</ATC_Advanced_Title>
+  <ATC_Advanced_ThinkingLabel>โหมดการคิด</ATC_Advanced_ThinkingLabel>
+  <ATC_Advanced_Mode_Auto>อัตโนมัติ (แนะนำ)</ATC_Advanced_Mode_Auto>
+  <ATC_Advanced_Mode_PreferOff>ปิดเมื่อทำได้</ATC_Advanced_Mode_PreferOff>
+  <ATC_Advanced_Mode_Enabled>เปิดการคิด</ATC_Advanced_Mode_Enabled>
+  <ATC_Advanced_ThinkingReviewHelp>อัตโนมัติจะคงการคิดไว้สำหรับการตรวจสอบ การคิดอาจเพิ่มเวลาและการใช้งาน การตั้งค่านี้มีผลเฉพาะ API ตรวจสอบ</ATC_Advanced_ThinkingReviewHelp>
+  <ATC_Advanced_ThinkingTranslationHelp>อัตโนมัติจะปิดการคิดสำหรับการแปลทั่วไปเมื่อรองรับ การคิดอาจเพิ่มเวลาและการใช้งาน</ATC_Advanced_ThinkingTranslationHelp>
+  <ATC_Advanced_ThinkingNotApplicable>ผู้ให้บริการนี้ไม่มีการตั้งค่าการคิด</ATC_Advanced_ThinkingNotApplicable>
+  <ATC_Advanced_ThinkingPlayer2>Player2 จัดการโมเดลและการคิด โปรดปรับในแอป Player2</ATC_Advanced_ThinkingPlayer2>
+  <ATC_Advanced_ThinkingUnknown>ยังไม่ทราบพารามิเตอร์การคิดของโมเดลหรือปลายทางนี้ จึงใช้ค่าเริ่มต้นของบริการ สำหรับ OpenRouter ให้ลองโหลดรายชื่อโมเดลใหม่</ATC_Advanced_ThinkingUnknown>
+  <ATC_Advanced_ThinkingMinimum>โมเดลนี้ปิดการคิดทั้งหมดไม่ได้ จะใช้ระดับต่ำสุดที่ทราบว่ารองรับหรือคงการคิดที่จำเป็น</ATC_Advanced_ThinkingMinimum>
+  <ATC_Advanced_ThinkingOn>จะเปิดหรือคงการคิดของโมเดลไว้</ATC_Advanced_ThinkingOn>
+  <ATC_Advanced_ThinkingOff>จะส่งคำขอให้โมเดลปิดการคิด</ATC_Advanced_ThinkingOff>
+  <ATC_Advanced_PromptOpen>ขั้นสูง: ข้อกำหนดการแปล…</ATC_Advanced_PromptOpen>
+  <ATC_Advanced_PromptTitle>ข้อกำหนดการแปลเพิ่มเติม</ATC_Advanced_PromptTitle>
+  <ATC_Advanced_PromptHelp>ใช้กับการแปล AI ทั่วไปทั้งหมด ยกเว้น Agent ตรวจสอบและ DeepL ระบุคำศัพท์ น้ำเสียง หรือการคงชื่อเดิมได้ ภาษาปลายทาง รูปแบบ JSON ลำดับ ตัวแปร และแท็กยังคงได้รับการป้องกัน มีผลกับคำขอใหม่หลังบันทึกเท่านั้น ไม่แปลข้อความเดิมซ้ำโดยอัตโนมัติ</ATC_Advanced_PromptHelp>
+  <ATC_Advanced_PromptPreviewLabel>ตัวอย่างพรอมป์ต์ทั้งหมด (ภาษาปลายทาง: {0})</ATC_Advanced_PromptPreviewLabel>
+  <ATC_Advanced_PromptCount>ข้อกำหนดเพิ่มเติม: {0} / {1} อักขระ</ATC_Advanced_PromptCount>
+  <ATC_Advanced_PromptEdit>กลับไปแก้ไข</ATC_Advanced_PromptEdit>
+  <ATC_Advanced_PromptPreview>ดูพรอมป์ต์ทั้งหมด</ATC_Advanced_PromptPreview>
+  <ATC_Advanced_PromptReset>ล้าง / คืนค่าเริ่มต้น</ATC_Advanced_PromptReset>
+  <ATC_Advanced_PromptSave>บันทึกและปิด</ATC_Advanced_PromptSave>
+  <ATC_Advanced_PromptCancel>ยกเลิก</ATC_Advanced_PromptCancel>
+  <ATC_Advanced_MiMoProfile>MiMo ใช้ API ที่เข้ากันได้กับ OpenAI ปรับโหมดการคิดได้ในการตั้งค่าขั้นสูง</ATC_Advanced_MiMoProfile>
+</LanguageData>

@@ -1,6 +1,16 @@
 # Steam 版：RimWorld 1.5 / 1.6 / 1.7
 
+2026-10-24 批量 XML 玩家回報修正（三版共用）：縮短原子寫入暫存／回滾備份檔名，修復有效目標被暫存名推過 MAX_PATH 的情況；數字開頭的 DefInjected 鍵改用原生支援的 rep/path/trans，批量匯入、單獨輸出與重新掃描讀取同步支援。三版重新編譯，產品整合檢查通過 72／65／72 項，批量 38 項與原子寫入 3 組在 net48／net10.0 均通過。仍未啟動遊戲；1.6 借用 1.5 執行庫的限制不變。交付 `.codex/artifacts/atc-batch-export-fix-1.5-1.6-1.7-20261024-player.zip`，詳見 [查核與修正報告](reports/batch-xml-export-audit-and-fix-20261024.md)。
+
 同一個模組目錄透過 `LoadFolders.xml` 分別載入 `1.5`、`1.6` 或 `1.7`。共用 Defs／Languages；每個版本有獨立編譯的主 DLL。這次相容性工作從 Steam 現有版本對應的 d587640 接續，未整合 PR #3。
+
+目前以 1.6 為主要版本，1.7 為新版遊戲適配。三版共用 API 思考模式、翻譯／審查獨立設定、自訂翻譯要求、手動取得自訂 OpenAI 模型清單及相關解析修正；1.5／1.6 保留 UnityWebRequest，只有 1.7 改用原生 HttpClient。以下較早的「只更新 1.7／舊版 DLL 不變」紀錄為當時驗證快照，已由三版共用功能更新接續。
+
+2026-10-24 本地功能三版補齊：XML 父節點上下文、未解決來源比對／漢化包排除，以及智能補譯「勾選未翻譯模組」共用於 1.5／1.6／1.7，並非 PR #3 的相容測試包。修正 1.5 不存在 `ModDependency.alternativePackageIds` 的編譯問題，依其原生模型只檢查必要依賴；1.6／1.7 保留替代依賴。三版重新編譯通過（1.5／1.7 無警告，1.6 保留兩項既有過時 API 警告），直接載入各版新 DLL 的掃描／狀態／接線檢查分別通過 60／53／60 項，API 回歸各通過 214 項。1.6 是以 1.6.4871 參考組件編譯、以 1.5 執行庫提供離線相容宿主；其中三項替代依賴及四項原生版本目錄檢查明確跳過，不能當成 1.6 遊戲內驗證。交付 `.codex/artifacts/atc-local-features-1.5-1.6-1.7-20261024-player.zip`，未啟動遊戲、未同步至遊戲安裝目錄、未發布。詳見 [本次三版報告](reports/local-features-three-version-20261024.md)。
+
+2026-10-22 使用教學與功能分區：三版操作導覽整理為「翻譯任務／翻譯設定／全域工作台／雲端共享」。第一次進入本模組設定時自動顯示四分頁教學，狀態存入 `HasSeenUsageGuide`，各頁保留手動入口與前往功能的捷徑；既有批次 XML 專用教學仍保留。九語系各新增 16 個教學鍵，更新舊全文教學與 README，文字版見 [完整使用教學](USAGE_GUIDE.md)。三版編譯與各 214 項離線 API／導覽路由檢查通過，1.7 的 224 項本機 HTTP／設定檢查包含首次導覽狀態的 Scribe 存讀；80 個配送檔案核對完成。已在實際 1.7.4985 繁中介面確認首次自動顯示、四頁內容、各功能捷徑、手動重開，以及重新開啟設定／重啟遊戲皆不重複跳出；最終主畫面僅保留一個教學入口。1.5／1.6 新畫面尚未遊戲內驗收。備份與驗證：`backups/steam-three-version-20261022-205703-457/verification.json`、`usage-guide-validation.json`。未手動執行翻譯任務或雲端上傳／下載，未推送 GitHub 或發布工作坊。
+
+2026-10-21 三版共用 API 更新驗證：三版 Release 編譯並部署完成，各配送 DLL 與本機安裝的 SHA-256 相同；共核對 71 個檔案。三版 DLL 各通過 210 項離線 API／請求流程檢查，流程測試在獨立宿主中攔截傳輸邊界、使用合成回應。1.6 使用官方 1.6.4871 參考組件編譯，離線測試宿主載入實際 1.5 Managed 相容依賴，不能視為真正 1.6 遊戲內連線／UI／存檔驗收。1.5 通過 7 項型別與版本 smoke 檢查，1.7 通過 29 項；另有 222 項 1.7 本機 HTTP 傳輸／玩家設定檢查、25 組審查規則檢查及九語系鍵／XML 檢查通過。備份與驗證：`backups/steam-three-version-20261021-233252-629/verification.json`、`shared-api-features-validation.json`。本次未發布 GitHub 或工作坊，未以正式供應商金鑰送出請求。
 
 | 遊戲版本 | 專案 | 編譯目標 | 輸出 |
 |---|---|---|---|
@@ -15,6 +25,9 @@
 需要 .NET 10 SDK、舊 .NET Framework 參考程序集、本機 packages 下的 Harmony 2.4.2 / Newtonsoft.Json 13.0.4，以及三版本遊戲參考。
 
 ```powershell
+# 只建置並部署 1.7；不替換 1.5／1.6 的 DLL。
+pwsh -NoProfile -File tools/Build-SteamMod.ps1 -Versions 1.7 -Deploy
+
 # 建置三版本並更新 repo 內的可配送模組；尚不部署 Steam。
 pwsh -NoProfile -File tools/Build-SteamMod.ps1
 
@@ -32,6 +45,24 @@ pwsh -NoProfile -File tools/Build-SteamMod.ps1 -Deploy -LocalUiLanguage ChineseT
 `-Deploy` 也會備份並同步模組的 `Languages` 檔案，確保新版 UI 的翻譯鍵一起交付。選用 `-LocalUiLanguage ChineseTraditional` 時，僅在 Steam 安裝目錄的英文語系中套用本模組的繁中翻譯，讓只有英文的 1.7 預覽版也能操作中文模組介面；不修改遊戲 Core、Prefs、API 設定或 repo 發行包的英文語系。`verification.json` 會另外記錄本機覆蓋檔的預期 SHA-256。日後重新執行一般 `-Deploy` 即可恢復模組正常的英文顯示。
 
 ## 1.7 的適配內容
+
+2026-10-21 玩家進階設定：每組翻譯 API／審查 API 各自保存「自動／盡量關閉／啟用思考」，並顯示必要思考、未知端點、Player2 與 DeepL 的限制。設定頁新增額外翻譯要求的編輯、完整預覽、清空與儲存／取消，最多 4000 字元；保留內建格式保護，不套用至審查與 DeepL。更換思考模式會區分審查快取與連線測試身分；自訂要求更換亦使一般翻譯的舊連線診斷失效。九語系各補 24 個鍵。實際安裝的 1.7 DLL 通過 220 項傳輸／思考／玩家設定檢查（含遊戲 Scribe 存讀、舊設定與無效選項回復），另通過 122 項 API 檢查、25 組審查規則及 29 項執行期 smoke 檢查；65 個配送檔案核對完成。1.5／1.6 配送及安裝 DLL 均與目前 HEAD 相同。備份與驗證：`backups/steam-three-version-20261021-223027-967/`。未執行正式供應商付費請求或遊戲內新畫面驗收，未推送 GitHub／發布工作坊。使用方式見 [思考模式與自訂翻譯要求](API_THINKING_POLICY.md)。
+
+2026-10-21 網路傳輸調整：1.7 的翻譯／連線測試／Policy Agent、模型清單，以及雲端清單／上傳／刪除／修正入口改用原生 .NET `HttpClient`，既有 ZIP 串流下載維持原路徑。配送 DLL 不再參照 `UnityEngine.Networking`，也不編入 Coroutine 網路引擎。共用長效連線池並定期更新連線，每個請求獨立設定驗證標頭；明確使用 UTF-8，逾時涵蓋回應本文讀取，取消會中止實際傳輸。翻譯取消不影響獨立的雲端操作。1.5／1.6 保留原 `UnityWebRequest` 分支，未替換其配送 DLL。重新導向不自動跟隨，API 應設定直接端點。
+
+本機驗證：三版本編譯通過（1.6 僅既有的兩個過時 API 警告）；1.7 使用遊戲自帶 CoreCLR 10.0.13 通過 44 項本機 HTTP 傳輸檢查、120 項 API 設定檢查與 29 項完整模組 smoke 檢查，1.5 另通過 120 項 API 設定檢查。已用 `-Versions 1.7 -Deploy` 部署並核對 56 個檔案，實際安裝 DLL 的 44 項傳輸檢查也通過；repo 與遊戲安裝目錄的 1.5／1.6 主 DLL 均與已發布 Git 提交的 blob 相同。備份與驗證：`backups/steam-three-version-20261021-201602-154/verification.json`、`native-http-validation.json`。尚未進行遊戲內真實供應商金鑰翻譯、正式雲端寫入驗收或發布更新。
+
+同日設定流程修正：1.7 的自訂 OpenAI 改為按「重新獲取模型」才抓取模型，翻譯與 Policy Agent 共用此規則；輸入網址／金鑰時不送出請求，也不排程後續背景抓取。免金鑰服務的手動抓取、`/v1/models` 回傳 404 後重試原網址，以及其他供應商的自動抓取均保留。48 項本機傳輸檢查與 122 項 API 檢查通過，1.5 發行 DLL 另通過 122 項檢查。已重新部署本機 1.7 並核對 56 個檔案，1.5／1.6 的 repo 與安裝 DLL 雜湊均未變；備份：`backups/steam-three-version-20261021-202357-998/`，附 `manual-model-fetch-validation.json`。未更新 GitHub／Workshop，未進行真實金鑰呼叫或遊戲內 UI 驗收。
+
+同日思考模式調整：1.7 的一般翻譯與 Policy Agent 使用分開的模型能力規則；可關閉的普通翻譯關閉思考，必要思考型號採支援的較低程度，審查與審查設定的連線測試保留思考。OpenRouter 使用模型清單回傳的能力，未知模型／轉接站與 Player2 保留服務設定。審查預留思考 Token 並納入原有預算限制，快取版本改為 4；思考耗盡輸出上限時不放行。九語系 MiMo 說明新增 1.7 專用文字，舊版說明保留。164 項實際 DLL 的本機傳輸／思考檢查、122 項 API 檢查、25 組審查規則與 29 項模組 smoke 檢查通過；九語系 XML 與參數檢查通過。最新本機部署核對 56 個檔案，1.5／1.6 的 repo 與安裝 DLL 仍等於已發布 Git blob；備份：`backups/steam-three-version-20261021-210506-572/`，附 `thinking-policy-validation.json`。未執行正式供應商金鑰呼叫、正式雲端寫入或遊戲內 UI 驗收，尚未發布。完整規則與官方來源見 [思考模式說明](API_THINKING_POLICY.md)。
+
+驗證命令（只連本機測試 HTTP server，使用合成憑證，不寫入正式雲端）：
+
+```powershell
+dotnet build tests/NativeHttpTransportSelfTest/NativeHttpTransportSelfTest.csproj -c Release
+$gameRoot = 'E:\SteamLibrary\steamapps\common\RimWorld'
+dotnet exec --runtimeconfig "$gameRoot\RimWorld.runtimeconfig.json" --depsfile "$gameRoot\RimWorld.deps.json" tests/NativeHttpTransportSelfTest/bin/Release/net10.0/NativeHttpTransportSelfTest.dll "$gameRoot\Mods\AI_TranslationCore\1.7\Assemblies\RimWorld_Auto_AI_Translation_Core.dll" $gameRoot 'E:\SteamLibrary\steamapps\workshop\content\294100\2009463077\1.7\Assemblies\0Harmony.dll' rimworld-mods/AI_TranslationCore/1.5/Assemblies/RimWorld_Auto_AI_Translation_Core.dll rimworld-mods/AI_TranslationCore/1.6/Assemblies/RimWorld_Auto_AI_Translation_Core.dll
+```
 
 2026-10-20 本機測試部署：執行 `-Deploy -LocalUiLanguage ChineseTraditional`，新版連線診斷 DLL 與語系已同步至 `E:\SteamLibrary\steamapps\common\RimWorld\Mods\AI_TranslationCore`。43 個配送檔案核對 SHA-256 通過；安裝目錄的英文語系已套用全部 744 個繁中 Keyed 鍵，主選單按鈕的 DefInjected 標籤也改用繁中。repo 發行包的英文檔保留原文。本機實際 1.7 DLL 通過 91 項離線 API 設定／診斷檢查，未啟動遊戲或進行 API 帶金鑰實連驗收。備份與 manifest：`backups/steam-three-version-20261020-214039-355/`。
 

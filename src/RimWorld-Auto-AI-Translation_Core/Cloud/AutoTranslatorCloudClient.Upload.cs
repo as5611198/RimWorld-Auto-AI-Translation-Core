@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -52,7 +52,7 @@ namespace AutoTranslator_Core
                 }
                 result.ProvenanceSummary = provenanceSummary;
 
-                string stagingDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "ATC_Upload_" + packageId);
+                string stagingDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "ATC_Upload_" + Guid.NewGuid().ToString("N"));
                 if (System.IO.Directory.Exists(stagingDir)) System.IO.Directory.Delete(stagingDir, true);
                 System.IO.Directory.CreateDirectory(stagingDir);
 
@@ -102,8 +102,10 @@ namespace AutoTranslator_Core
                     return result;
                 }
 
-                string tempZipFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{packageId}_{language}_upload.zip");
+                string tempZipFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "ATC_upload_" + Guid.NewGuid().ToString("N") + ".zip");
                 if (System.IO.File.Exists(tempZipFile)) System.IO.File.Delete(tempZipFile);
+                CanonicalizeCloudArchive(stagingDir, packageId);
+                WriteCloudArchiveManifest(stagingDir, packageId, language);
                 System.IO.Compression.ZipFile.CreateFromDirectory(stagingDir, tempZipFile, System.IO.Compression.CompressionLevel.Optimal, false, System.Text.Encoding.UTF8); System.IO.Directory.Delete(stagingDir, true);
 
                 byte[] zipBytes = System.IO.File.ReadAllBytes(tempZipFile);
@@ -186,6 +188,12 @@ namespace AutoTranslator_Core
 
                     try
                     {
+#if RIMWORLD_1_7
+                        var response = await NativeHttpTransport.SendAsync(
+                            $"{CloudApiBaseUrl}/upload", "POST", payloadBytes, null, 120);
+                        if (!response.IsSuccess) throw new Exception(response.ErrorText);
+                        bool success = true;
+#else
                         var tcs = new TaskCompletionSource<bool>();
                         ATC_Dispatcher.RunOnMainThread(() =>
                         {
@@ -215,6 +223,7 @@ namespace AutoTranslator_Core
                         });
 
                         bool success = await WaitForCloudTask(tcs.Task, 130, "cloud upload");
+#endif
                         if (success)
                         {
                             result.Success = true;

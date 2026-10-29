@@ -5,4 +5,5 @@
   <ATC_MiMo_OpenAiRequired>Use MiMo's OpenAI-compatible URL (/v1), not an Anthropic /messages URL.</ATC_MiMo_OpenAiRequired>
   <ATC_MiMo_ModelSuggestions>This MiMo endpoint has no model-list API. Built-in suggestions are available; you can enter a model ID manually. Credentials and model access are not yet verified.</ATC_MiMo_ModelSuggestions>
   <ATC_Profile_MiMo>MiMo: OpenAI-compatible requests with thinking disabled.</ATC_Profile_MiMo>
+  <ATC_MiMo_Notice_Purpose>Default: {0}. For Token Plan, use its matching OpenAI-compatible URL and key from the console. Model IDs can be entered manually. In Automatic mode, supported models disable thinking for translation and retain it for the review Agent.</ATC_MiMo_Notice_Purpose>
 </LanguageData>

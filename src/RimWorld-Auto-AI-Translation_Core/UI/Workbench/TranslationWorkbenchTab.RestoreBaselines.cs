@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -49,7 +49,9 @@ namespace AutoTranslator_Core
                 Dictionary<string, WorkbenchRestoreBaselineEntry> empty =
                     new Dictionary<string, WorkbenchRestoreBaselineEntry>(StringComparer.OrdinalIgnoreCase);
                 string path = GetWorkbenchRestoreBaselinePath(packageId, languageFolder);
-                if (string.IsNullOrEmpty(path) || !File.Exists(path)) return empty;
+                if (string.IsNullOrEmpty(path)) return empty;
+                TranslationFileTransaction.Current?.Observe(path);
+                if (!File.Exists(path)) return empty;
 
                 try
                 {
@@ -144,6 +146,7 @@ namespace AutoTranslator_Core
                 catch (Exception ex)
                 {
                     Log.Warning($"[AutoTranslationCore] Failed to update workbench restore baselines: {ex.Message}");
+                    throw;
                 }
             }
 
@@ -157,7 +160,7 @@ namespace AutoTranslator_Core
 
                 if (entries == null || entries.Count == 0)
                 {
-                    if (File.Exists(path)) File.Delete(path);
+                    if (File.Exists(path)) TranslationXmlAtomicFileStore.DeleteIfCurrent(path, () => true);
                     return;
                 }
 
@@ -169,7 +172,8 @@ namespace AutoTranslator_Core
                     LanguageFolder = languageFolder ?? "",
                     Entries = entries
                 };
-                File.WriteAllText(path, JsonConvert.SerializeObject(data, Formatting.Indented));
+                byte[] bytes = System.Text.Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(data, Formatting.Indented));
+                TranslationXmlAtomicFileStore.Save(path, stream => stream.Write(bytes, 0, bytes.Length));
             }
 
             private static string GetWorkbenchRestoreBaselinePath(string packageId, string languageFolder)

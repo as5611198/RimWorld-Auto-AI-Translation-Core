@@ -27,6 +27,11 @@ namespace AutoTranslator_Core
                 try
                 {
                     string url = $"{CloudApiBaseUrl}/corrections/applied/{Uri.EscapeDataString(packageId)}/{Uri.EscapeDataString(targetLangFolder)}";
+#if RIMWORLD_1_7
+                    var webResponse = await NativeHttpTransport.SendAsync(url, "GET", null, null, 30);
+                    if (!webResponse.IsSuccess) throw new Exception(webResponse.ErrorText);
+                    string jsonResponse = webResponse.ResponseBody;
+#else
                     var tcs = new TaskCompletionSource<string>();
 
                     ATC_Dispatcher.RunOnMainThread(() =>
@@ -66,6 +71,7 @@ namespace AutoTranslator_Core
                     });
 
                     string jsonResponse = await WaitForCloudTask(tcs.Task, 40, "applied corrections fetch");
+#endif
                     if (string.IsNullOrWhiteSpace(jsonResponse))
                         return null;
 
@@ -144,6 +150,12 @@ namespace AutoTranslator_Core
                     System.Text.Encoding tolerantUtf8 = new System.Text.UTF8Encoding(false, false);
                     byte[] payloadBytes = tolerantUtf8.GetBytes(jsonPayload);
 
+#if RIMWORLD_1_7
+                    var webResponse = await NativeHttpTransport.SendAsync(
+                        $"{CloudApiBaseUrl}/corrections/submit", "POST", payloadBytes, null, 45);
+                    if (!webResponse.IsSuccess) throw new Exception(webResponse.ErrorText);
+                    bool success = true;
+#else
                     var tcs = new TaskCompletionSource<bool>();
                     ATC_Dispatcher.RunOnMainThread(() =>
                     {
@@ -179,6 +191,7 @@ namespace AutoTranslator_Core
                     });
 
                     bool success = await WaitForCloudTask(tcs.Task, 55, "correction submit");
+#endif
                     if (success) return true;
                 }
                 catch (Exception ex)

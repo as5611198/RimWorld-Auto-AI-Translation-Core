@@ -38,6 +38,8 @@ namespace AutoTranslator_Core
         private string cachedSearchText = null;
         private int cachedValidModCount = -1;
         private int cachedValidModVersion = -1;
+        private bool selectingUntranslated;
+        private volatile bool selectionWindowClosed;
         private readonly HashSet<string> queuedStatusChecks = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private static readonly object statusCheckLock = new object();
         private static readonly HashSet<string> statusChecksInFlight = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -74,6 +76,12 @@ namespace AutoTranslator_Core
                     }
                 }
             }
+        }
+
+        public override void PostClose()
+        {
+            selectionWindowClosed = true;
+            base.PostClose();
         }
 
         // 這個方法負責處理 Do視窗Contents 相關流程。
@@ -151,6 +159,8 @@ namespace AutoTranslator_Core
         private void DrawSelectionButtons(Rect inRect, List<ModMetaData> displayMods)
         {
             Rect btnRow = new Rect(0, 85f, inRect.width, 30f);
+            bool previousEnabled = GUI.enabled;
+            GUI.enabled = previousEnabled && !selectingUntranslated;
             List<ModMetaData> defaultSelectableMods = displayMods
                 .Where(m => !AutoTranslatorScanner.IsOfficialBaseGameOrDlcPackage(m.PackageId))
                 .ToList();
@@ -169,8 +179,17 @@ namespace AutoTranslator_Core
                 }
             }
 
+            Rect untranslatedRect = new Rect(btnRow.x + 130f, btnRow.y, btnRow.width - 260f, btnRow.height);
+            if (Widgets.ButtonText(untranslatedRect, (selectingUntranslated
+                    ? "ATC_SelectUntranslated_Checking"
+                    : "ATC_SelectUntranslated").Translate()))
+            {
+                SelectUntranslatedMods(displayMods);
+            }
+            TooltipHandler.TipRegion(untranslatedRect, "ATC_SelectUntranslated_Tip".Translate());
+
             GUI.color = new Color(1f, 0.6f, 0.8f);
-            if (Widgets.ButtonText(new Rect(btnRow.x + 130f, btnRow.y, 120f, btnRow.height), "ATC_One_click_chaos".Translate()))
+            if (Widgets.ButtonText(new Rect(btnRow.xMax - 120f, btnRow.y, 120f, btnRow.height), "ATC_One_click_chaos".Translate()))
             {
                 selectedMods.Clear();
                 var rand = new System.Random();
@@ -183,6 +202,64 @@ namespace AutoTranslator_Core
                 }
             }
             GUI.color = Color.white;
+            GUI.enabled = previousEnabled;
+        }
+
+        private void SelectUntranslatedMods(List<ModMetaData> displayMods)
+        {
+            if (selectingUntranslated || AutoTranslatorSettings.IsRunning) return;
+            TargetLanguage language = AutoTranslatorMod.Settings.TargetLang;
+            List<ModMetaData> candidates = displayMods
+                .Where(mod => !AutoTranslatorScanner.IsOfficialBaseGameOrDlcPackage(mod.PackageId))
+                .ToList();
+            if (candidates.Count == 0) return;
+
+            var activeMods = ModUpdateDetector.CreateInstalledModStatusSnapshots(ModLister.AllInstalledMods);
+            var shared = ModUpdateDetector.CreateTranslationStatusCheckSnapshot(candidates[0], activeMods);
+            if (shared == null) return;
+            var checks = candidates.Select(mod => new KeyValuePair<ModMetaData, ModUpdateDetector.TranslationStatusCheckSnapshot>(
+                mod, new ModUpdateDetector.TranslationStatusCheckSnapshot
+                {
+                    PackageId = mod.PackageId,
+                    RootDir = mod.RootDir != null ? mod.RootDir.FullName : "",
+                    TargetLang = language,
+                    SavedTicks = shared.SavedTicks,
+                    SavedFingerprints = shared.SavedFingerprints,
+                    ActiveMods = shared.ActiveMods
+                })).ToList();
+            selectingUntranslated = true;
+            Task.Run(() =>
+            {
+                var untranslated = new List<ModMetaData>();
+                foreach (var check in checks)
+                {
+                    if (selectionWindowClosed) break;
+                    if (check.Value == null) continue;
+                    try
+                    {
+                        if (ModUpdateDetector.GetTranslationStatus(check.Value) == ModTranslationStatus.Untranslated)
+                            untranslated.Add(check.Key);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning("[AutoTranslationCore] Could not check untranslated selection for " +
+                            check.Value.PackageId + ": " + ex.Message);
+                    }
+                }
+                ATC_Dispatcher.RunOnMainThread(() =>
+                {
+                    selectingUntranslated = false;
+                    if (selectionWindowClosed || AutoTranslatorSettings.IsRunning ||
+                        AutoTranslatorMod.Settings.TargetLang != language) return;
+                    var eligible = new HashSet<ModMetaData>(AutoTranslatorMod.GetValidModsCached());
+                    foreach (ModMetaData mod in untranslated)
+                    {
+                        if (eligible.Contains(mod) && !AutoTranslatorScanner.IsTranslationPatchMod(mod) &&
+                            !AutoTranslatorMod.Settings.IsTranslationBlacklisted(mod.PackageId))
+                            selectedMods.Add(mod);
+                    }
+                });
+            });
         }
 
         // 這個方法負責繪製 模組List 介面。
@@ -264,7 +341,7 @@ namespace AutoTranslator_Core
             Rect shadowRunRect = new Rect(bottomRowRect.x, bottomRowRect.y, buttonWidth, bottomRowRect.height);
             Rect translationRect = new Rect(shadowRunRect.xMax + buttonGap, bottomRowRect.y, buttonWidth, bottomRowRect.height);
             bool hasSelection = selectedMods.Count > 0;
-            bool isIdle = !AutoTranslatorSettings.IsRunning;
+            bool isIdle = !AutoTranslatorSettings.IsRunning && !selectingUntranslated;
             bool hasReadyApiConfig = AutoTranslatorAPI.HasAnyReadyConfig();
             bool canStartShadowRun = hasSelection && isIdle && !isTranslatingModNames;
             bool canStartTranslation = hasSelection && isIdle && hasReadyApiConfig;
@@ -351,6 +428,7 @@ namespace AutoTranslator_Core
 
         private void QueueVisibleStatusChecks(List<ModMetaData> displayMods)
         {
+            if (selectingUntranslated) return;
             if (displayMods == null || displayMods.Count == 0) return;
 
             List<ModUpdateDetector.InstalledModStatusSnapshot> activeModSnapshots =

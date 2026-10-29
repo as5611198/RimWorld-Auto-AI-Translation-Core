@@ -65,7 +65,7 @@ namespace AutoTranslator_Core
                 case TranslatorProvider.Custom_OpenAI:
                     return new ProviderRuntimeProfile { BatchSize = reasoning ? 12 : 24, FormatRetries = 1, TimeoutFloorSeconds = reasoning ? 300 : 90, QualityHintKey = "ATC_Profile_Custom" };
                 case TranslatorProvider.MiMo:
-                    return new ProviderRuntimeProfile { BatchSize = 24, FormatRetries = 1, TimeoutFloorSeconds = 90, QualityHintKey = "ATC_Profile_MiMo" };
+                    return new ProviderRuntimeProfile { BatchSize = 24, FormatRetries = 1, TimeoutFloorSeconds = 90, QualityHintKey = "ATC_Advanced_MiMoProfile" };
                 case TranslatorProvider.OpenRouter:
                     return new ProviderRuntimeProfile { BatchSize = reasoning ? 12 : 28, FormatRetries = 1, TimeoutFloorSeconds = reasoning ? 300 : 90, QualityHintKey = "ATC_Profile_OpenRouter" };
                 default:

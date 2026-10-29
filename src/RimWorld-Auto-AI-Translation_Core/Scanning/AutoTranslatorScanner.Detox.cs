@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using RimWorld;
 using System;
 using System.Collections.Generic;
@@ -26,39 +26,10 @@ namespace AutoTranslator_Core
         // EN: This method applies emergency hotfix.
         public static void ApplyEmergencyHotfix()
         {
-            try
-            {
-                string packPath = GetLocalPackPath();
-                string langsPath = Path.Combine(packPath, "Languages");
-                string markerFile = Path.Combine(packPath, "V4.7_Cleaned.marker");
-
-
-                if (File.Exists(markerFile)) return;
-
-                if (Directory.Exists(langsPath))
-                {
-                    List<string> allXmlFiles = GetXmlFilesCached(langsPath, SearchOption.AllDirectories);
-                    if (allXmlFiles.Count > 0)
-                    {
-
-                        Directory.Delete(langsPath, true);
-                        NotifyTranslationFilesChanged(langsPath);
-
-
-                        AutoTranslatorSettings.AddErrorLog("🚨 " + "ATC_LogError_OldToxicFiles".Translate());
-                        AutoTranslatorSettings.AddLog("🗑️ " + "ATC_Log_OldFilesDeleted".Translate());
-                        AutoTranslatorSettings.AddLog("🚀 " + "ATC_Log_AutoRebuildStart".Translate());
-                    }
-                }
-
-
-                Directory.CreateDirectory(packPath);
-                File.WriteAllText(markerFile, "This marker prevents V4.7 from deleting the cleaned translation pack.");
-            }
-            catch (Exception ex)
-            {
-                Log.Warning($"[AutoTranslationCore] Delete failed (請手動刪除 !Translation_AI_Pack/Languages): {ex.Message}");
-            }
+            // Legacy destructive detox is replaced by reversible structural repair.
+            // Retain every paid value and original XML; no blanket delete/rebuild.
+            RepairOwnedTranslationDirectory(Path.Combine(GetLocalPackPath(), "Languages",
+                AutoTranslatorMod.Settings == null ? "ChineseTraditional" : GetFolderNameByLanguage(AutoTranslatorMod.Settings.TargetLang)));
         }
 
         // 這個方法負責處理 RunDetox掃描器 相關流程。
@@ -163,77 +134,10 @@ namespace AutoTranslator_Core
 
         public static void RunDetoxScanner()
             {
-            try
-            {
-                string packPath = GetLocalPackPath();
-                string langsPath = Path.Combine(packPath, "Languages");
-                if (!Directory.Exists(langsPath)) return;
-
-                var xmlFiles = GetXmlFilesCached(langsPath, SearchOption.AllDirectories);
-                int fixedFiles = 0;
-                int removedTags = 0;
-
-
-                Regex badTagRegex = new Regex(@"(?m)^\s*<([a-zA-Z0-9_\-\.]+)>[\s\u200B\u200C\u200D\uFEFF\u00A0\x00-\x1F]*<\/\1>\s*$|(?m)^\s*<[a-zA-Z0-9_\-\.]+\s*\/>\s*$", RegexOptions.Multiline);
-
-                foreach (var file in xmlFiles)
-                {
-                    try
-                    {
-                        if (string.IsNullOrEmpty(file) || !File.Exists(file))
-                        {
-                            NotifyTranslationFileChanged(file);
-                            continue;
-                        }
-
-                        string content = File.ReadAllText(file);
-                        if (badTagRegex.IsMatch(content))
-                        {
-
-                            MatchCollection matches = badTagRegex.Matches(content);
-                            foreach (Match match in matches)
-                            {
-                                Log.Warning($"[AutoTranslationCore] ⚠️ 抓到劇毒標籤，準備物理切除：{match.Value.Trim()} (來自檔案: {Path.GetFileName(file)})");
-                            }
-
-                            int matchCount = matches.Count;
-
-                            string cleanContent = badTagRegex.Replace(content, "");
-
-                            cleanContent = Regex.Replace(cleanContent, @"^\s+$[\r\n]*", "", RegexOptions.Multiline);
-
-                            File.WriteAllText(file, cleanContent);
-                            NotifyTranslationFileChanged(file);
-                            fixedFiles++;
-                            removedTags += matchCount;
-                        }
-                    }
-                    catch (FileNotFoundException)
-                    {
-                        NotifyTranslationFileChanged(file);
-                    }
-                    catch (DirectoryNotFoundException)
-                    {
-                        NotifyTranslationFileChanged(file);
-                    }
-                }
-                if (fixedFiles > 0)
-                {
-
-
-                    string logMsg = "ATC_Log_DetoxSuccess".CanTranslate()
-                        ? AutoTranslatorAPI.TranslateText("ATC_Log_DetoxSuccess", fixedFiles, removedTags)
-                        : $"[排毒系統] 修復了 {fixedFiles} 個檔案，切除 {removedTags} 個劇毒標籤！";
-
-                    AutoTranslatorSettings.AddLog($"🛡️ {logMsg}");
-                    Log.Message($"[AutoTranslationCore] Detox complete: {fixedFiles} files fixed, {removedTags} tags removed.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Warning($"[AutoTranslationCore] 排毒系統異常: {ex.Message}");
-            }
-
+            // Legacy destructive detox is replaced by reversible structural repair.
+            // Retain every paid value and original XML; no blanket delete/rebuild.
+            RepairOwnedTranslationDirectory(Path.Combine(GetLocalPackPath(), "Languages",
+                AutoTranslatorMod.Settings == null ? "ChineseTraditional" : GetFolderNameByLanguage(AutoTranslatorMod.Settings.TargetLang)));
         }
 
 
@@ -241,107 +145,10 @@ namespace AutoTranslator_Core
         // EN: This method handles run advanced detox scanner.
         public static void RunAdvancedDetoxScanner()
         {
-            try
-            {
-                string packPath = GetLocalPackPath();
-                string langsPath = Path.Combine(packPath, "Languages");
-                if (!Directory.Exists(langsPath)) return;
-
-                var xmlFiles = GetXmlFilesCached(langsPath, SearchOption.AllDirectories);
-                int fixedFiles = 0;
-                int removedTags = 0;
-
-                foreach (var file in xmlFiles)
-                {
-                    if (string.IsNullOrEmpty(file) || !File.Exists(file))
-                    {
-                        NotifyTranslationFileChanged(file);
-                        continue;
-                    }
-
-
-                    string defInjectedMarker = Path.DirectorySeparatorChar + "DefInjected" + Path.DirectorySeparatorChar;
-                    bool isDefInjectedFile = file.IndexOf(defInjectedMarker, StringComparison.OrdinalIgnoreCase) >= 0;
-                    string dirName = new System.IO.DirectoryInfo(System.IO.Path.GetDirectoryName(file)).Name.ToLower();
-                    if (isDefInjectedFile &&
-                        (dirName.Contains("facedef") || dirName.Contains("eyedef") || dirName.Contains("browdef") ||
-                        dirName.Contains("liddef") || dirName.Contains("lashdef") || dirName.Contains("mouthdef") ||
-                        dirName.Contains("nosedef") || dirName.Contains("eardef") || dirName.Contains("skindef") ||
-                        dirName.Contains("facialanimation")))
-                    {
-
-                        System.IO.File.SetAttributes(file, System.IO.FileAttributes.Normal);
-                        System.IO.File.Delete(file);
-                        NotifyTranslationFileChanged(file);
-                        fixedFiles++;
-                        continue;
-                    }
-
-                    XmlDocument doc = new XmlDocument();
-                    try { doc.Load(file); } catch { continue; }
-
-                    if (doc.DocumentElement == null || doc.DocumentElement.Name != "LanguageData") continue;
-
-                    List<XmlNode> nodesToKill = new List<XmlNode>();
-
-
-                    foreach (XmlNode node in doc.DocumentElement.ChildNodes)
-                    {
-                        if (node.NodeType != XmlNodeType.Element) continue;
-
-                        string tagName = node.Name;
-                        bool shouldKill = false;
-
-                        if (isDefInjectedFile && IsUnsafeRuntimeDefInjectionPath(tagName))
-                        {
-                            shouldKill = true;
-                        }
-
-                        if (!shouldKill)
-                        {
-                            foreach (var badField in BlacklistedFields)
-                            {
-
-                                if (tagName.EndsWith("." + badField, StringComparison.OrdinalIgnoreCase) ||
-                                    tagName.Equals(badField, StringComparison.OrdinalIgnoreCase))
-                                {
-                                    shouldKill = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (shouldKill)
-                        {
-                            nodesToKill.Add(node);
-                        }
-                    }
-
-
-                    if (nodesToKill.Count > 0)
-                    {
-                        foreach (var node in nodesToKill)
-                        {
-                            doc.DocumentElement.RemoveChild(node);
-                            removedTags++;
-                        }
-                        SaveLanguageXmlDocumentAtomic(file, doc);
-                        NotifyTranslationFileChanged(file);
-                        fixedFiles++;
-                    }
-                }
-
-                if (fixedFiles > 0)
-                {
-
-                    AutoTranslatorSettings.AddLog($"🩺 [ATC System] " + AutoTranslatorAPI.TranslateText("ATC_Log_AdvancedDetoxSuccess", removedTags, fixedFiles));
-                    Log.Message($"[AutoTranslationCore] Advanced Detox complete: Removed {removedTags} bad tags across {fixedFiles} files, saving player's API costs!");
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Warning($"[AutoTranslationCore] 高級排毒系統異常: {ex.Message}");
-            }
+            // Legacy destructive detox is replaced by reversible structural repair.
+            // Retain every paid value and original XML; no blanket delete/rebuild.
+            RepairOwnedTranslationDirectory(Path.Combine(GetLocalPackPath(), "Languages",
+                AutoTranslatorMod.Settings == null ? "ChineseTraditional" : GetFolderNameByLanguage(AutoTranslatorMod.Settings.TargetLang)));
         }
 
 
@@ -349,73 +156,10 @@ namespace AutoTranslator_Core
         // EN: This method handles run newline detox scanner.
         public static void RunNewlineDetoxScanner()
         {
-            try
-            {
-                string packPath = GetLocalPackPath();
-                string langsPath = Path.Combine(packPath, "Languages");
-                if (!Directory.Exists(langsPath)) return;
-
-                var xmlFiles = GetXmlFilesCached(langsPath, SearchOption.AllDirectories);
-                int fixedFiles = 0;
-
-                foreach (var file in xmlFiles)
-                {
-                    try
-                    {
-                        if (string.IsNullOrEmpty(file) || !File.Exists(file))
-                        {
-                            NotifyTranslationFileChanged(file);
-                            continue;
-                        }
-
-                        string content = File.ReadAllText(file);
-
-
-                        bool changed = false;
-                        string repairedContent = RepairBrokenXmlClosingTags(content);
-                        if (!string.Equals(repairedContent, content, StringComparison.Ordinal))
-                        {
-                            content = repairedContent;
-                            changed = true;
-                        }
-
-                        if (content.Contains("\\n") || content.Contains("\\r"))
-                        {
-
-                            content = content.Replace("\\n", "\n").Replace("\\r", "\r");
-                            changed = true;
-                        }
-
-                        if (changed)
-                        {
-                            File.WriteAllText(file, content);
-                            NotifyTranslationFileChanged(file);
-                            fixedFiles++;
-                        }
-                    }
-                    catch (FileNotFoundException)
-                    {
-                        NotifyTranslationFileChanged(file);
-                    }
-                    catch (DirectoryNotFoundException)
-                    {
-                        NotifyTranslationFileChanged(file);
-                    }
-                }
-
-                if (fixedFiles > 0)
-                {
-
-                    NotifyTranslationFilesChanged(langsPath);
-                    RequestKeyedMemoryDrop();
-                    AutoTranslatorSettings.AddLog($"✨ [ATC System] 歷史業障超渡成功！共修復了 {fixedFiles} 個帶有換行 Bug 的舊檔案！");
-                    Log.Message($"[AutoTranslationCore] Newline Detox complete: Fixed {fixedFiles} legacy files.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Warning($"[AutoTranslationCore] 換行排毒系統異常: {ex.Message}");
-            }
+            // Legacy destructive detox is replaced by reversible structural repair.
+            // Retain every paid value and original XML; no blanket delete/rebuild.
+            RepairOwnedTranslationDirectory(Path.Combine(GetLocalPackPath(), "Languages",
+                AutoTranslatorMod.Settings == null ? "ChineseTraditional" : GetFolderNameByLanguage(AutoTranslatorMod.Settings.TargetLang)));
         }
 
         private static string RepairBrokenXmlClosingTags(string content)

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_Repair_OpenReport>Открыть записи исправления</ATC_Repair_OpenReport>
+  <ATC_Repair_ReportHint>Существующие переводы и исходники сохраняются локально. Новые запросы перевода не отправляются.</ATC_Repair_ReportHint>
+  <ATC_Repair_IntroTitle>Проверка и исправление переводов</ATC_Repair_IntroTitle>
+  <ATC_Repair_Intro>Проверяет пакет ИИ-перевода и неудачные переводы загруженных модов, затем применяет подтверждённые исправления в игре.</ATC_Repair_Intro>
+  <ATC_Repair_Explanation>Нажмите «Полная проверка» один раз. Если другая операция ещё идёт, проверка запустится автоматически после неё.</ATC_Repair_Explanation>
+  <ATC_Repair_Start>Полная проверка</ATC_Repair_Start>
+  <ATC_Repair_Later>Позже</ATC_Repair_Later>
+  <ATC_Repair_Close>Завершить и закрыть</ATC_Repair_Close>
+  <ATC_Repair_CheckAgain>Полная проверка</ATC_Repair_CheckAgain>
+  <ATC_Repair_Minimize>Свернуть и продолжить</ATC_Repair_Minimize>
+  <ATC_Repair_Expand>Развернуть ход исправления</ATC_Repair_Expand>
+  <ATC_Repair_Checking>1 / 3　Проверка и сохранение переводов</ATC_Repair_Checking>
+  <ATC_Repair_Applying>2 / 3　Применение в игре</ATC_Repair_Applying>
+  <ATC_Repair_Verifying>3 / 3　Проверка результата</ATC_Repair_Verifying>
+  <ATC_Repair_Saving>Проверка завершена, результаты сохраняются в фоне</ATC_Repair_Saving>
+  <ATC_Repair_Completed>Проверка завершена</ATC_Repair_Completed>
+  <ATC_Repair_Stopped>Проверка не завершена</ATC_Repair_Stopped>
+  <ATC_Repair_Progress>Обработано: {0} / {1}</ATC_Repair_Progress>
+  <ATC_Repair_ApplyingHint>Применение переводов. Результат будет проверен автоматически.</ATC_Repair_ApplyingHint>
+  <ATC_Repair_VerifiedCount>Исправлено и проверено: {0}</ATC_Repair_VerifiedCount>
+  <ATC_Repair_InapplicableCount>Сейчас неприменимо (сохранено): {0}</ATC_Repair_InapplicableCount>
+  <ATC_Repair_UnresolvedCount>Не исправлено автоматически, требует проверки: {0}</ATC_Repair_UnresolvedCount>
+  <ATC_Repair_WaitingCount>Проверяется: {0}</ATC_Repair_WaitingCount>
+  <ATC_Repair_StayAtMenu>Работа продолжается после сворачивания. Оставайтесь в главном меню до завершения.</ATC_Repair_StayAtMenu>
+  <ATC_Repair_ResultHint>Несовместимые и неоднозначные элементы сохранены и не исправляются автоматически. Подробности есть в отчёте.</ATC_Repair_ResultHint>
+  <ATC_Repair_Clean>Проблем, требующих действий, не найдено.</ATC_Repair_Clean>
+  <ATC_Repair_FailureHint>Некоторые этапы не завершились. Непроверенные элементы сохранены в отчёте.</ATC_Repair_FailureHint>
+  <ATC_Repair_Busy>Перевод или применение ещё выполняется. Повторите позже.</ATC_Repair_Busy>
+  <ATC_Repair_MainMenuOnly>Вернитесь в главное меню для проверки и исправления переводов.</ATC_Repair_MainMenuOnly>
+  <ATC_Repair_ShortResult>Исправлено {0} / Неприменимо {1} / Требует проверки {2}</ATC_Repair_ShortResult>
+  <ATC_Repair_Waiting>Исправление поставлено в очередь; ожидание текущей работы</ATC_Repair_Waiting>
+  <ATC_Repair_WaitTranslation>Ожидание завершения перевода или сканирования.</ATC_Repair_WaitTranslation>
+  <ATC_Repair_WaitApplying>Ожидание применения переводов в игре.</ATC_Repair_WaitApplying>
+  <ATC_Repair_WaitMaintenance>Ожидание обслуживания пакета переводов.</ATC_Repair_WaitMaintenance>
+  <ATC_Repair_WaitSaving>Ожидание сохранения предыдущих результатов.</ATC_Repair_WaitSaving>
+  <ATC_Repair_WaitLoading>Ожидание завершения загрузки игры.</ATC_Repair_WaitLoading>
+  <ATC_Repair_WaitReady>Подготовка исправления.</ATC_Repair_WaitReady>
+  <ATC_Repair_WaitHint>Запрос поставлен в очередь и запустится автоматически, когда будет готов.</ATC_Repair_WaitHint>
+  <ATC_Repair_CancelWaiting>Отменить ожидание</ATC_Repair_CancelWaiting>
+  <ATC_Repair_NativeErrorCounts>Диагностика игры: до {0} → после {1}</ATC_Repair_NativeErrorCounts>
+  <ATC_Repair_AutomaticTitle>Ход автоматического исправления</ATC_Repair_AutomaticTitle>
+  <ATC_Repair_AutomaticHint>Исправление выполняется. Результат появится после завершения.</ATC_Repair_AutomaticHint>
+  <ATC_Repair_ModeFull>Полное исправление</ATC_Repair_ModeFull>
+  <ATC_Repair_ModeIncremental>Частичное исправление</ATC_Repair_ModeIncremental>
+</LanguageData>

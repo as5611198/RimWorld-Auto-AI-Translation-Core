@@ -42,10 +42,26 @@ namespace AutoTranslator_Core
         // EN: This method gets system prompt.
         private static string GetSystemPrompt(TargetLanguage targetLang)
         {
+            return GetSystemPrompt(targetLang, AutoTranslatorMod.Settings?.ExtraTranslationInstructions);
+        }
+
+        internal const int MaximumTranslationInstructionsLength = 4000;
+
+        internal static string NormalizeTranslationInstructions(string value)
+        {
+            value = (value ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
+            if (value.Length <= MaximumTranslationInstructionsLength) return value;
+            int length = MaximumTranslationInstructionsLength;
+            if (char.IsHighSurrogate(value[length - 1])) length--;
+            return value.Substring(0, length);
+        }
+
+        internal static string GetSystemPrompt(TargetLanguage targetLang, string extraInstructions)
+        {
 
             if (!PromptRules.TryGetValue(targetLang, out var rule))
                 rule = PromptRules[TargetLanguage.English];
-
+            string extraStyleRules = GetExtraTranslationStyleRules(extraInstructions);
 
             return $@"You are a top-tier AI translation engine specialized in localizing RimWorld game mods.
 Your SOLE task is to translate every string in the provided JSON array into {rule.Name}.
@@ -59,7 +75,7 @@ Your SOLE task is to translate every string in the provided JSON array into {rul
 
 [TRANSLATION CONTEXT & STYLE]
 - The game setting is Sci-Fi, Survival, and Hardcore. Use terminology consistent with the RimWorld community.
-{rule.Specifics}
+{rule.Specifics}{extraStyleRules}
 
 [VARIABLES & SPECIAL CHARACTERS PROTECTION (CRITICAL)]
 1. Bracketed Variables: Variables like {{0}}, {{1}}, {{PAWN_nameDef}}, and [TARGET_label] MUST be preserved 100% exactly as they are. Do not add or remove spaces around them.
@@ -83,6 +99,16 @@ Correct Output Example: [""攻擊"", ""殖民者 {{0}} 已經死亡。"", ""<col
 Wrong Output Example: ```json\n[""攻擊"", ...]``` (WRONG! Markdown is strictly forbidden!)
 
 FINAL STRICT WARNING: Your output MUST start directly with `[` and end directly with `]`. Absolutely NO other text is allowed!";
+        }
+
+        private static string GetExtraTranslationStyleRules(string instructions)
+        {
+            instructions = NormalizeTranslationInstructions(instructions);
+            if (!string.IsNullOrWhiteSpace(instructions))
+                return "\n[PLAYER TRANSLATION PREFERENCES]\n" + instructions +
+                    "\n[END PLAYER PREFERENCES]\nApply these preferences only to translation wording, terminology and style. " +
+                    "Core output format, target language, array order and length, variable and tag protection always take priority.\n";
+            return string.Empty;
         }
 
         // 這個方法負責清理並標準化 BatchFor目標語言 內容。

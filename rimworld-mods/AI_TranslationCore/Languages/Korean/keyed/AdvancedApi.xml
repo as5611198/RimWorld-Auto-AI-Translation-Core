@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <ATC_Advanced_Title>고급 설정</ATC_Advanced_Title>
+  <ATC_Advanced_ThinkingLabel>사고 모드</ATC_Advanced_ThinkingLabel>
+  <ATC_Advanced_Mode_Auto>자동 (권장)</ATC_Advanced_Mode_Auto>
+  <ATC_Advanced_Mode_PreferOff>가능하면 끄기</ATC_Advanced_Mode_PreferOff>
+  <ATC_Advanced_Mode_Enabled>사고 켜기</ATC_Advanced_Mode_Enabled>
+  <ATC_Advanced_ThinkingReviewHelp>자동은 검토 시 사고를 유지합니다. 사고는 대기 시간과 사용량을 늘릴 수 있습니다. 이 설정은 검토 API에만 적용됩니다.</ATC_Advanced_ThinkingReviewHelp>
+  <ATC_Advanced_ThinkingTranslationHelp>자동은 일반 번역 시 가능한 경우 사고를 끕니다. 사고는 대기 시간과 사용량을 늘릴 수 있습니다.</ATC_Advanced_ThinkingTranslationHelp>
+  <ATC_Advanced_ThinkingNotApplicable>이 공급자는 사고 설정이 없습니다.</ATC_Advanced_ThinkingNotApplicable>
+  <ATC_Advanced_ThinkingPlayer2>모델과 사고는 Player2에서 관리합니다. Player2 앱에서 조정하세요.</ATC_Advanced_ThinkingPlayer2>
+  <ATC_Advanced_ThinkingUnknown>이 모델 또는 주소의 사고 설정은 확인되지 않아 서비스 기본값을 유지합니다. OpenRouter에서는 모델 목록을 새로 받아 보세요.</ATC_Advanced_ThinkingUnknown>
+  <ATC_Advanced_ThinkingMinimum>이 모델은 사고를 완전히 끌 수 없습니다. 확인된 최소 수준이나 필수 사고를 유지합니다.</ATC_Advanced_ThinkingMinimum>
+  <ATC_Advanced_ThinkingOn>모델의 사고를 켜거나 유지합니다.</ATC_Advanced_ThinkingOn>
+  <ATC_Advanced_ThinkingOff>모델에 사고 끄기를 요청합니다.</ATC_Advanced_ThinkingOff>
+  <ATC_Advanced_PromptOpen>고급: 번역 추가 지침…</ATC_Advanced_PromptOpen>
+  <ATC_Advanced_PromptTitle>번역 추가 지침</ATC_Advanced_PromptTitle>
+  <ATC_Advanced_PromptHelp>검토 Agent와 DeepL을 제외한 모든 일반 AI 번역에 적용됩니다. 용어, 문체, 이름 유지 등을 지정할 수 있습니다. 대상 언어, JSON 형식, 순서, 변수 및 태그 보호 규칙은 유지됩니다. 저장 후 새 요청에만 적용되며 기존 번역은 자동으로 다시 번역하지 않습니다.</ATC_Advanced_PromptHelp>
+  <ATC_Advanced_PromptPreviewLabel>전체 프롬프트 미리 보기 (대상 언어: {0})</ATC_Advanced_PromptPreviewLabel>
+  <ATC_Advanced_PromptCount>추가 지침: {0} / {1}자</ATC_Advanced_PromptCount>
+  <ATC_Advanced_PromptEdit>편집으로 돌아가기</ATC_Advanced_PromptEdit>
+  <ATC_Advanced_PromptPreview>전체 프롬프트 보기</ATC_Advanced_PromptPreview>
+  <ATC_Advanced_PromptReset>지우기 / 기본값 복원</ATC_Advanced_PromptReset>
+  <ATC_Advanced_PromptSave>저장하고 닫기</ATC_Advanced_PromptSave>
+  <ATC_Advanced_PromptCancel>취소</ATC_Advanced_PromptCancel>
+  <ATC_Advanced_MiMoProfile>MiMo는 OpenAI 호환 API를 사용합니다. 사고 모드는 고급 설정에서 조정할 수 있습니다.</ATC_Advanced_MiMoProfile>
+</LanguageData>

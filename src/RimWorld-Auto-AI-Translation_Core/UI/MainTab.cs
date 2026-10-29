@@ -22,7 +22,7 @@ namespace AutoTranslator_Core
         {
 
             Rect topBarRect = l.GetRect(30f);
-            float btnWidth = (topBarRect.width - 30f) / 4f;
+            float btnWidth = (topBarRect.width - 20f) / 3f;
             float gap = 10f;
             if (Widgets.ButtonText(new Rect(topBarRect.x, topBarRect.y, btnWidth, topBarRect.height), "📜 " + "ATC_UpdateLog_Btn".Translate()))
             {
@@ -32,12 +32,8 @@ namespace AutoTranslator_Core
             {
                 Find.WindowStack.Add(new DeleteTranslationWindow());
             }
-            if (Widgets.ButtonText(new Rect(topBarRect.x + (btnWidth + gap) * 2, topBarRect.y, btnWidth, topBarRect.height), "📖 " + "ATC_Tutorial_Btn".Translate()))
-            {
-                Find.WindowStack.Add(new TutorialWindow());
-            }
             GUI.color = new Color(1f, 0.7f, 0.3f);
-            if (Widgets.ButtonText(new Rect(topBarRect.x + (btnWidth + gap) * 3, topBarRect.y, btnWidth, topBarRect.height), "ATC_ExportTrans_Btn".Translate()))
+            if (Widgets.ButtonText(new Rect(topBarRect.x + (btnWidth + gap) * 2, topBarRect.y, btnWidth, topBarRect.height), "ATC_ExportTrans_Btn".Translate()))
             {
                 ExportFlowController.StartExportFlow();
             }

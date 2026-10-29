@@ -33,8 +33,11 @@ namespace AutoTranslator_Core
                 try
                 {
                     string url = $"{baseUrl}/registry?fresh=1&t={DateTime.UtcNow.Ticks}";
-
-
+#if RIMWORLD_1_7
+                    var response = await NativeHttpTransport.SendAsync(url, "GET", null, null, 15 + attempt * 15);
+                    if (!response.IsSuccess) throw new Exception(response.ErrorText);
+                    string jsonResponse = response.ResponseBody;
+#else
                     var tcs = new TaskCompletionSource<string>();
                     int timeoutSeconds = 15 + attempt * 15;
 
@@ -92,6 +95,7 @@ namespace AutoTranslator_Core
 
 
                     string jsonResponse = await WaitForCloudTask(tcs.Task, timeoutSeconds + 10, "registry fetch");
+#endif
 
                     if (!string.IsNullOrEmpty(jsonResponse))
                     {

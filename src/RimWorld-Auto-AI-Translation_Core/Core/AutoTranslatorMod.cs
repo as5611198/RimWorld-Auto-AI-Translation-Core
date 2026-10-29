@@ -279,6 +279,7 @@ namespace AutoTranslator_Core
         // EN: This constructor initializes auto translator mod.
         public AutoTranslatorMod(ModContentPack content) : base(content)
         {
+            TranslationSelfRepairHooks.Install();
             EnsureNetworkDispatchReady();
 
             Settings = GetSettings<AutoTranslatorSettings>();
@@ -612,10 +613,10 @@ namespace AutoTranslator_Core
 
                 List<TabRecord> tabs = new List<TabRecord>
                 {
-                    new TabRecord("ATC_Tab_Main".Translate(), () => AutoTranslatorSettings.ActiveTab = 0, AutoTranslatorSettings.ActiveTab == 0),
-                    new TabRecord("ATC_Tab_Editor".Translate(), () => AutoTranslatorSettings.ActiveTab = 1, AutoTranslatorSettings.ActiveTab == 1),
-                    new TabRecord("ATC_Tab_Cloud".Translate(), () => AutoTranslatorSettings.ActiveTab = 2, AutoTranslatorSettings.ActiveTab == 2),
-                    new TabRecord("ATC_Tab_Settings".Translate(), () => AutoTranslatorSettings.ActiveTab = 3, AutoTranslatorSettings.ActiveTab == 3)
+                    new TabRecord("ATC_Guide_Area_Tasks".Translate(), () => AutoTranslatorSettings.ActiveTab = 0, AutoTranslatorSettings.ActiveTab == 0),
+                    new TabRecord("ATC_Guide_Area_Settings".Translate(), () => AutoTranslatorSettings.ActiveTab = 3, AutoTranslatorSettings.ActiveTab == 3),
+                    new TabRecord("ATC_Guide_Area_Workbench".Translate(), () => AutoTranslatorSettings.ActiveTab = 1, AutoTranslatorSettings.ActiveTab == 1),
+                    new TabRecord("ATC_Guide_Area_Cloud".Translate(), () => AutoTranslatorSettings.ActiveTab = 2, AutoTranslatorSettings.ActiveTab == 2)
                 };
                 Rect tabRect = new Rect(inRect.x, inRect.y + 25f, inRect.width, 30f);
                 TabDrawer.DrawTabs(tabRect, tabs);
@@ -633,7 +634,11 @@ namespace AutoTranslator_Core
                 }
 
 
-                Rect viewRect = new Rect(0, 0, inRect.width - 20f, AutoTranslatorSettings.lastSettingsViewHeight);
+                // The editor owns its inner scroll views. Size it to the
+                // available window so the fixed 600px body cannot hide controls.
+                bool editorTab = AutoTranslatorSettings.ActiveTab == 1;
+                Rect viewRect = new Rect(0, 0, inRect.width - 20f,
+                    editorTab ? Mathf.Max(0f, inRect.height - 65f) : AutoTranslatorSettings.lastSettingsViewHeight);
                 Rect scrollRect = new Rect(0, 65f, inRect.width, inRect.height - 65f);
 
                 Widgets.BeginScrollView(scrollRect, ref AutoTranslatorSettings.mainScrollPos, viewRect);
@@ -644,6 +649,15 @@ namespace AutoTranslator_Core
                     Rect listRect = new Rect(0, 0, viewRect.width, 99999f);
                     l.Begin(listRect);
                     listingStarted = true;
+                    l.Gap(5f);
+
+                    if (!Settings.HasSeenUsageGuide && Event.current.type == EventType.Repaint &&
+                        !Find.WindowStack.IsOpen<TutorialWindow>())
+                        Find.WindowStack.Add(new TutorialWindow());
+                    Rect guideRow = l.GetRect(28f);
+                    if (Widgets.ButtonText(new Rect(guideRow.xMax - 160f, guideRow.y, 160f, guideRow.height), "ATC_Guide_Title".Translate()) &&
+                        !Find.WindowStack.IsOpen<TutorialWindow>())
+                        Find.WindowStack.Add(new TutorialWindow());
                     l.Gap(5f);
 
 
@@ -664,7 +678,7 @@ namespace AutoTranslator_Core
                     {
                         DrawConfigTab(l, viewRect);
                     }
-                    AutoTranslatorSettings.lastSettingsViewHeight = l.CurHeight + 50f;
+                    AutoTranslatorSettings.lastSettingsViewHeight = editorTab ? l.CurHeight : l.CurHeight + 50f;
                 }
                 finally
                 {

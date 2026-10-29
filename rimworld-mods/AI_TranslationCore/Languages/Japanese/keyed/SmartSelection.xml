@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LanguageData>
+  <ATC_SelectUntranslated>未翻訳を選択</ATC_SelectUntranslated>
+  <ATC_SelectUntranslated_Checking>確認中…</ATC_SelectUntranslated_Checking>
+  <ATC_SelectUntranslated_Tip>現在の検索結果から未翻訳のMODを追加選択します。既存の選択は維持し、本体・DLC・ブラックリスト・翻訳パックを除外します。</ATC_SelectUntranslated_Tip>
+</LanguageData>
